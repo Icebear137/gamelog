@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  /* ── Gradient background — fixed so it stays while scrolling ── */
+  background:
+    radial-gradient(ellipse 80% 60% at 15% -5%,  rgba(124, 58, 237, 0.18) 0%, transparent 65%),
+    radial-gradient(ellipse 65% 50% at 88% 105%, rgba(29,  78, 216, 0.14) 0%, transparent 60%),
+    radial-gradient(ellipse 55% 35% at 50%  50%, rgba(109, 40, 217, 0.06) 0%, transparent 75%),
+    #06030f;
+  background-attachment: fixed;
+  color: #f9fafb;
+  font-family: inherit;
+  min-height: 100vh;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────────── */
+::-webkit-scrollbar        { width: 5px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: rgba(139, 92, 246, 0.25); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.45); }
+
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}

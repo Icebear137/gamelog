@@ -1,0 +1,300 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(cuid())
+  username   String   @unique
+  email      String   @unique
+  password   String
+  bio        String?
+  avatar     String?
+  steamId    String?
+  discordTag String?
+  isPrivate  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  emailNotifications     Boolean             @default(true)
+  lastDigestAt           DateTime?
+  lastSeen               DateTime?
+
+  gameEntries            GameEntry[]
+  activities             Activity[]
+  likes                  Like[]
+  comments               Comment[]
+  following              Follow[]            @relation("Follower")
+  followers              Follow[]            @relation("Following")
+  notificationsReceived  Notification[]      @relation("NotifRecipient")
+  notificationsSent      Notification[]      @relation("NotifActor")
+  gameLists              GameList[]
+  yearlyChallenges       YearlyChallenge[]
+  achievements           UserAchievement[]
+  conversationParticipants ConversationParticipant[]
+  messagesSent           Message[]
+  messageReactions       MessageReaction[]
+  gameNightRsvps         GameNightRsvp[]
+  conversationNicknames  ConversationNickname[]
+}
+
+model Game {
+  id          String   @id @default(cuid())
+  rawgId      Int      @unique
+  name        String
+  slug        String   @unique
+  coverImage  String?
+  genres      String   @default("[]")
+  releaseYear Int?
+  rawgRating  Float?
+  createdAt   DateTime @default(now())
+
+  entries     GameEntry[]
+  listEntries GameListEntry[]
+  messages    Message[]
+  gameNights  GameNight[]
+}
+
+model GameEntry {
+  id        String     @id @default(cuid())
+  userId    String
+  gameId    String
+  status    String
+  rating    Int?
+  review    String?
+  playtime  Int?
+  platform  String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game       Game       @relation(fields: [gameId], references: [id])
+  activities Activity[]
+
+  @@unique([userId, gameId])
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  userId      String
+  gameEntryId String
+  type        String
+  createdAt   DateTime @default(now())
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gameEntry     GameEntry      @relation(fields: [gameEntryId], references: [id], onDelete: Cascade)
+  likes         Like[]
+  comments      Comment[]
+  notifications Notification[]
+}
+
+model Like {
+  id         String   @id @default(cuid())
+  userId     String
+  activityId String
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, activityId])
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  userId     String
+  activityId String
+  body       String
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+}
+
+model GameList {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries GameListEntry[]
+}
+
+model GameListEntry {
+  id      String   @id @default(cuid())
+  listId  String
+  gameId  String
+  addedAt DateTime @default(now())
+
+  list GameList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  game Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, gameId])
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String
+  actorId    String
+  type       String
+  activityId String?
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user     User      @relation("NotifRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor    User      @relation("NotifActor", fields: [actorId], references: [id], onDelete: Cascade)
+  activity Activity? @relation(fields: [activityId], references: [id], onDelete: SetNull)
+
+  @@index([userId, read])
+}
+
+model YearlyChallenge {
+  id        String   @id @default(cuid())
+  userId    String
+  year      Int
+  goal      Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, year])
+}
+
+model UserAchievement {
+  id       String   @id @default(cuid())
+  userId   String
+  type     String
+  earnedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+}
+
+model Conversation {
+  id              String   @id @default(cuid())
+  isGroup         Boolean  @default(false)
+  name            String?
+  avatar          String?
+  pinnedMessageId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  participants  ConversationParticipant[]
+  messages      Message[]
+  gameNights    GameNight[]
+  nicknames     ConversationNickname[]
+  pinnedMessage Message?                  @relation("PinnedMessage", fields: [pinnedMessageId], references: [id], onDelete: SetNull)
+}
+
+model ConversationParticipant {
+  id             String   @id @default(cuid())
+  conversationId String
+  userId         String
+  role           String   @default("member") // "admin" | "member"
+  lastReadAt     DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+}
+
+model ConversationNickname {
+  id             String   @id @default(cuid())
+  conversationId String
+  userId         String
+  nickname       String
+  updatedAt      DateTime @updatedAt
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+}
+
+model GameNight {
+  id             String   @id @default(cuid())
+  conversationId String
+  createdBy      String
+  gameName       String?
+  gameId         String?
+  scheduledAt    DateTime
+  note           String?
+  createdAt      DateTime @default(now())
+
+  conversation Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  game         Game?            @relation(fields: [gameId], references: [id], onDelete: SetNull)
+  rsvps        GameNightRsvp[]
+}
+
+model GameNightRsvp {
+  id          String   @id @default(cuid())
+  gameNightId String
+  userId      String
+  status      String   // "going" | "maybe" | "no"
+  createdAt   DateTime @default(now())
+
+  gameNight GameNight @relation(fields: [gameNightId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([gameNightId, userId])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  senderId       String
+  body           String
+  imageUrl       String?
+  imageUrls      String?   // JSON array of URLs for multi-image messages
+  audioUrl       String?
+  audioDuration  Int?      // seconds
+  replyToId      String?
+  gameId         String?
+  isForwarded    Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  conversation Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User              @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  replyTo      Message?          @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies      Message[]         @relation("MessageReplies")
+  reactions            MessageReaction[]
+  game                 Game?             @relation(fields: [gameId], references: [id], onDelete: SetNull)
+  pinnedInConversation Conversation[]    @relation("PinnedMessage")
+}
+
+model MessageReaction {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+}
