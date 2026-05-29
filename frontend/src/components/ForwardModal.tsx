@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { X, Search, Loader2, Forward } from "lucide-react";
+import { X, Search, Loader2, Forward, Users } from "lucide-react";
+import Image from "next/image";
+import { Text, Flex } from "@radix-ui/themes";
 import { api } from "@/lib/api";
 import { Conversation } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
@@ -18,7 +20,10 @@ interface Props {
 export default function ForwardModal({ messageId: _messageId, onClose, onForward, forwarding }: Props) {
   const { user } = useAuth();
   const [query, setQuery] = useState("");
+  const [forwardingToId, setForwardingToId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { if (!forwarding) setForwardingToId(null); }, [forwarding]);
 
   useEffect(() => { inputRef.current?.focus(); }, []);
 
@@ -37,7 +42,7 @@ export default function ForwardModal({ messageId: _messageId, onClose, onForward
   });
 
   const filtered = conversations.filter((c) => {
-    const name = c.otherUser?.username ?? "";
+    const name = c.isGroup ? (c.name ?? "") : (c.otherUser?.username ?? "");
     return name.toLowerCase().includes(query.toLowerCase());
   });
 
@@ -52,21 +57,21 @@ export default function ForwardModal({ messageId: _messageId, onClose, onForward
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
-          <div className="flex items-center gap-2">
+        <Flex align="center" justify="between" className="px-4 py-3 border-b border-white/8">
+          <Flex align="center" gap="2">
             <Forward size={15} className="text-violet-400" />
             <span className="text-sm font-semibold text-white">Forward message</span>
-          </div>
+          </Flex>
           <button
             onClick={onClose}
             className="p-1.5 text-gray-500 hover:text-gray-300 hover:bg-white/8 rounded-lg transition-colors"
           >
             <X size={14} />
           </button>
-        </div>
+        </Flex>
 
         {/* Search */}
-        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/8">
+        <Flex align="center" gap="2" className="px-4 py-2.5 border-b border-white/8">
           <Search size={13} className="text-gray-500 shrink-0" />
           <input
             ref={inputRef}
@@ -75,29 +80,37 @@ export default function ForwardModal({ messageId: _messageId, onClose, onForward
             placeholder="Search conversations…"
             className="flex-1 bg-transparent text-sm text-white outline-none placeholder-gray-600"
           />
-        </div>
+        </Flex>
 
         {/* Conversation list */}
         <div className="max-h-72 overflow-y-auto">
           {filtered.length === 0 && (
-            <p className="py-10 text-center text-xs text-gray-600">No conversations found</p>
+            <Text as="p" size="1" color="gray" className="py-10 text-center">No conversations found</Text>
           )}
           {filtered.map((conv) => (
             <button
               key={conv.id}
-              disabled={forwarding}
-              onClick={() => onForward(conv.id)}
+              disabled={forwarding && forwardingToId === conv.id}
+              onClick={() => { setForwardingToId(conv.id); onForward(conv.id); }}
               className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left disabled:opacity-50"
             >
-              <Avatar
-                src={conv.otherUser?.avatar}
-                username={conv.otherUser?.username ?? "?"}
-                size="sm"
-              />
+              {conv.isGroup ? (
+                conv.avatar ? (
+                  <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
+                    <Image src={conv.avatar} alt={conv.name ?? "Group"} width={32} height={32} className="object-cover w-full h-full" />
+                  </div>
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-violet-700/40 flex items-center justify-center shrink-0">
+                    <Users size={14} className="text-violet-300" />
+                  </div>
+                )
+              ) : (
+                <Avatar src={conv.otherUser?.avatar} username={conv.otherUser?.username ?? "?"} size="sm" />
+              )}
               <span className="text-sm text-white truncate flex-1">
-                {conv.otherUser?.username ?? "Unknown"}
+                {conv.isGroup ? (conv.name ?? "Group") : (conv.otherUser?.username ?? "Unknown")}
               </span>
-              {forwarding && (
+              {forwarding && forwardingToId === conv.id && (
                 <Loader2 size={13} className="animate-spin text-gray-500 shrink-0" />
               )}
             </button>

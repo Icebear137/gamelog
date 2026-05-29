@@ -23,6 +23,14 @@ export interface Game {
   genres: string[];
   releaseYear?: number;
   rawgRating?: number;
+  description?: string;
+  platforms?: string[];
+  developers?: string[];
+  publishers?: string[];
+  website?: string;
+  metacritic?: number;
+  esrbRating?: string;
+  avgPlaytime?: number;
 }
 
 export type GamePlatform = "PC" | "PS5" | "PS4" | "Xbox Series X|S" | "Xbox One" | "Nintendo Switch" | "iOS/Android" | "Other";
@@ -64,8 +72,9 @@ export interface GameListPreview {
   createdAt: string;
   updatedAt: string;
   user: { id: string; username: string; avatar?: string };
-  _count: { entries: number };
+  _count: { entries: number; likes: number; comments: number };
   entries: { game: { coverImage?: string; name: string } }[];
+  likedByMe?: boolean;
 }
 
 export interface GameListDetail {
@@ -76,12 +85,20 @@ export interface GameListDetail {
   createdAt: string;
   updatedAt: string;
   user: { id: string; username: string; avatar?: string };
-  _count: { entries: number };
+  _count: { entries: number; likes: number; comments: number };
+  likedByMe?: boolean;
   entries: {
     id: string;
     addedAt: string;
     game: Game;
   }[];
+}
+
+export interface GameListComment {
+  id: string;
+  body: string;
+  createdAt: string;
+  user: { id: string; username: string; avatar?: string };
 }
 
 export interface ChatMessageGame {
@@ -124,8 +141,41 @@ export interface ChatMessage {
   gameId?: string | null;
   game?: ChatMessageGame | null;
   isForwarded?: boolean;
+  poll?: PollData | null;
+  gameNight?: GameNightData | null;
   createdAt: string;
   sender: { id: string; username: string; avatar?: string };
+}
+
+export interface GameNightRSVPData {
+  userId: string;
+  status: "going" | "maybe" | "no";
+  user: { id: string; username: string; avatar?: string | null };
+}
+
+export interface GameNightData {
+  id: string;
+  title: string;
+  scheduledAt: string;
+  platform?: string | null;
+  note?: string | null;
+  createdBy: string;
+  game?: { id: string; name: string; coverImage?: string | null; rawgId: number; slug: string } | null;
+  rsvps: GameNightRSVPData[];
+}
+
+export interface PollOptionData {
+  id: string;
+  text: string;
+  order: number;
+  votes: { userId: string }[];
+}
+
+export interface PollData {
+  id: string;
+  question: string;
+  allowMultiple: boolean;
+  options: PollOptionData[];
 }
 
 export interface PinnedMessage {

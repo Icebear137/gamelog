@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Label from "@radix-ui/react-label";
 import { Trophy, Target, X } from "lucide-react";
+import { Text, Flex } from "@radix-ui/themes";
 import { api } from "@/lib/api";
 import { dispatchToast } from "@/lib/toast";
 
@@ -54,11 +55,11 @@ export default function YearlyChallengeCard({ username, isMe }: Props) {
   return (
     <>
       <div className={`bg-white/5 backdrop-blur-sm border rounded-2xl p-5 ${done ? "border-yellow-500/40" : "border-white/8"}`}>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold text-white flex items-center gap-2">
+        <Flex align="center" justify="between" className="mb-3">
+          <Text size="2" weight="bold" className="flex items-center gap-2">
             <Trophy size={16} className={done ? "text-yellow-400" : "text-gray-400"} />
             {year} Challenge
-          </h2>
+          </Text>
           {isMe && (
             <button
               onClick={() => { setGoalInput(String(challenge?.goal ?? "")); setOpen(true); }}
@@ -67,7 +68,7 @@ export default function YearlyChallengeCard({ username, isMe }: Props) {
               {challenge ? "Edit goal" : "Set goal"}
             </button>
           )}
-        </div>
+        </Flex>
 
         {challenge ? (
           <div className="space-y-2">
@@ -76,7 +77,7 @@ export default function YearlyChallengeCard({ username, isMe }: Props) {
                 {challenge.completed}
                 <span className="text-gray-500 text-lg font-normal"> / {challenge.goal}</span>
               </p>
-              <p className="text-xs text-gray-500 mb-1">games completed</p>
+              <Text as="p" size="1" color="gray" className="mb-1">games completed</Text>
             </div>
 
             {/* Progress bar */}
@@ -96,7 +97,7 @@ export default function YearlyChallengeCard({ username, isMe }: Props) {
             </div>
           </div>
         ) : (
-          <p className="text-sm text-gray-500">No challenge set for {year} yet.</p>
+          <Text as="p" size="2" color="gray">No challenge set for {year} yet.</Text>
         )}
       </div>
 

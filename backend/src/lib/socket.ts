@@ -83,8 +83,11 @@ export function initSocket(httpServer: HttpServer) {
     }
 
     // ── Chat room management ──────────────────────────────────────────────
-    socket.on("join_conversation", (conversationId: string) => {
-      socket.join(`conv:${conversationId}`);
+    socket.on("join_conversation", async (conversationId: string) => {
+      const p = await prisma.conversationParticipant.findUnique({
+        where: { conversationId_userId: { conversationId, userId } },
+      });
+      if (p) socket.join(`conv:${conversationId}`);
     });
 
     socket.on("leave_conversation", (conversationId: string) => {

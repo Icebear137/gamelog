@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, GitCompare, Star, Users, Percent } from "lucide-react";
 import { Slot } from "@radix-ui/react-slot";
+import { Heading, Text, Flex, Box } from "@radix-ui/themes";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import Avatar from "@/components/Avatar";
@@ -42,20 +43,20 @@ export default function ComparePage({ params }: { params: Promise<{ username: st
 
   if (!me) {
     return (
-      <div className="text-center py-16 text-gray-500">
-        <p>Sign in to compare libraries.</p>
+      <div className="text-center py-16">
+        <Text as="p" color="gray">Sign in to compare libraries.</Text>
       </div>
     );
   }
 
-  if (isLoading) return <div className="text-gray-500 py-16 text-center">Loading...</div>;
+  if (isLoading) return <Text as="p" color="gray" className="py-16 text-center">Loading...</Text>;
 
   if (error) {
     return (
       <div className="text-center py-16 text-gray-500">
         <GitCompare size={40} className="mx-auto mb-3 opacity-30" />
-        <p className="font-medium text-gray-300">Cannot compare</p>
-        <p className="text-sm mt-1">{(error as any)?.response?.data?.error ?? "Something went wrong."}</p>
+        <Text as="p" weight="bold" color="gray">Cannot compare</Text>
+        <Text as="p" size="2" color="gray" className="mt-1">{(error as any)?.response?.data?.error ?? "Something went wrong."}</Text>
       </div>
     );
   }
@@ -67,7 +68,7 @@ export default function ComparePage({ params }: { params: Promise<{ username: st
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <Flex align="center" gap="3">
         <Slot
           role="link"
           tabIndex={0}
@@ -77,18 +78,18 @@ export default function ComparePage({ params }: { params: Promise<{ username: st
         >
           <div><ArrowLeft size={18} /></div>
         </Slot>
-        <div className="flex items-center gap-3">
+        <Flex align="center" gap="3">
           <Avatar src={me.avatar} username={me.username} size="sm" />
           <GitCompare size={18} className="text-violet-400 shrink-0" />
           <Avatar src={data.user.avatar} username={data.user.username} size="sm" />
           <div>
-            <h1 className="text-lg font-bold">
+            <Heading size="4" as="h1">
               {me.username} <span className="text-gray-500">vs</span> {data.user.username}
-            </h1>
-            <p className="text-xs text-gray-500">Library comparison</p>
+            </Heading>
+            <Text as="p" size="1" color="gray">Library comparison</Text>
           </div>
-        </div>
-      </div>
+        </Flex>
+      </Flex>
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -120,16 +121,16 @@ export default function ComparePage({ params }: { params: Promise<{ username: st
 
       {/* Shared games */}
       {sharedGames.length === 0 ? (
-        <div className="text-center py-16 text-gray-500 bg-white/5 backdrop-blur-sm border border-white/8 rounded-2xl">
+        <div className="text-center py-16 bg-white/5 backdrop-blur-sm border border-white/8 rounded-2xl">
           <GitCompare size={40} className="mx-auto mb-3 opacity-30" />
-          <p className="font-medium text-gray-300">No games in common</p>
-          <p className="text-sm mt-1">You and {data.user.username} haven't logged any of the same games yet.</p>
+          <Text as="p" weight="bold" color="gray">No games in common</Text>
+          <Text as="p" size="2" color="gray" className="mt-1">You and {data.user.username} haven't logged any of the same games yet.</Text>
         </div>
       ) : (
         <div>
-          <h2 className="text-base font-bold mb-3">
+          <Heading size="3" as="h2" className="mb-3">
             {sharedGames.length} Shared Game{sharedGames.length !== 1 ? "s" : ""}
-          </h2>
+          </Heading>
           <div className="space-y-2">
             {sharedGames.map(({ game, me: myEntry, them }) => (
               <Slot
@@ -149,14 +150,14 @@ export default function ComparePage({ params }: { params: Promise<{ username: st
                     <div className="w-10 h-12 bg-white/8 rounded-lg shrink-0" />
                   )}
 
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-white truncate">{game.name}</p>
+                  <Box flexGrow="1" minWidth="0">
+                    <Text as="p" size="2" weight="bold" className="truncate">{game.name}</Text>
                     <div className="flex flex-wrap gap-1 mt-0.5">
                       {game.genres.slice(0, 2).map((g) => (
                         <span key={g} className="text-xs text-gray-600 bg-white/8 px-1.5 py-0.5 rounded-full">{g}</span>
                       ))}
                     </div>
-                  </div>
+                  </Box>
 
                   {/* My entry */}
                   <div className="shrink-0 text-right space-y-1">
@@ -210,10 +211,10 @@ function StatCard({
 }) {
   return (
     <div className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-xl p-4 text-center">
-      <div className="flex items-center justify-center gap-1 mb-1">{icon}</div>
-      <p className="text-xl font-bold text-white">{value}</p>
-      <p className="text-xs text-gray-400 font-medium mt-0.5">{label}</p>
-      <p className="text-xs text-gray-600 mt-0.5">{sub}</p>
+      <Flex align="center" justify="center" gap="1" className="mb-1">{icon}</Flex>
+      <Text as="p" size="5" weight="bold">{value}</Text>
+      <Text as="p" size="1" color="gray" weight="medium" className="mt-0.5">{label}</Text>
+      <Text as="p" size="1" color="gray" className="mt-0.5">{sub}</Text>
     </div>
   );
 }

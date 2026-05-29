@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Slot } from "@radix-ui/react-slot";
 import * as Separator from "@radix-ui/react-separator";
+import { Text, Heading, Flex, Box } from "@radix-ui/themes";
 import { ArrowLeft, Send } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -50,8 +51,8 @@ export default function ActivityDetailPage({ params }: { params: Promise<{ id: s
     },
   });
 
-  if (isLoading) return <div className="text-gray-500 py-16 text-center">Loading...</div>;
-  if (!activity) return <div className="text-gray-500 py-16 text-center">Activity not found</div>;
+  if (isLoading) return <Text as="p" color="gray" className="py-16 text-center">Loading...</Text>;
+  if (!activity) return <Text as="p" color="gray" className="py-16 text-center">Activity not found</Text>;
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
@@ -73,12 +74,12 @@ export default function ActivityDetailPage({ params }: { params: Promise<{ id: s
       <ActivityCard activity={activity} />
 
       <div className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-xl p-4 space-y-4">
-        <h2 className="text-sm font-semibold text-gray-300">
+        <Heading size="2" as="h2" color="gray" className="font-semibold">
           {comments.length} {comments.length === 1 ? "Comment" : "Comments"}
-        </h2>
+        </Heading>
 
         {comments.map((c) => (
-          <div key={c.id} className="flex gap-3">
+          <Flex key={c.id} gap="3">
             <Slot
               role="link"
               tabIndex={0}
@@ -92,8 +93,8 @@ export default function ActivityDetailPage({ params }: { params: Promise<{ id: s
                 <Avatar src={c.user.avatar} username={c.user.username} size="sm" />
               </div>
             </Slot>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-baseline gap-2">
+            <Box flexGrow="1" minWidth="0">
+              <Flex align="baseline" gap="2">
                 <Slot
                   role="link"
                   tabIndex={0}
@@ -103,19 +104,19 @@ export default function ActivityDetailPage({ params }: { params: Promise<{ id: s
                     if (e.key === "Enter" || e.key === " ") router.push(`/user/${c.user.username}`);
                   }}
                 >
-                  <span className="text-sm font-semibold text-white hover:text-violet-400 transition-colors">
+                  <Text as="span" size="2" className="font-semibold hover:text-violet-400 transition-colors">
                     {c.user.username}
-                  </span>
+                  </Text>
                 </Slot>
-                <span className="text-xs text-gray-500">{formatDistanceToNow(c.createdAt)}</span>
-              </div>
+                <Text as="span" size="1" color="gray">{formatDistanceToNow(c.createdAt)}</Text>
+              </Flex>
               <CommentBody body={c.body} className="text-gray-300 text-sm mt-0.5" />
-            </div>
-          </div>
+            </Box>
+          </Flex>
         ))}
 
         {comments.length === 0 && (
-          <p className="text-gray-600 text-sm text-center py-2">No comments yet. Be the first!</p>
+          <Text as="p" size="2" color="gray" className="text-center py-2">No comments yet. Be the first!</Text>
         )}
 
         <Separator.Root className="h-px bg-white/8" />
@@ -129,7 +130,7 @@ export default function ActivityDetailPage({ params }: { params: Promise<{ id: s
             className="flex gap-2 pt-1"
           >
             <Avatar src={user.avatar} username={user.username} size="sm" />
-            <div className="flex-1 flex gap-2">
+            <Flex flexGrow="1" gap="2">
               <MentionInput
                 value={body}
                 onChange={setBody}
@@ -144,10 +145,10 @@ export default function ActivityDetailPage({ params }: { params: Promise<{ id: s
               >
                 <Send size={15} />
               </button>
-            </div>
+            </Flex>
           </form>
         ) : (
-          <p className="text-gray-600 text-sm text-center pt-1">
+          <Text as="p" size="2" color="gray" className="text-center pt-1">
             <Slot
               role="link"
               tabIndex={0}
@@ -160,7 +161,7 @@ export default function ActivityDetailPage({ params }: { params: Promise<{ id: s
               <span>Sign in</span>
             </Slot>{" "}
             to leave a comment
-          </p>
+          </Text>
         )}
       </div>
     </div>

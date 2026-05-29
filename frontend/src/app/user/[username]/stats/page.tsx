@@ -7,6 +7,7 @@ import { Slot } from "@radix-ui/react-slot";
 import * as Select from "@radix-ui/react-select";
 import * as Separator from "@radix-ui/react-separator";
 import { ArrowLeft, Star, Clock, Gamepad2, ChevronDown, BarChart3, TrendingUp } from "lucide-react";
+import { Heading, Text, Flex } from "@radix-ui/themes";
 import { api } from "@/lib/api";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -53,7 +54,7 @@ export default function StatsPage({ params }: { params: Promise<{ username: stri
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <Flex align="center" justify="between">
         <Slot
           role="link"
           tabIndex={0}
@@ -86,15 +87,15 @@ export default function StatsPage({ params }: { params: Promise<{ username: stri
             </Select.Content>
           </Select.Portal>
         </Select.Root>
-      </div>
+      </Flex>
 
-      <div className="flex items-center gap-3">
+      <Flex align="center" gap="3">
         <BarChart3 size={22} className="text-violet-400" />
-        <h1 className="text-2xl font-bold">{year} in Review</h1>
-      </div>
+        <Heading size="6">{year} in Review</Heading>
+      </Flex>
 
-      {isLoading && <div className="text-gray-500 text-sm py-16 text-center">Loading stats...</div>}
-      {isError && <div className="text-gray-500 text-sm py-16 text-center">Could not load stats.</div>}
+      {isLoading && <Text as="p" size="2" color="gray" className="py-16 text-center">Loading stats...</Text>}
+      {isError && <Text as="p" size="2" color="gray" className="py-16 text-center">Could not load stats.</Text>}
 
       {stats && (
         <>
@@ -105,37 +106,37 @@ export default function StatsPage({ params }: { params: Promise<{ username: stri
                 <Gamepad2 size={16} />
                 <span className="text-2xl font-bold">{stats.totalGames}</span>
               </div>
-              <p className="text-gray-500 text-xs">Games logged</p>
+              <Text as="p" size="1" color="gray">Games logged</Text>
             </div>
             <div className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-xl p-4 text-center">
               <div className="flex items-center justify-center gap-1 text-yellow-400 mb-1">
                 <Star size={16} fill="currentColor" />
                 <span className="text-2xl font-bold">{stats.avgRating ?? "—"}</span>
               </div>
-              <p className="text-gray-500 text-xs">Avg rating</p>
+              <Text as="p" size="1" color="gray">Avg rating</Text>
             </div>
             <div className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-xl p-4 text-center">
               <div className="flex items-center justify-center gap-1 text-green-400 mb-1">
                 <Clock size={16} />
                 <span className="text-2xl font-bold">{stats.totalPlaytime}</span>
               </div>
-              <p className="text-gray-500 text-xs">Hours played</p>
+              <Text as="p" size="1" color="gray">Hours played</Text>
             </div>
           </div>
 
           {stats.totalGames === 0 ? (
             <div className="text-center py-16 text-gray-500 bg-white/5 backdrop-blur-sm border border-white/8 rounded-2xl">
               <Gamepad2 size={40} className="mx-auto mb-3 opacity-30" />
-              <p>No activity in {year}.</p>
+              <Text as="p" color="gray">No activity in {year}.</Text>
             </div>
           ) : (
             <>
               {/* Activity by month */}
               <div className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-2xl p-6">
-                <h2 className="text-sm font-semibold text-gray-300 mb-4 flex items-center gap-2">
+                <Flex align="center" gap="2" className="mb-4">
                   <TrendingUp size={15} className="text-violet-400" />
-                  Activity by month
-                </h2>
+                  <Text size="2" weight="bold" color="gray">Activity by month</Text>
+                </Flex>
                 <div className="flex items-end gap-1.5 h-28">
                   {stats.byMonth.map((count, i) => (
                     <div key={i} className="flex-1 flex flex-col items-center gap-1">
@@ -155,7 +156,7 @@ export default function StatsPage({ params }: { params: Promise<{ username: stri
               {/* Status breakdown */}
               {Object.keys(stats.statusCounts).length > 0 && (
                 <div className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-2xl p-6">
-                  <h2 className="text-sm font-semibold text-gray-300 mb-4">Status breakdown</h2>
+                  <Text size="2" weight="bold" color="gray" className="mb-4 block">Status breakdown</Text>
                   <div className="space-y-3">
                     {Object.entries(stats.statusCounts).map(([status, count]) => (
                       <div key={status} className="flex items-center gap-3">
@@ -178,7 +179,7 @@ export default function StatsPage({ params }: { params: Promise<{ username: stri
               {/* Genre breakdown */}
               {stats.genreBreakdown.length > 0 && (
                 <div className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-2xl p-6">
-                  <h2 className="text-sm font-semibold text-gray-300 mb-4">Top genres</h2>
+                  <Text size="2" weight="bold" color="gray" className="mb-4 block">Top genres</Text>
                   <div className="space-y-3">
                     {stats.genreBreakdown.map(([genre, count]) => (
                       <div key={genre} className="flex items-center gap-3">
@@ -199,7 +200,7 @@ export default function StatsPage({ params }: { params: Promise<{ username: stri
               {/* Top rated */}
               {stats.topRated.length > 0 && (
                 <div className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-2xl p-6">
-                  <h2 className="text-sm font-semibold text-gray-300 mb-4">Top rated this year</h2>
+                  <Text size="2" weight="bold" color="gray" className="mb-4 block">Top rated this year</Text>
                   <div className="space-y-3">
                     {stats.topRated.map((g, i) => (
                       <div key={g.rawgId}>
@@ -221,9 +222,9 @@ export default function StatsPage({ params }: { params: Promise<{ username: stri
                                 <Gamepad2 size={14} className="text-gray-600" />
                               </div>
                             )}
-                            <span className="text-sm text-gray-300 group-hover:text-white transition-colors truncate flex-1">
+                            <Text as="span" size="2" color="gray" className="group-hover:text-white transition-colors truncate flex-1">
                               {g.name}
-                            </span>
+                            </Text>
                             <div className="flex items-center gap-1 text-yellow-400 shrink-0">
                               <Star size={13} fill="currentColor" />
                               <span className="text-sm font-bold">{g.rating}</span>

@@ -4,6 +4,7 @@ import { memo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Slot } from "@radix-ui/react-slot";
 import { Heart, MessageCircle, Star, Clock } from "lucide-react";
+import { Text, Flex, Box } from "@radix-ui/themes";
 import { Activity, ActivityType } from "@/lib/types";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -54,8 +55,8 @@ export default memo(function ActivityCard({ activity }: Props) {
   const game = gameEntry.game;
 
   return (
-    <article className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-xl p-4 hover:border-white/15 transition-colors">
-      <div className="flex gap-3">
+    <article className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-xl p-4 hover:border-white/15 transition-colors min-h-44">
+      <Flex gap="3">
         <Slot
           role="link"
           tabIndex={0}
@@ -70,12 +71,12 @@ export default memo(function ActivityCard({ activity }: Props) {
           </div>
         </Slot>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-1 text-sm">
+        <Box flexGrow="1" minWidth="0">
+          <div className="flex items-center gap-1.5 text-sm min-w-0">
             <Slot
               role="link"
               tabIndex={0}
-              className="cursor-pointer outline-none"
+              className="cursor-pointer outline-none shrink-0"
               onClick={() => router.push(`/user/${activity.user.username}`)}
               onKeyDown={(e: React.KeyboardEvent) => {
                 if (e.key === "Enter" || e.key === " ") router.push(`/user/${activity.user.username}`);
@@ -85,24 +86,24 @@ export default memo(function ActivityCard({ activity }: Props) {
                 {activity.user.username}
               </span>
             </Slot>
-            <span className="text-gray-400">{activityLabel[activity.type]}</span>
+            <Text as="span" size="2" color="gray" className="shrink-0">{activityLabel[activity.type]}</Text>
             <Slot
               role="link"
               tabIndex={0}
-              className="cursor-pointer outline-none"
+              className="cursor-pointer outline-none min-w-0"
               onClick={() => router.push(`/game/${game.rawgId}`)}
               onKeyDown={(e: React.KeyboardEvent) => {
                 if (e.key === "Enter" || e.key === " ") router.push(`/game/${game.rawgId}`);
               }}
             >
-              <span className="font-semibold text-violet-400 hover:text-violet-300 transition-colors truncate">
+              <span className="font-semibold text-violet-400 hover:text-violet-300 transition-colors truncate block">
                 {game.name}
               </span>
             </Slot>
           </div>
-          <p className="text-xs text-gray-500 mt-0.5">{formatDistanceToNow(activity.createdAt)}</p>
+          <Text as="p" size="1" color="gray" className="mt-0.5">{formatDistanceToNow(activity.createdAt)}</Text>
 
-          <div className="mt-3 flex gap-3">
+          <Flex gap="3" className="mt-3">
             {game.coverImage && (
               <Slot
                 role="link"
@@ -124,7 +125,7 @@ export default memo(function ActivityCard({ activity }: Props) {
                 </div>
               </Slot>
             )}
-            <div className="flex flex-col gap-2 items-start">
+            <Flex direction="column" gap="2" align="start">
               <StatusBadge status={gameEntry.status} />
               {gameEntry.rating && (
                 <div className="flex items-center gap-1 text-yellow-400 text-sm">
@@ -142,10 +143,10 @@ export default memo(function ActivityCard({ activity }: Props) {
               {gameEntry.review && (
                 <MarkdownReview text={gameEntry.review} className="text-gray-300 text-sm line-clamp-3" />
               )}
-            </div>
-          </div>
+            </Flex>
+          </Flex>
 
-          <div className="flex items-center gap-4 mt-3">
+          <Flex align="center" gap="4" className="mt-3">
             <button
               onClick={toggleLike}
               className={`flex items-center gap-1.5 text-sm transition-colors ${liked ? "text-red-400" : "text-gray-500 hover:text-red-400"}`}
@@ -167,9 +168,9 @@ export default memo(function ActivityCard({ activity }: Props) {
                 <span>{activity._count.comments}</span>
               </div>
             </Slot>
-          </div>
-        </div>
-      </div>
+          </Flex>
+        </Box>
+      </Flex>
     </article>
   );
 });

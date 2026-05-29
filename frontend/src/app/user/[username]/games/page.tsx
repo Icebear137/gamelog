@@ -4,10 +4,11 @@ import { use } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Gamepad2, Star } from "lucide-react";
 import Link from "next/link";
+import { Heading, Text, Flex } from "@radix-ui/themes";
+import * as Tabs from "@radix-ui/react-tabs";
 import { api } from "@/lib/api";
 import { GameEntry, GameStatus } from "@/lib/types";
 import StatusBadge from "@/components/StatusBadge";
-import * as Tabs from "@radix-ui/react-tabs";
 
 const TABS: { value: string; label: string }[] = [
   { value: "all", label: "All" },
@@ -27,7 +28,7 @@ export default function UserGamesPage({ params }: { params: Promise<{ username: 
 
   return (
     <div className="max-w-4xl mx-auto space-y-4">
-      <div className="flex items-center gap-3">
+      <Flex align="center" gap="3">
         <Link
           href={`/user/${username}`}
           className="text-gray-400 hover:text-white transition-colors"
@@ -35,10 +36,10 @@ export default function UserGamesPage({ params }: { params: Promise<{ username: 
           <ArrowLeft size={20} />
         </Link>
         <div>
-          <h1 className="text-xl font-bold">{username}</h1>
-          <p className="text-gray-400 text-sm">{entries.length} games in library</p>
+          <Heading size="5">{username}</Heading>
+          <Text as="p" size="2" color="gray">{entries.length} games in library</Text>
         </div>
-      </div>
+      </Flex>
 
       <Tabs.Root defaultValue="all">
         <Tabs.List className="flex gap-1 mb-4 bg-white/5 backdrop-blur-sm border border-white/8 rounded-xl p-1 w-fit overflow-x-auto">
@@ -57,11 +58,11 @@ export default function UserGamesPage({ params }: { params: Promise<{ username: 
           const filtered = t.value === "all" ? entries : entries.filter((e) => e.status === t.value);
           return (
             <Tabs.Content key={t.value} value={t.value}>
-              {isLoading && <div className="text-gray-500 text-sm">Loading...</div>}
+              {isLoading && <Text as="p" size="2" color="gray">Loading...</Text>}
               {!isLoading && filtered.length === 0 && (
                 <div className="text-center py-16 text-gray-500">
                   <Gamepad2 size={36} className="mx-auto mb-3 opacity-30" />
-                  <p>No games here.</p>
+                  <Text as="p" color="gray">No games here.</Text>
                 </div>
               )}
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -89,9 +90,9 @@ export default function UserGamesPage({ params }: { params: Promise<{ username: 
                         )}
                       </div>
                     </div>
-                    <p className="text-xs text-gray-300 mt-1.5 font-medium truncate group-hover:text-white transition-colors">
+                    <Text as="p" size="1" color="gray" className="mt-1.5 font-medium truncate group-hover:text-white transition-colors">
                       {entry.game.name}
-                    </p>
+                    </Text>
                   </Link>
                 ))}
               </div>

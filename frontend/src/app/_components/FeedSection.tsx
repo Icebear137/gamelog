@@ -3,6 +3,7 @@
 import { useMemo, useEffect, useRef } from "react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { Gamepad2, Loader2, ArrowUp } from "lucide-react";
+import { Text, Heading, Flex, Box } from "@radix-ui/themes";
 import { api } from "@/lib/api";
 import { Activity } from "@/lib/types";
 import { useRealtimeStore } from "@/lib/stores/realtime";
@@ -57,9 +58,9 @@ export default function FeedSection() {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold">Following Feed</h2>
+    <Flex direction="column" gap="4">
+      <div className="flex items-center justify-between h-10">
+        <Heading size="4" as="h2">Following Feed</Heading>
         <AddGameModal />
       </div>
 
@@ -74,13 +75,13 @@ export default function FeedSection() {
         </button>
       )}
 
-      {isLoading && <div className="text-gray-500 text-sm">Loading feed...</div>}
+      {isLoading && <Text as="p" size="2" color="gray">Loading feed...</Text>}
 
       {!isLoading && feed.length === 0 && (
-        <div className="text-center py-16 text-gray-500">
-          <Gamepad2 size={40} className="mx-auto mb-3 opacity-30" />
-          <p>Nothing here yet. Follow some players or add games to your library!</p>
-        </div>
+        <Box className="text-center py-16">
+          <Gamepad2 size={40} className="mx-auto mb-3 opacity-30 text-gray-500" />
+          <Text as="p" size="2" color="gray">Nothing here yet. Follow some players or add games to your library!</Text>
+        </Box>
       )}
 
       <ErrorBoundary>
@@ -93,11 +94,11 @@ export default function FeedSection() {
       <div ref={sentinelRef} className="h-1" />
 
       {isFetchingNextPage && (
-        <div className="flex items-center justify-center gap-2 py-4 text-sm text-gray-500">
-          <Loader2 size={15} className="animate-spin" />
-          Loading more...
-        </div>
+        <Flex align="center" justify="center" gap="2" py="4">
+          <Loader2 size={15} className="animate-spin text-gray-500" />
+          <Text size="2" color="gray">Loading more...</Text>
+        </Flex>
       )}
-    </div>
+    </Flex>
   );
 }

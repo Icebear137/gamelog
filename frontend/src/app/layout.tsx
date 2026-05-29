@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
+import "@radix-ui/themes/styles.css";
 import "./globals.css";
 import { ReactQueryProvider } from "@/lib/query-client";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import AuthInitializer from "@/components/AuthInitializer";
 import NotificationStream from "@/components/NotificationStream";
 import Navbar from "@/components/Navbar";
@@ -19,11 +21,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={`${geist.className} text-white min-h-screen`}>
         <ReactQueryProvider>
-          <AuthInitializer />
-          <NotificationStream />
-          <Navbar />
-          <main className="max-w-5xl mx-auto px-4 py-6">{children}</main>
-          <Toaster />
+          <ThemeProvider>
+            <AuthInitializer />
+            <NotificationStream />
+            <Navbar />
+            <main className="max-w-5xl mx-auto px-4 py-6">{children}</main>
+            <Toaster />
+          </ThemeProvider>
         </ReactQueryProvider>
       </body>
     </html>

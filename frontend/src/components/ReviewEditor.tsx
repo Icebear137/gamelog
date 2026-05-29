@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import * as Label from "@radix-ui/react-label";
 import { Bold, Italic, Strikethrough, Eye, EyeOff } from "lucide-react";
+import { Text, Flex } from "@radix-ui/themes";
 import MarkdownReview from "./MarkdownReview";
 
 interface Props {
@@ -90,11 +91,11 @@ export default function ReviewEditor({
   return (
     <div className="space-y-1.5">
       {label && (
-        <div className="flex items-center justify-between">
+        <Flex align="center" justify="between">
           <Label.Root htmlFor={id} className="block text-gray-400 text-xs">
             {label}
           </Label.Root>
-          <div className="flex items-center gap-1">
+          <Flex align="center" gap="1">
             {toolbarButtons.map((btn) => (
               <button
                 key={btn.title}
@@ -119,8 +120,8 @@ export default function ReviewEditor({
             >
               {showPreview ? <EyeOff size={13} /> : <Eye size={13} />}
             </button>
-          </div>
-        </div>
+          </Flex>
+        </Flex>
       )}
 
       {showPreview ? (
@@ -147,7 +148,7 @@ export default function ReviewEditor({
         />
       )}
 
-      <p className="text-gray-600 text-xs text-right">{value.length}/{maxLength}</p>
+      <Text as="p" size="1" color="gray" className="text-right">{value.length}/{maxLength}</Text>
     </div>
   );
 }

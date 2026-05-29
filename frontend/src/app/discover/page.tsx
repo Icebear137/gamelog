@@ -1,7 +1,9 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { TrendingUp, Gamepad2, Users, Sparkles } from "lucide-react";
+import { Text, Heading, Flex } from "@radix-ui/themes";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import TrendingGameCard, { type TrendingGame } from "./_components/TrendingGameCard";
@@ -33,20 +35,27 @@ export default function DiscoverPage() {
     staleTime: FIVE_MINUTES,
   });
 
-  return (
-    <div className="space-y-10">
-      <section>
-        <div className="flex items-center gap-2 mb-6">
-          <TrendingUp size={22} className="text-violet-400" />
-          <h1 className="text-2xl font-bold">Trending This Week</h1>
-        </div>
+  const MAX_VISIBLE = 8;
+  const [dismissed, setDismissed] = useState<Set<number>>(new Set());
+  const handleDismiss = useCallback((rawgId: number) => {
+    setDismissed((prev) => new Set([...prev, rawgId]));
+  }, []);
+  const visibleRecs = recommendations.filter((g) => !dismissed.has(g.rawgId)).slice(0, MAX_VISIBLE);
 
-        {isLoading && <div className="text-gray-500 text-sm">Loading...</div>}
+  return (
+    <Flex direction="column" className="space-y-10">
+      <section>
+        <Flex align="center" gap="2" className="mb-6">
+          <TrendingUp size={22} className="text-violet-400" />
+          <Heading size="6">Trending This Week</Heading>
+        </Flex>
+
+        {isLoading && <Text as="p" size="2" color="gray">Loading...</Text>}
 
         {!isLoading && trending.length === 0 && (
           <div className="text-center py-16 text-gray-500">
             <Gamepad2 size={40} className="mx-auto mb-3 opacity-30" />
-            <p>No trending games yet. Add some games to your library!</p>
+            <Text as="p">No trending games yet. Add some games to your library!</Text>
           </div>
         )}
 
@@ -62,16 +71,16 @@ export default function DiscoverPage() {
         </div>
       </section>
 
-      {user && recommendations.length > 0 && (
+      {user && visibleRecs.length > 0 && (
         <section>
-          <div className="flex items-center gap-2 mb-4">
+          <Flex align="center" gap="2" className="mb-4">
             <Sparkles size={20} className="text-violet-400" />
-            <h2 className="text-xl font-bold">Recommended For You</h2>
-          </div>
-          <p className="text-gray-500 text-sm mb-4">Based on the genres you play most</p>
+            <Heading size="5" as="h2">Recommended For You</Heading>
+          </Flex>
+          <Text as="p" size="2" color="gray" className="mb-4">Based on the genres you play most</Text>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {recommendations.map((game) => (
-              <RecommendedGameCard key={game.id} game={game} />
+            {visibleRecs.map((game) => (
+              <RecommendedGameCard key={game.rawgId} game={game} onDismiss={handleDismiss} />
             ))}
           </div>
         </section>
@@ -79,11 +88,11 @@ export default function DiscoverPage() {
 
       {user && suggested.length > 0 && (
         <section>
-          <div className="flex items-center gap-2 mb-4">
+          <Flex align="center" gap="2" className="mb-4">
             <Users size={20} className="text-violet-400" />
-            <h2 className="text-xl font-bold">People You Might Know</h2>
-          </div>
-          <p className="text-gray-500 text-sm mb-4">Based on games in common with you</p>
+            <Heading size="5" as="h2">People You Might Know</Heading>
+          </Flex>
+          <Text as="p" size="2" color="gray" className="mb-4">Based on games in common with you</Text>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {suggested.map((su) => (
               <SuggestedUserCard key={su.id} user={su} />
@@ -91,6 +100,6 @@ export default function DiscoverPage() {
           </div>
         </section>
       )}
-    </div>
+    </Flex>
   );
 }

@@ -33,13 +33,17 @@ model User {
   notificationsReceived  Notification[]      @relation("NotifRecipient")
   notificationsSent      Notification[]      @relation("NotifActor")
   gameLists              GameList[]
+  gameListLikes          GameListLike[]
+  gameListComments       GameListComment[]
   yearlyChallenges       YearlyChallenge[]
   achievements           UserAchievement[]
   conversationParticipants ConversationParticipant[]
   messagesSent           Message[]
   messageReactions       MessageReaction[]
   gameNightRsvps         GameNightRsvp[]
+  gameNightsCreated      GameNight[]           @relation("GameNightCreator")
   conversationNicknames  ConversationNickname[]
+  pollVotes              PollVote[]
 }
 
 model Game {
@@ -51,6 +55,14 @@ model Game {
   genres      String   @default("[]")
   releaseYear Int?
   rawgRating  Float?
+  description String?
+  platforms   String   @default("[]")
+  developers  String   @default("[]")
+  publishers  String   @default("[]")
+  website     String?
+  metacritic  Int?
+  esrbRating  String?
+  avgPlaytime Int?
   createdAt   DateTime @default(now())
 
   entries     GameEntry[]
@@ -136,8 +148,10 @@ model GameList {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  entries GameListEntry[]
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries  GameListEntry[]
+  likes    GameListLike[]
+  comments GameListComment[]
 }
 
 model GameListEntry {
@@ -150,6 +164,29 @@ model GameListEntry {
   game Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
 
   @@unique([listId, gameId])
+}
+
+model GameListLike {
+  id        String   @id @default(cuid())
+  userId    String
+  listId    String
+  createdAt DateTime @default(now())
+
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  list GameList @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listId])
+}
+
+model GameListComment {
+  id        String   @id @default(cuid())
+  userId    String
+  listId    String
+  body      String
+  createdAt DateTime @default(now())
+
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  list GameList @relation(fields: [listId], references: [id], onDelete: Cascade)
 }
 
 model Notification {
@@ -238,14 +275,18 @@ model GameNight {
   id             String   @id @default(cuid())
   conversationId String
   createdBy      String
-  gameName       String?
+  messageId      String   @unique
+  title          String
   gameId         String?
   scheduledAt    DateTime
+  platform       String?
   note           String?
   createdAt      DateTime @default(now())
 
-  conversation Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  game         Game?            @relation(fields: [gameId], references: [id], onDelete: SetNull)
+  conversation Conversation    @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  creator      User            @relation("GameNightCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  game         Game?           @relation(fields: [gameId], references: [id], onDelete: SetNull)
+  message      Message         @relation(fields: [messageId], references: [id], onDelete: Cascade)
   rsvps        GameNightRsvp[]
 }
 
@@ -254,7 +295,7 @@ model GameNightRsvp {
   gameNightId String
   userId      String
   status      String   // "going" | "maybe" | "no"
-  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   gameNight GameNight @relation(fields: [gameNightId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -283,6 +324,8 @@ model Message {
   reactions            MessageReaction[]
   game                 Game?             @relation(fields: [gameId], references: [id], onDelete: SetNull)
   pinnedInConversation Conversation[]    @relation("PinnedMessage")
+  poll                 Poll?
+  gameNight            GameNight?
 }
 
 model MessageReaction {
@@ -297,4 +340,41 @@ model MessageReaction {
 
   @@unique([messageId, userId, emoji])
   @@index([messageId])
+}
+
+model Poll {
+  id             String   @id @default(cuid())
+  messageId      String   @unique
+  conversationId String
+  question       String
+  allowMultiple  Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  message Message    @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  options PollOption[]
+  votes   PollVote[]
+}
+
+model PollOption {
+  id     String @id @default(cuid())
+  pollId String
+  text   String
+  order  Int
+
+  poll  Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes PollVote[]
+}
+
+model PollVote {
+  id        String   @id @default(cuid())
+  pollId    String
+  optionId  String
+  userId    String
+  createdAt DateTime @default(now())
+
+  poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  option PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, optionId, userId])
 }

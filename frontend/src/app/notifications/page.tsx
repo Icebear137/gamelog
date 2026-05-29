@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -9,6 +9,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { formatDistanceToNow } from "@/lib/utils";
 import Avatar from "@/components/Avatar";
+import { Text, Heading, Flex, Box } from "@radix-ui/themes";
 
 interface Notification {
   id: string;
@@ -90,24 +91,24 @@ export default function NotificationsPage() {
   if (loading || !user) return null;
 
   return (
-    <div className="max-w-xl mx-auto space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
+    <div className="max-w-xl mx-auto">
+      <Flex align="center" justify="between" className="mb-4">
+        <Heading size="6" className="flex items-center gap-2">
           <Bell size={22} />
           Notifications
-        </h1>
-      </div>
+        </Heading>
+      </Flex>
 
-      {isLoading && <div className="text-gray-500 text-sm">Loading...</div>}
+      {isLoading && <Text as="p" size="2" color="gray">Loading...</Text>}
 
       {!isLoading && notifications.length === 0 && (
-        <div className="text-center py-16 text-gray-500">
+        <Flex direction="column" align="center" className="py-16 text-gray-500">
           <Bell size={36} className="mx-auto mb-3 opacity-30" />
-          <p>No notifications yet.</p>
-        </div>
+          <Text as="p" color="gray">No notifications yet.</Text>
+        </Flex>
       )}
 
-      <div className="space-y-1">
+      <Flex direction="column" gap="1">
         {notifications.map((n) => {
           const { text, href } = notifText(n);
           return (
@@ -124,19 +125,18 @@ export default function NotificationsPage() {
                   {typeIcon[n.type]}
                 </span>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-200">
+              <Box flexGrow="1" minWidth="0">
+                <Text as="p" size="2" className="text-gray-200">
                   <span className="font-semibold text-white">{n.actor.username}</span>{" "}
                   {text}
-                </p>
-                <p className="text-xs text-gray-500 mt-0.5">{formatDistanceToNow(n.createdAt)}</p>
-              </div>
+                </Text>
+                <Text as="p" size="1" color="gray" className="mt-0.5">{formatDistanceToNow(n.createdAt)}</Text>
+              </Box>
               {!n.read && <span className="w-2 h-2 rounded-full bg-violet-500 mt-1.5 shrink-0" />}
             </Link>
           );
         })}
-      </div>
+      </Flex>
     </div>
   );
 }
-

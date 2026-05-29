@@ -1,29 +1,62 @@
 import { Router, Request, Response } from "express";
 import prisma from "../lib/prisma";
-import { searchGames, getGameById, extractYear } from "../lib/rawg";
+import { searchGames, getGameById, getGamesList, extractYear } from "../lib/rawg";
 import { requireAuth, optionalAuth, AuthRequest } from "../middleware/auth";
 import { ACTIVITY_SELECT } from "../lib/selects";
+
+const ONE_HOUR = 60 * 60 * 1000;
+const listCache = new Map<string, { data: unknown[]; ts: number }>();
+function getCached(key: string): unknown[] | null {
+  const hit = listCache.get(key);
+  return hit && Date.now() - hit.ts < ONE_HOUR ? hit.data : null;
+}
+function setCached(key: string, data: unknown[]) {
+  listCache.set(key, { data, ts: Date.now() });
+}
+function isoDate(offset = 0) {
+  return new Date(Date.now() + offset).toISOString().split("T")[0];
+}
+function mapPreview(g: Awaited<ReturnType<typeof getGamesList>>[number]) {
+  return {
+    rawgId:      g.id,
+    name:        g.name,
+    coverImage:  g.background_image,
+    released:    g.released,
+    rawgRating:  g.rating,
+    genres:      g.genres.map((x) => x.name),
+  };
+}
 
 const router = Router();
 
 async function upsertGame(rawgGame: Awaited<ReturnType<typeof getGameById>>) {
   if (!rawgGame) return null;
+  const platforms   = JSON.stringify((rawgGame.platforms  ?? []).map((p) => p.platform.name));
+  const developers  = JSON.stringify((rawgGame.developers ?? []).map((d) => d.name));
+  const publishers  = JSON.stringify((rawgGame.publishers ?? []).map((p) => p.name));
+  const detail = {
+    name:        rawgGame.name,
+    coverImage:  rawgGame.background_image,
+    rawgRating:  rawgGame.rating,
+    description: rawgGame.description_raw || null,
+    platforms,
+    developers,
+    publishers,
+    website:     rawgGame.website     || null,
+    metacritic:  rawgGame.metacritic  || null,
+    esrbRating:  rawgGame.esrb_rating?.name || null,
+    avgPlaytime: rawgGame.playtime    || null,
+  };
   return prisma.game.upsert({
     where: { rawgId: rawgGame.id },
     create: {
-      rawgId: rawgGame.id,
-      name: rawgGame.name,
-      slug: rawgGame.slug,
-      coverImage: rawgGame.background_image,
-      genres: JSON.stringify(rawgGame.genres.map((g) => g.name)),
+      rawgId:      rawgGame.id,
+      slug:        rawgGame.slug,
+      genres:      JSON.stringify(rawgGame.genres.map((g) => g.name)),
       releaseYear: extractYear(rawgGame.released),
-      rawgRating: rawgGame.rating,
+      ...detail,
     },
-    update: {
-      name: rawgGame.name,
-      coverImage: rawgGame.background_image,
-      rawgRating: rawgGame.rating,
-    },
+    update: detail,
   });
 }
 
@@ -82,18 +115,26 @@ router.get("/genres", async (_req: Request, res: Response) => {
 
 /** Personalised game recommendations based on genre overlap with played/completed games */
 router.get("/recommendations", requireAuth, async (req: AuthRequest, res: Response) => {
-  const entries = await prisma.gameEntry.findMany({
-    where: { userId: req.userId!, status: { in: ["COMPLETED", "PLAYING", "DROPPED"] } },
-    select: { game: { select: { id: true, name: true, genres: true } } },
-  });
+  // Fetch all entries: played ones for genre scoring, all for exclusion
+  const [playedEntries, allEntries] = await Promise.all([
+    prisma.gameEntry.findMany({
+      where: { userId: req.userId!, status: { in: ["COMPLETED", "PLAYING", "DROPPED"] } },
+      select: { game: { select: { id: true, name: true, genres: true } } },
+    }),
+    prisma.gameEntry.findMany({
+      where: { userId: req.userId! },
+      select: { game: { select: { id: true } } },
+    }),
+  ]);
 
-  if (entries.length === 0) { res.json([]); return; }
+  if (playedEntries.length === 0) { res.json([]); return; }
 
-  const userGameIds = new Set(entries.map((e) => e.game.id));
+  // Exclude ALL games in the user's library regardless of status
+  const userGameIds = new Set(allEntries.map((e) => e.game.id));
   const genreCount: Record<string, number> = {};
   const genreSource: Record<string, string> = {}; // genre → first source game name
 
-  for (const entry of entries) {
+  for (const entry of playedEntries) {
     const genres = JSON.parse(entry.game.genres) as string[];
     for (const g of genres) {
       genreCount[g] = (genreCount[g] ?? 0) + 1;
@@ -127,7 +168,7 @@ router.get("/recommendations", requireAuth, async (req: AuthRequest, res: Respon
     .filter((g) => g.score > 0)
     // Sort primarily by score (genre overlap), tiebreak by RAWG rating
     .sort((a, b) => b.score - a.score || (b.rawgRating ?? 0) - (a.rawgRating ?? 0))
-    .slice(0, 10);
+    .slice(0, 20);
 
   res.json(scored);
 });
@@ -154,6 +195,32 @@ router.get("/trending", async (_req: Request, res: Response) => {
   );
 });
 
+router.get("/new-releases", async (_req: Request, res: Response) => {
+  const cached = getCached("new-releases");
+  if (cached) { res.json(cached); return; }
+  const games = await getGamesList({
+    ordering: "-released",
+    dates: `${isoDate(-30 * 24 * 60 * 60 * 1000)},${isoDate()}`,
+    page_size: 20,
+  });
+  const result = games.map(mapPreview);
+  setCached("new-releases", result);
+  res.json(result);
+});
+
+router.get("/upcoming", async (_req: Request, res: Response) => {
+  const cached = getCached("upcoming");
+  if (cached) { res.json(cached); return; }
+  const games = await getGamesList({
+    ordering: "released",
+    dates: `${isoDate(24 * 60 * 60 * 1000)},${isoDate(120 * 24 * 60 * 60 * 1000)}`,
+    page_size: 20,
+  });
+  const result = games.map(mapPreview);
+  setCached("upcoming", result);
+  res.json(result);
+});
+
 router.get("/:rawgId", async (req: Request, res: Response) => {
   const rawgId = parseInt(String(req.params.rawgId));
   if (isNaN(rawgId)) {
@@ -162,13 +229,14 @@ router.get("/:rawgId", async (req: Request, res: Response) => {
   }
 
   let game = await prisma.game.findUnique({ where: { rawgId } });
-  if (!game) {
+  // Re-fetch from RAWG if never cached or if detailed fields are missing
+  if (!game || game.description === null) {
     const rawgGame = await getGameById(rawgId);
-    if (!rawgGame) {
+    if (!rawgGame && !game) {
       res.status(404).json({ error: "Game not found" });
       return;
     }
-    game = await upsertGame(rawgGame);
+    if (rawgGame) game = await upsertGame(rawgGame);
   }
 
   const stats = await prisma.gameEntry.aggregate({
@@ -185,7 +253,10 @@ router.get("/:rawgId", async (req: Request, res: Response) => {
 
   res.json({
     ...game,
-    genres: JSON.parse(game!.genres),
+    genres:     JSON.parse(game!.genres),
+    platforms:  JSON.parse(game!.platforms  || "[]"),
+    developers: JSON.parse(game!.developers || "[]"),
+    publishers: JSON.parse(game!.publishers || "[]"),
     community: {
       avgRating: stats._avg.rating ? Math.round(stats._avg.rating * 10) / 10 : null,
       ratingCount: stats._count.rating,

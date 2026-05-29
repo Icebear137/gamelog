@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { Text, Flex } from "@radix-ui/themes";
 import { api } from "@/lib/api";
 import { formatDistanceToNow } from "@/lib/utils";
 
@@ -36,14 +37,12 @@ export default function AchievementsSection({ username, isMe }: Props) {
 
   return (
     <div className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-2xl p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-base font-bold flex items-center gap-2">
-          🏆 Achievements
-        </h2>
-        <span className="text-xs text-gray-500">
+      <Flex align="center" justify="between" className="mb-4">
+        <Text size="3" weight="bold">🏆 Achievements</Text>
+        <Text as="span" size="1" color="gray">
           {earned.length}/{achievements.length} earned
-        </span>
-      </div>
+        </Text>
+      </Flex>
 
       {earned.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
@@ -56,7 +55,7 @@ export default function AchievementsSection({ username, isMe }: Props) {
       {isMe && locked.length > 0 && (
         <>
           {earned.length > 0 && <div className="h-px bg-white/8 mb-3" />}
-          <p className="text-xs text-gray-600 mb-2">Locked</p>
+          <Text as="p" size="1" color="gray" className="mb-2">Locked</Text>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {locked.map((a) => (
               <AchievementBadge key={a.type} achievement={a} locked />
@@ -66,7 +65,7 @@ export default function AchievementsSection({ username, isMe }: Props) {
       )}
 
       {earned.length === 0 && !isMe && (
-        <p className="text-gray-600 text-sm text-center py-4">No achievements yet.</p>
+        <Text as="p" size="2" color="gray" className="text-center py-4">No achievements yet.</Text>
       )}
     </div>
   );
@@ -90,12 +89,12 @@ function AchievementBadge({
     >
       <span className="text-lg leading-none shrink-0">{locked ? "🔒" : achievement.icon}</span>
       <div className="min-w-0">
-        <p className={`text-xs font-semibold truncate ${locked ? "text-gray-500" : "text-white"}`}>
+        <Text as="p" size="1" weight="bold" className={`truncate ${locked ? "text-gray-500" : "text-white"}`}>
           {achievement.name}
-        </p>
-        <p className={`text-xs truncate ${locked ? "text-gray-700" : "text-gray-500"}`}>
+        </Text>
+        <Text as="p" size="1" className={`truncate ${locked ? "text-gray-700" : "text-gray-500"}`}>
           {achievement.description}
-        </p>
+        </Text>
       </div>
     </div>
   );

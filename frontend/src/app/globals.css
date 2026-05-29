@@ -1,7 +1,36 @@
+/* Radix Themes CSS is imported directly in layout.tsx for correct bundling */
 @import "tailwindcss";
 
 * {
   box-sizing: border-box;
+}
+
+/* ── Override Radix Themes variables for our dark design ───────────── */
+.radix-themes {
+  /* Background: transparent so our body gradient shows through */
+  --color-background: transparent;
+
+  /* Typography: use Geist (inherits from body) */
+  --default-font-family: inherit;
+  --heading-font-family: inherit;
+  --code-font-family: ui-monospace, monospace;
+
+  /* Align Radix gray scale with our slate/zinc palette */
+  --gray-1:  #080612;
+  --gray-2:  #0e0b1a;
+  --gray-3:  #16122a;
+  --gray-4:  #1c1830;
+  --gray-5:  #221e38;
+  --gray-6:  #2a2540;
+  --gray-7:  #353049;
+  --gray-8:  #4a4466;
+  --gray-9:  #6b6480;
+  --gray-10: #8a84a0;
+  --gray-11: #b8b2cc;
+  --gray-12: #f2f0f8;
+
+  /* Ensure default text color is our near-white */
+  --gray-12: #f9fafb;
 }
 
 body {

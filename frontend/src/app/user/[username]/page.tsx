@@ -7,6 +7,7 @@ import { Slot } from "@radix-ui/react-slot";
 import * as Separator from "@radix-ui/react-separator";
 import { Gamepad2, Settings, Globe, Lock, EyeOff, GitCompare, MessageCircle } from "lucide-react";
 import Link from "next/link";
+import { Text, Heading, Flex, Box } from "@radix-ui/themes";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { dispatchToast } from "@/lib/toast";
@@ -62,8 +63,8 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
     },
   });
 
-  if (isLoading) return <div className="text-gray-500 py-16 text-center">Loading...</div>;
-  if (!profile) return <div className="text-gray-500 py-16 text-center">User not found</div>;
+  if (isLoading) return <Text as="p" size="2" color="gray" className="py-16 text-center">Loading...</Text>;
+  if (!profile) return <Text as="p" size="2" color="gray" className="py-16 text-center">User not found</Text>;
 
   const isMe = me?.id === profile.id;
   const recentGames = games.slice(0, 6);
@@ -72,24 +73,24 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Profile header */}
       <div className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-2xl p-6">
-        <div className="flex items-start gap-4">
+        <Flex align="start" gap="4">
           <Avatar src={profile.avatar} username={profile.username} size="lg" />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-4">
+          <Box flexGrow="1" minWidth="0">
+            <Flex align="start" justify="between" gap="4">
               <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold text-white">{profile.username}</h1>
+                <Flex align="center" gap="2">
+                  <Heading size="6">{profile.username}</Heading>
                   {profile.isPrivate && (
                     <span title="Private profile">
                       <Lock size={14} className="text-gray-500" />
                     </span>
                   )}
-                </div>
-                {profile.bio && <p className="text-gray-400 text-sm mt-1">{profile.bio}</p>}
-                <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
-                  {profile.steamId && <span>Steam: {profile.steamId}</span>}
-                  {profile.discordTag && <span>Discord: {profile.discordTag}</span>}
-                </div>
+                </Flex>
+                {profile.bio && <Text as="p" size="2" color="gray" className="mt-1">{profile.bio}</Text>}
+                <Flex className="flex-wrap gap-3 mt-2">
+                  {profile.steamId && <Text as="span" size="1" color="gray">Steam: {profile.steamId}</Text>}
+                  {profile.discordTag && <Text as="span" size="1" color="gray">Discord: {profile.discordTag}</Text>}
+                </Flex>
               </div>
               {isMe ? (
                 <Link
@@ -101,7 +102,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
                 </Link>
               ) : (
                 me && (
-                  <div className="flex flex-col gap-2 shrink-0">
+                  <Flex direction="column" gap="2" className="shrink-0">
                     <button
                       onClick={() => followMutation.mutate(!!profile.isFollowing)}
                       disabled={followMutation.isPending}
@@ -136,27 +137,27 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
                       <MessageCircle size={14} />
                       Message
                     </button>
-                  </div>
+                  </Flex>
                 )
               )}
-            </div>
+            </Flex>
 
-            <div className="flex gap-5 mt-4 text-sm">
+            <Flex gap="4" className="mt-4">
               <div className="text-center">
-                <p className="font-bold text-white">{profile._count.gameEntries}</p>
-                <p className="text-gray-500 text-xs">Games</p>
+                <Text as="p" size="2" weight="medium" className="font-bold text-white">{profile._count.gameEntries}</Text>
+                <Text as="p" size="1" color="gray">Games</Text>
               </div>
               <Link href={`/user/${username}/followers`} className="text-center hover:opacity-80 transition-opacity">
-                <p className="font-bold text-white">{profile._count.followers}</p>
-                <p className="text-gray-500 text-xs">Followers</p>
+                <Text as="p" size="2" weight="medium" className="font-bold text-white">{profile._count.followers}</Text>
+                <Text as="p" size="1" color="gray">Followers</Text>
               </Link>
               <Link href={`/user/${username}/following`} className="text-center hover:opacity-80 transition-opacity">
-                <p className="font-bold text-white">{profile._count.following}</p>
-                <p className="text-gray-500 text-xs">Following</p>
+                <Text as="p" size="2" weight="medium" className="font-bold text-white">{profile._count.following}</Text>
+                <Text as="p" size="1" color="gray">Following</Text>
               </Link>
-            </div>
-          </div>
-        </div>
+            </Flex>
+          </Box>
+        </Flex>
       </div>
 
       {/* Yearly challenge */}
@@ -169,8 +170,8 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
       {profile.isPrivate && !canSeeContent && (
         <div className="text-center py-16 text-gray-500 bg-white/5 backdrop-blur-sm border border-white/8 rounded-2xl">
           <EyeOff size={40} className="mx-auto mb-3 opacity-30" />
-          <p className="font-medium text-gray-300">This profile is private</p>
-          <p className="text-sm mt-1">Follow this user to see their library and activity.</p>
+          <Text as="p" size="2" className="font-medium text-gray-300">This profile is private</Text>
+          <Text as="p" size="2" className="mt-1">Follow this user to see their library and activity.</Text>
         </div>
       )}
 
@@ -179,7 +180,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
           {/* Recent games */}
           {recentGames.length > 0 && (
             <div>
-              <h2 className="text-lg font-bold mb-3">Recent Games</h2>
+              <Heading size="4" as="h2" className="mb-3">Recent Games</Heading>
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
                 {recentGames.map((entry) => (
                   <Slot
@@ -224,7 +225,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
           {/* Lists */}
           {lists.length > 0 && (
             <div>
-              <h2 className="text-lg font-bold mb-3">Lists</h2>
+              <Heading size="4" as="h2" className="mb-3">Lists</Heading>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {lists.slice(0, 4).map((list) => {
                   const covers = list.entries.slice(0, 4).map((e) => e.game.coverImage).filter(Boolean);
@@ -259,19 +260,19 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
                             ))}
                         </div>
                         <div className="px-3 py-2">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-medium text-white group-hover:text-violet-300 transition-colors truncate">
+                          <Flex align="center" className="gap-1.5">
+                            <Text as="span" size="2" truncate className="font-medium text-white group-hover:text-violet-300 transition-colors">
                               {list.name}
-                            </span>
+                            </Text>
                             {list.isPublic ? (
                               <Globe size={11} className="text-gray-500 shrink-0" />
                             ) : (
                               <Lock size={11} className="text-gray-500 shrink-0" />
                             )}
-                          </div>
-                          <p className="text-gray-600 text-xs">
+                          </Flex>
+                          <Text as="p" size="1" color="gray">
                             {list._count.entries} game{list._count.entries !== 1 ? "s" : ""}
-                          </p>
+                          </Text>
                         </div>
                       </div>
                     </Slot>
@@ -288,9 +289,9 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
 
           {/* Recent activity */}
           {activities.length > 0 && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold">Recent Activity</h2>
+            <Flex direction="column" gap="3">
+              <Flex align="center" justify="between">
+                <Heading size="4" as="h2">Recent Activity</Heading>
                 <Slot
                   role="link"
                   tabIndex={0}
@@ -302,13 +303,13 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
                 >
                   <span>View Stats →</span>
                 </Slot>
-              </div>
+              </Flex>
               <ErrorBoundary>
                 {activities.map((a) => (
                   <ActivityCard key={a.id} activity={a} />
                 ))}
               </ErrorBoundary>
-            </div>
+            </Flex>
           )}
         </>
       )}

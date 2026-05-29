@@ -6,6 +6,33 @@ import prisma from "../lib/prisma";
 import { requireAuth, AuthRequest } from "../middleware/auth";
 import { emitToUser, emitToConversation } from "../lib/socket";
 import { uploadToCloudinary } from "../lib/cloudinary";
+import { getGameById, extractYear } from "../lib/rawg";
+
+async function ensureGameByRawgId(rawgId: number) {
+  let game = await prisma.game.findUnique({ where: { rawgId } });
+  if (!game) {
+    const rawgGame = await getGameById(rawgId);
+    if (!rawgGame) return null;
+    game = await prisma.game.upsert({
+      where: { rawgId: rawgGame.id },
+      create: {
+        rawgId: rawgGame.id,
+        name: rawgGame.name,
+        slug: rawgGame.slug,
+        coverImage: rawgGame.background_image,
+        genres: JSON.stringify(rawgGame.genres.map((g: { name: string }) => g.name)),
+        releaseYear: extractYear(rawgGame.released),
+        rawgRating: rawgGame.rating,
+      },
+      update: {
+        name: rawgGame.name,
+        coverImage: rawgGame.background_image,
+        rawgRating: rawgGame.rating,
+      },
+    });
+  }
+  return game;
+}
 
 const router = Router();
 
@@ -40,6 +67,24 @@ const GAME_SELECT = {
   releaseYear: true,
 };
 
+// Game night fields — reused by MESSAGE_SELECT and standalone game-night queries
+const GAME_NIGHT_SELECT = {
+  id: true,
+  title: true,
+  scheduledAt: true,
+  platform: true,
+  note: true,
+  createdBy: true,
+  game: { select: { id: true, name: true, coverImage: true, rawgId: true, slug: true } },
+  rsvps: {
+    select: {
+      userId: true,
+      status: true,
+      user: { select: { id: true, username: true, avatar: true } },
+    },
+  },
+};
+
 // Message fields selected everywhere
 const MESSAGE_SELECT = {
   id: true,
@@ -59,6 +104,23 @@ const MESSAGE_SELECT = {
     select: { id: true, emoji: true, userId: true },
     orderBy: { createdAt: "asc" as const },
   },
+  poll: {
+    select: {
+      id: true,
+      question: true,
+      allowMultiple: true,
+      options: {
+        select: {
+          id: true,
+          text: true,
+          order: true,
+          votes: { select: { userId: true } },
+        },
+        orderBy: { order: "asc" as const },
+      },
+    },
+  },
+  gameNight: { select: GAME_NIGHT_SELECT },
   createdAt: true,
   sender: { select: SENDER_SELECT },
 };
@@ -417,6 +479,10 @@ router.put("/conversations/:id/nicknames/:userId", requireAuth, async (req: Auth
   const participant = await requireParticipant(conversationId, myId);
   if (!participant) { res.status(403).json({ error: "Forbidden" }); return; }
 
+  // Verify target user is a member of this conversation
+  const targetParticipant = await requireParticipant(conversationId, targetUserId);
+  if (!targetParticipant) { res.status(404).json({ error: "User not in this conversation" }); return; }
+
   // Empty / missing nickname = clear it
   if (!nickname || typeof nickname !== "string" || nickname.trim().length === 0) {
     await prisma.conversationNickname.deleteMany({
@@ -495,6 +561,21 @@ router.delete("/conversations/:id/members/:userId", requireAuth, async (req: Aut
   if (!isSelf && myPart.role !== "admin") {
     res.status(403).json({ error: "Only admins can remove other members" });
     return;
+  }
+
+  // Prevent removing the last admin from the group
+  const targetPart = await prisma.conversationParticipant.findUnique({
+    where: { conversationId_userId: { conversationId, userId: targetId } },
+    select: { role: true },
+  });
+  if (targetPart?.role === "admin") {
+    const adminCount = await prisma.conversationParticipant.count({
+      where: { conversationId, role: "admin" },
+    });
+    if (adminCount <= 1) {
+      res.status(400).json({ error: "Cannot remove the only admin" });
+      return;
+    }
   }
 
   await prisma.conversationParticipant.deleteMany({
@@ -1035,6 +1116,19 @@ router.delete(
       data: { body: "[deleted]" },
     });
 
+    // Clear pin if this was the pinned message
+    const deletedConv = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+      select: { pinnedMessageId: true },
+    });
+    if (deletedConv?.pinnedMessageId === msgId) {
+      await prisma.conversation.update({
+        where: { id: conversationId },
+        data: { pinnedMessageId: null },
+      });
+      emitToConversation(conversationId, "message_pinned", { conversationId, pinnedMessage: null });
+    }
+
     // Notify both sides so they refresh
     emitToConversation(conversationId, "message_deleted", { conversationId, msgId });
 
@@ -1214,10 +1308,16 @@ router.post("/conversations/:id/forward", requireAuth, async (req: AuthRequest, 
   // Fetch the original message
   const original = await prisma.message.findUnique({
     where: { id: messageId },
-    select: { body: true, imageUrl: true, imageUrls: true, gameId: true, senderId: true },
+    select: { body: true, imageUrl: true, imageUrls: true, gameId: true, senderId: true, conversationId: true },
   });
   if (!original) {
     res.status(404).json({ error: "Message not found" });
+    return;
+  }
+  // Verify caller is a participant in the source conversation
+  const sourceParticipant = await requireParticipant(original.conversationId, myId);
+  if (!sourceParticipant) {
+    res.status(403).json({ error: "Forbidden" });
     return;
   }
   // Cannot forward a deleted message
@@ -1254,6 +1354,264 @@ router.post("/conversations/:id/forward", requireAuth, async (req: AuthRequest, 
   if (other) emitToUser(other.userId, "new_message", { conversationId });
 
   res.status(201).json(message);
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/messages/conversations/:id/polls
+// Create a poll message — body: { question, options: string[], allowMultiple? }
+// ---------------------------------------------------------------------------
+router.post("/conversations/:id/polls", requireAuth, async (req: AuthRequest, res: Response) => {
+  const myId = req.userId!;
+  const conversationId = String(req.params.id);
+  const { question, options, allowMultiple = false } = req.body;
+
+  if (!question || typeof question !== "string" || question.trim().length === 0) {
+    res.status(400).json({ error: "Question is required" }); return;
+  }
+  if (!Array.isArray(options) || options.length < 2 || options.length > 5) {
+    res.status(400).json({ error: "Provide 2–5 options" }); return;
+  }
+  const cleanOptions = (options as unknown[])
+    .map((o) => (typeof o === "string" ? o.trim() : ""))
+    .filter((o) => o.length > 0);
+  if (cleanOptions.length < 2) {
+    res.status(400).json({ error: "At least 2 non-empty options required" }); return;
+  }
+
+  const participant = await requireParticipant(conversationId, myId);
+  if (!participant) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  const message = await prisma.message.create({
+    data: {
+      conversationId,
+      senderId: myId,
+      body: "📊 " + question.trim().slice(0, 80),
+      poll: {
+        create: {
+          conversationId,
+          question: question.trim().slice(0, 200),
+          allowMultiple: !!allowMultiple,
+          options: {
+            create: cleanOptions.map((text, i) => ({ text: text.slice(0, 100), order: i })),
+          },
+        },
+      },
+    },
+    select: MESSAGE_SELECT,
+  });
+
+  await prisma.conversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } });
+
+  const other = await prisma.conversationParticipant.findFirst({
+    where: { conversationId, userId: { not: myId } },
+  });
+  emitToConversation(conversationId, "new_message", { conversationId, message });
+  if (other) emitToUser(other.userId, "new_message", { conversationId });
+
+  res.status(201).json(message);
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/messages/polls/:pollId/vote
+// Toggle a vote on an option — body: { optionId }
+// If allowMultiple=false, replaces any existing vote; else toggles this option
+// ---------------------------------------------------------------------------
+router.post("/polls/:pollId/vote", requireAuth, async (req: AuthRequest, res: Response) => {
+  const myId = req.userId!;
+  const pollId = String(req.params.pollId);
+  const { optionId } = req.body;
+
+  if (!optionId || typeof optionId !== "string") {
+    res.status(400).json({ error: "optionId is required" }); return;
+  }
+
+  const poll = await prisma.poll.findUnique({
+    where: { id: pollId },
+    include: { options: { select: { id: true } } },
+  });
+  if (!poll) { res.status(404).json({ error: "Poll not found" }); return; }
+
+  const participant = await requireParticipant(poll.conversationId, myId);
+  if (!participant) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  const validOption = poll.options.some((o) => o.id === optionId);
+  if (!validOption) { res.status(400).json({ error: "Invalid optionId" }); return; }
+
+  const existing = await prisma.pollVote.findUnique({
+    where: { pollId_optionId_userId: { pollId, optionId, userId: myId } },
+  });
+
+  await prisma.$transaction(async (tx) => {
+    if (existing) {
+      // Toggle off — remove this vote
+      await tx.pollVote.delete({ where: { id: existing.id } });
+    } else {
+      if (!poll.allowMultiple) {
+        // Single-choice: remove any existing votes first
+        await tx.pollVote.deleteMany({ where: { pollId, userId: myId } });
+      }
+      await tx.pollVote.create({ data: { pollId, optionId, userId: myId } });
+    }
+  });
+
+  // Fetch updated poll to broadcast
+  const updatedPoll = await prisma.poll.findUnique({
+    where: { id: pollId },
+    select: {
+      id: true,
+      question: true,
+      allowMultiple: true,
+      options: {
+        select: {
+          id: true,
+          text: true,
+          order: true,
+          votes: { select: { userId: true } },
+        },
+        orderBy: { order: "asc" },
+      },
+    },
+  });
+
+  emitToConversation(poll.conversationId, "poll_updated", {
+    conversationId: poll.conversationId,
+    messageId: poll.messageId,
+    poll: updatedPoll,
+  });
+
+  res.json({ poll: updatedPoll });
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/messages/conversations/:id/game-nights
+// Create a Game Night message card in a group conversation
+// Body: { title, rawgId?, scheduledAt (ISO), platform?, note? }
+// ---------------------------------------------------------------------------
+router.post("/conversations/:id/game-nights", requireAuth, async (req: AuthRequest, res: Response) => {
+  const myId = req.userId!;
+  const conversationId = String(req.params.id);
+  const { title, rawgId, scheduledAt, platform, note } = req.body;
+
+  if (!title || typeof title !== "string" || title.trim().length === 0) {
+    res.status(400).json({ error: "Title is required" }); return;
+  }
+  if (!scheduledAt || isNaN(Date.parse(scheduledAt))) {
+    res.status(400).json({ error: "Valid scheduledAt is required" }); return;
+  }
+  if (new Date(scheduledAt) <= new Date()) {
+    res.status(400).json({ error: "scheduledAt must be in the future" }); return;
+  }
+
+  const participant = await requireParticipant(conversationId, myId);
+  if (!participant) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  const conv = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    select: { isGroup: true },
+  });
+  if (!conv?.isGroup) {
+    res.status(400).json({ error: "Game Night is only available in group conversations" }); return;
+  }
+
+  let resolvedGameId: string | null = null;
+  if (rawgId && typeof rawgId === "number") {
+    const game = await ensureGameByRawgId(rawgId);
+    if (!game) { res.status(404).json({ error: "Game not found on RAWG" }); return; }
+    resolvedGameId = game.id;
+  }
+
+  const message = await prisma.message.create({
+    data: {
+      conversationId,
+      senderId: myId,
+      body: "🎮 " + title.trim().slice(0, 80),
+      gameNight: {
+        create: {
+          conversationId,
+          createdBy: myId,
+          title: title.trim().slice(0, 100),
+          gameId: resolvedGameId,
+          scheduledAt: new Date(scheduledAt),
+          platform: typeof platform === "string" && platform.trim() ? platform.trim() : null,
+          note: typeof note === "string" && note.trim() ? note.trim().slice(0, 300) : null,
+        },
+      },
+    },
+    select: MESSAGE_SELECT,
+  });
+
+  await prisma.conversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } });
+
+  const other = await prisma.conversationParticipant.findFirst({
+    where: { conversationId, userId: { not: myId } },
+  });
+  emitToConversation(conversationId, "new_message", { conversationId, message });
+  if (other) emitToUser(other.userId, "new_message", { conversationId });
+
+  res.status(201).json(message);
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/messages/conversations/:id/game-nights
+// Upcoming game nights for the sidebar (next 5, sorted by scheduledAt)
+// ---------------------------------------------------------------------------
+router.get("/conversations/:id/game-nights", requireAuth, async (req: AuthRequest, res: Response) => {
+  const myId = req.userId!;
+  const conversationId = String(req.params.id);
+
+  const participant = await requireParticipant(conversationId, myId);
+  if (!participant) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  const gameNights = await prisma.gameNight.findMany({
+    where: { conversationId, scheduledAt: { gte: new Date() } },
+    select: GAME_NIGHT_SELECT,
+    orderBy: { scheduledAt: "asc" },
+    take: 5,
+  });
+
+  res.json(gameNights);
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/messages/game-nights/:id/rsvp
+// Set or change RSVP status — body: { status: "going" | "maybe" | "no" }
+// ---------------------------------------------------------------------------
+router.post("/game-nights/:id/rsvp", requireAuth, async (req: AuthRequest, res: Response) => {
+  const myId = req.userId!;
+  const gameNightId = String(req.params.id);
+  const { status } = req.body;
+
+  if (!["going", "maybe", "no"].includes(status)) {
+    res.status(400).json({ error: "status must be going, maybe, or no" }); return;
+  }
+
+  const gameNight = await prisma.gameNight.findUnique({
+    where: { id: gameNightId },
+    select: { conversationId: true, messageId: true, scheduledAt: true },
+  });
+  if (!gameNight) { res.status(404).json({ error: "Game Night not found" }); return; }
+
+  const participant = await requireParticipant(gameNight.conversationId, myId);
+  if (!participant) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  await prisma.gameNightRsvp.upsert({
+    where: { gameNightId_userId: { gameNightId, userId: myId } },
+    create: { gameNightId, userId: myId, status },
+    update: { status },
+  });
+
+  const updatedGameNight = await prisma.gameNight.findUnique({
+    where: { id: gameNightId },
+    select: GAME_NIGHT_SELECT,
+  });
+
+  emitToConversation(gameNight.conversationId, "game_night_updated", {
+    conversationId: gameNight.conversationId,
+    messageId: gameNight.messageId,
+    gameNight: updatedGameNight,
+  });
+
+  res.json({ gameNight: updatedGameNight });
 });
 
 // ---------------------------------------------------------------------------

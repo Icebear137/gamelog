@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { TrendingUp } from "lucide-react";
+import { Heading, Flex } from "@radix-ui/themes";
 import { api } from "@/lib/api";
 import { Activity } from "@/lib/types";
 import ActivityCard from "@/components/ActivityCard";
@@ -19,16 +20,18 @@ export default function GlobalActivity() {
   });
 
   return (
-    <div className="space-y-4">
-      <h2 className="flex items-center gap-2 text-lg font-bold">
-        <TrendingUp size={18} className="text-violet-400" />
-        Global Activity
-      </h2>
+    <Flex direction="column" gap="4">
+      <div className="flex items-center h-10">
+        <Heading size="4" as="h2" className="flex items-center gap-2">
+          <TrendingUp size={18} className="text-violet-400" />
+          Global Activity
+        </Heading>
+      </div>
       <ErrorBoundary>
         {global.slice(0, 8).map((a) => (
           <ActivityCard key={a.id} activity={a} />
         ))}
       </ErrorBoundary>
-    </div>
+    </Flex>
   );
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { X, Search, Users, Loader2, Check } from "lucide-react";
+import { Text, Flex } from "@radix-ui/themes";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import Avatar from "./Avatar";
@@ -80,18 +81,18 @@ export default function CreateGroupModal({ onClose, onCreated }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/8 shrink-0">
-          <div className="flex items-center gap-2">
+        <Flex align="center" justify="between" className="px-4 py-3 border-b border-white/8 shrink-0">
+          <Flex align="center" gap="2">
             <Users size={15} className="text-violet-400" />
             <span className="text-sm font-semibold text-white">New group</span>
-          </div>
+          </Flex>
           <button
             onClick={onClose}
             className="p-1.5 text-gray-500 hover:text-gray-300 hover:bg-white/8 rounded-lg transition-colors"
           >
             <X size={14} />
           </button>
-        </div>
+        </Flex>
 
         {/* Group name */}
         <div className="px-4 pt-3 pb-2 shrink-0">
@@ -124,7 +125,7 @@ export default function CreateGroupModal({ onClose, onCreated }: Props) {
         )}
 
         {/* Search */}
-        <div className="flex items-center gap-2 px-4 py-2.5 border-y border-white/8 shrink-0">
+        <Flex align="center" gap="2" className="px-4 py-2.5 border-y border-white/8 shrink-0">
           <Search size={13} className="text-gray-500 shrink-0" />
           <input
             ref={searchRef}
@@ -134,15 +135,15 @@ export default function CreateGroupModal({ onClose, onCreated }: Props) {
             className="flex-1 bg-transparent text-sm text-white outline-none placeholder-gray-600"
           />
           {searching && <Loader2 size={13} className="animate-spin text-gray-500 shrink-0" />}
-        </div>
+        </Flex>
 
         {/* Results */}
         <div className="flex-1 overflow-y-auto min-h-0">
           {query.trim() && !searching && results.length === 0 && (
-            <p className="py-8 text-center text-xs text-gray-600">No users found</p>
+            <Text as="p" size="1" color="gray" className="py-8 text-center">No users found</Text>
           )}
           {!query.trim() && selected.length === 0 && (
-            <p className="py-8 text-center text-xs text-gray-600">Search for people to add</p>
+            <Text as="p" size="1" color="gray" className="py-8 text-center">Search for people to add</Text>
           )}
           {results.map((u) => {
             const isSelected = !!selected.find((s) => s.id === u.id);
@@ -178,7 +179,7 @@ export default function CreateGroupModal({ onClose, onCreated }: Props) {
             )}
           </button>
           {createMutation.isError && (
-            <p className="mt-2 text-xs text-red-400 text-center">Failed to create group. Try again.</p>
+            <Text as="p" size="1" color="red" className="mt-2 text-center">Failed to create group. Try again.</Text>
           )}
         </div>
       </div>

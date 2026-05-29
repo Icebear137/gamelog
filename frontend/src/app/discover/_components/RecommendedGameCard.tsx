@@ -1,8 +1,9 @@
 ﻿"use client";
 
-import { memo } from "react";
+import { memo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Slot } from "@radix-ui/react-slot";
+import { Text, Flex, Box } from "@radix-ui/themes";
 import { Sparkles, Gamepad2, Star } from "lucide-react";
 import WantToPlayButton from "@/components/WantToPlayButton";
 
@@ -19,13 +20,20 @@ export interface RecommendedGame {
 
 interface Props {
   game: RecommendedGame;
+  onDismiss?: (rawgId: number) => void;
 }
 
-export default memo(function RecommendedGameCard({ game }: Props) {
+export default memo(function RecommendedGameCard({ game, onDismiss }: Props) {
   const router = useRouter();
+  const [dismissing, setDismissing] = useState(false);
+
+  function handleAddSuccess() {
+    setDismissing(true);
+    setTimeout(() => onDismiss?.(game.rawgId), 350);
+  }
 
   return (
-    <div className="group flex items-center gap-3 bg-white/5 backdrop-blur-sm border border-white/8 rounded-xl p-3 hover:border-violet-700 transition-colors">
+    <div className={`group flex items-center gap-3 bg-white/5 backdrop-blur-sm border border-white/8 rounded-xl p-3 hover:border-violet-700 transition-all duration-300 ${dismissing ? "opacity-0 scale-95 pointer-events-none" : "opacity-100 scale-100"}`}>
       <Slot
         role="link"
         tabIndex={0}
@@ -52,7 +60,7 @@ export default memo(function RecommendedGameCard({ game }: Props) {
         </div>
       </Slot>
 
-      <div className="flex-1 min-w-0">
+      <Box flexGrow="1" minWidth="0">
         <Slot
           role="link"
           tabIndex={0}
@@ -62,19 +70,19 @@ export default memo(function RecommendedGameCard({ game }: Props) {
             if (e.key === "Enter" || e.key === " ") router.push(`/game/${game.rawgId}`);
           }}
         >
-          <p className="text-sm font-semibold text-white group-hover:text-violet-300 transition-colors truncate">
+          <Text as="p" size="2" weight="bold" className="group-hover:text-violet-300 transition-colors truncate">
             {game.name}
-          </p>
+          </Text>
         </Slot>
 
         {game.reason && (
-          <p className="flex items-center gap-1 text-xs text-gray-500 mt-0.5 truncate">
+          <Text as="p" size="1" color="gray" className="flex items-center gap-1 mt-0.5 truncate">
             <Sparkles size={10} className="text-violet-500 shrink-0" />
             {game.reason}
-          </p>
+          </Text>
         )}
 
-        <div className="flex items-center gap-3 mt-1">
+        <Flex align="center" gap="3" className="mt-1">
           {game.rawgRating != null && (
             <div className="flex items-center gap-1 text-yellow-400 text-xs">
               <Star size={11} fill="currentColor" />
@@ -88,11 +96,11 @@ export default memo(function RecommendedGameCard({ game }: Props) {
               </span>
             ))}
           </div>
-        </div>
-      </div>
+        </Flex>
+      </Box>
 
       <div className="shrink-0">
-        <WantToPlayButton rawgId={game.rawgId} gameName={game.name} />
+        <WantToPlayButton rawgId={game.rawgId} gameName={game.name} onSuccess={handleAddSuccess} />
       </div>
     </div>
   );

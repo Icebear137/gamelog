@@ -3,6 +3,7 @@
 import { memo } from "react";
 import { useRouter } from "next/navigation";
 import { Slot } from "@radix-ui/react-slot";
+import { Text } from "@radix-ui/themes";
 import { TrendingUp, Gamepad2, Star } from "lucide-react";
 import WantToPlayButton from "@/components/WantToPlayButton";
 
@@ -76,9 +77,9 @@ export default memo(function TrendingGameCard({ game, rank, showButton }: Props)
             </div>
           </div>
 
-          <p className="text-xs text-gray-300 mt-1.5 font-medium truncate group-hover:text-white">
+          <Text as="p" size="1" color="gray" className="mt-1.5 font-medium truncate group-hover:text-white">
             {game.name}
-          </p>
+          </Text>
         </div>
       </Slot>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useMemo } from "react";
+import { use, useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Slot } from "@radix-ui/react-slot";
@@ -8,11 +8,13 @@ import * as Dialog from "@radix-ui/react-dialog";
 import * as Label from "@radix-ui/react-label";
 import * as Select from "@radix-ui/react-select";
 import * as Separator from "@radix-ui/react-separator";
-import { Gamepad2, Globe, Lock, Pencil, Trash2, X, Check, ChevronDown, AlertTriangle } from "lucide-react";
+import { Gamepad2, Globe, Lock, Pencil, Trash2, X, Check, ChevronDown, AlertTriangle, Heart, MessageCircle } from "lucide-react";
+import { Text, Heading, Flex, Box } from "@radix-ui/themes";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { GameListDetail } from "@/lib/types";
 import { dispatchToast } from "@/lib/toast";
+import ListComments from "./_components/ListComments";
 
 const SORT_OPTIONS = [
   { value: "added-desc", label: "Newest Added" },
@@ -34,6 +36,9 @@ export default function ListDetailPage({ params }: { params: Promise<{ id: strin
   const [sort, setSort] = useState("added-desc");
   const [genreFilter, setGenreFilter] = useState("all");
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [liked, setLiked] = useState<boolean | null>(null);
+  const [likeCount, setLikeCount] = useState<number | null>(null);
+  const likePending = useRef(false);
 
   const { data: list, isLoading } = useQuery<GameListDetail>({
     queryKey: ["list", id],
@@ -93,10 +98,32 @@ export default function ListDetailPage({ params }: { params: Promise<{ id: strin
     }
   }, [list, sort, genreFilter]);
 
-  if (isLoading) return <div className="text-gray-500 py-16 text-center">Loading...</div>;
-  if (!list) return <div className="text-gray-500 py-16 text-center">List not found</div>;
+  if (isLoading) return <Box className="py-16 text-center"><Text size="2" color="gray">Loading...</Text></Box>;
+  if (!list) return <Box className="py-16 text-center"><Text size="2" color="gray">List not found</Text></Box>;
 
   const isOwner = user?.id === list.user.id;
+  const isLiked = liked !== null ? liked : (list.likedByMe ?? false);
+  const currentLikeCount = likeCount !== null ? likeCount : (list._count.likes ?? 0);
+
+  async function toggleLike() {
+    if (!user || likePending.current) return;
+    likePending.current = true;
+    try {
+      if (isLiked) {
+        const res = await api.delete(`/api/lists/${id}/like`);
+        setLiked(false);
+        setLikeCount(res.data.count);
+      } else {
+        const res = await api.post(`/api/lists/${id}/like`);
+        setLiked(true);
+        setLikeCount(res.data.count);
+      }
+    } catch {
+      dispatchToast("Failed to update like", "error");
+    } finally {
+      likePending.current = false;
+    }
+  }
 
   const startEdit = () => {
     setEditName(list.name);
@@ -144,7 +171,7 @@ export default function ListDetailPage({ params }: { params: Promise<{ id: strin
                 onChange={(e) => setEditPublic(e.target.checked)}
                 className="w-4 h-4 accent-violet-600"
               />
-              <span className="text-sm text-gray-300">Public list</span>
+              <Text as="span" size="2" color="gray">Public list</Text>
             </Label.Root>
             <div className="flex gap-2">
               <button
@@ -172,20 +199,20 @@ export default function ListDetailPage({ params }: { params: Promise<{ id: strin
             </div>
           </div>
         ) : (
-          <div className="flex items-start justify-between gap-4">
+          <Flex align="start" justify="between" gap="4">
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold text-white">{list.name}</h1>
+              <Flex align="center" gap="2">
+                <Heading size="6">{list.name}</Heading>
                 {list.isPublic ? (
                   <Globe size={16} className="text-gray-500" />
                 ) : (
                   <Lock size={16} className="text-gray-500" />
                 )}
-              </div>
+              </Flex>
               {list.description && (
-                <p className="text-gray-400 text-sm mt-1">{list.description}</p>
+                <Text as="p" size="2" color="gray" className="mt-1">{list.description}</Text>
               )}
-              <p className="text-gray-500 text-xs mt-2">
+              <Text as="p" size="1" color="gray" className="mt-2">
                 by{" "}
                 <Slot
                   role="link"
@@ -199,7 +226,24 @@ export default function ListDetailPage({ params }: { params: Promise<{ id: strin
                   <span>{list.user.username}</span>
                 </Slot>{" "}
                 · {list._count.entries} game{list._count.entries !== 1 ? "s" : ""}
-              </p>
+              </Text>
+
+              {/* Like + comment counts */}
+              <Flex align="center" gap="4" className="mt-3">
+                <button
+                  onClick={toggleLike}
+                  disabled={!user}
+                  className={`flex items-center gap-1.5 text-sm transition-colors ${isLiked ? "text-red-400" : "text-gray-500 hover:text-red-400"} disabled:cursor-default`}
+                  title={user ? (isLiked ? "Unlike" : "Like this list") : "Sign in to like"}
+                >
+                  <Heart size={16} fill={isLiked ? "currentColor" : "none"} />
+                  <span>{currentLikeCount}</span>
+                </button>
+                <span className="flex items-center gap-1.5 text-sm text-gray-500">
+                  <MessageCircle size={16} />
+                  <span>{list._count.comments}</span>
+                </span>
+              </Flex>
             </div>
 
             {isOwner && (
@@ -225,7 +269,7 @@ export default function ListDetailPage({ params }: { params: Promise<{ id: strin
                   <Dialog.Portal>
                     <Dialog.Overlay className="fixed inset-0 bg-black/60 z-40" />
                     <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white/5 backdrop-blur-sm border border-white/15 rounded-2xl p-6 w-full max-w-sm z-50">
-                      <div className="flex items-center justify-between mb-3">
+                      <Flex align="center" justify="between" className="mb-3">
                         <Dialog.Title className="font-bold text-white flex items-center gap-2">
                           <AlertTriangle size={16} className="text-red-400" />
                           Delete List
@@ -235,12 +279,14 @@ export default function ListDetailPage({ params }: { params: Promise<{ id: strin
                             <X size={18} />
                           </button>
                         </Dialog.Close>
-                      </div>
-                      <Dialog.Description className="text-sm text-gray-400 mb-4">
-                        Are you sure you want to delete <span className="text-white font-medium">"{list.name}"</span>? This cannot be undone.
+                      </Flex>
+                      <Dialog.Description asChild>
+                        <Text as="p" size="2" color="gray" className="mb-4">
+                          Are you sure you want to delete <span className="text-white font-medium">"{list.name}"</span>? This cannot be undone.
+                        </Text>
                       </Dialog.Description>
                       <Separator.Root className="h-px bg-white/8 mb-4" />
-                      <div className="flex gap-2">
+                      <Flex gap="2">
                         <button
                           onClick={() => deleteMutation.mutate()}
                           disabled={deleteMutation.isPending}
@@ -254,26 +300,26 @@ export default function ListDetailPage({ params }: { params: Promise<{ id: strin
                             Cancel
                           </button>
                         </Dialog.Close>
-                      </div>
+                      </Flex>
                     </Dialog.Content>
                   </Dialog.Portal>
                 </Dialog.Root>
               </div>
             )}
-          </div>
+          </Flex>
         )}
       </div>
 
       {list.entries.length === 0 ? (
-        <div className="text-center py-16 text-gray-500">
-          <Gamepad2 size={40} className="mx-auto mb-3 opacity-30" />
-          <p>No games in this list yet.</p>
-          {isOwner && <p className="text-sm mt-1">Search for a game and add it to this list.</p>}
-        </div>
+        <Box className="text-center py-16">
+          <Gamepad2 size={40} className="mx-auto mb-3 opacity-30 text-gray-500" />
+          <Text as="p" size="2" color="gray">No games in this list yet.</Text>
+          {isOwner && <Text as="p" size="2" color="gray" className="mt-1">Search for a game and add it to this list.</Text>}
+        </Box>
       ) : (
         <>
           {list.entries.length > 1 && (
-            <div className="flex gap-2 flex-wrap">
+            <Flex gap="2" className="flex-wrap">
               {allGenres.length > 0 && (
                 <ListSelect
                   value={genreFilter}
@@ -285,13 +331,13 @@ export default function ListDetailPage({ params }: { params: Promise<{ id: strin
                 />
               )}
               <ListSelect value={sort} onValueChange={setSort} options={SORT_OPTIONS} />
-            </div>
+            </Flex>
           )}
 
           {displayedEntries.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 text-sm">
-              No games match this filter.
-            </div>
+            <Box className="text-center py-8">
+              <Text size="2" color="gray">No games match this filter.</Text>
+            </Box>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {displayedEntries.map((entry) => (
@@ -321,7 +367,7 @@ export default function ListDetailPage({ params }: { params: Promise<{ id: strin
                           </div>
                         )}
                       </div>
-                      <p className="text-xs text-gray-300 mt-1.5 font-medium truncate group-hover:text-white transition-colors">
+                      <p className="text-[11px] text-gray-300 mt-1.5 font-medium truncate group-hover:text-white transition-colors">
                         {entry.game.name}
                       </p>
                     </div>
@@ -342,6 +388,7 @@ export default function ListDetailPage({ params }: { params: Promise<{ id: strin
           )}
         </>
       )}
+      {list.isPublic && <ListComments listId={id} />}
     </div>
   );
 }

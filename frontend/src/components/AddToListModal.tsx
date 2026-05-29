@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { List, Plus, Check, Loader2, Lock, Globe } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
+import { Text, Flex, Box } from "@radix-ui/themes";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { GameListPreview } from "@/lib/types";
@@ -83,18 +84,18 @@ export default function AddToListModal({ rawgId, gameName }: Props) {
                   disabled={addMutation.isPending}
                   className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/8 hover:bg-gray-700 transition-colors text-left disabled:opacity-60"
                 >
-                  <div className="flex-1 min-w-0">
+                  <Box flexGrow="1" minWidth="0">
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm font-medium text-white truncate">{list.name}</span>
                       {list.isPublic ? <Globe size={11} className="text-gray-500 shrink-0" /> : <Lock size={11} className="text-gray-500 shrink-0" />}
                     </div>
                     <p className="text-xs text-gray-500">{list._count.entries} game{list._count.entries !== 1 ? "s" : ""}</p>
-                  </div>
+                  </Box>
                   <Plus size={15} className="text-gray-400 shrink-0" />
                 </button>
               ))}
               {lists.length === 0 && !showCreate && (
-                <p className="text-center text-gray-500 text-sm py-4">No lists yet.</p>
+                <Text as="p" size="2" color="gray" className="text-center py-4">No lists yet.</Text>
               )}
             </div>
           )}
@@ -109,7 +110,7 @@ export default function AddToListModal({ rawgId, gameName }: Props) {
                 autoFocus
                 className="w-full bg-white/8 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-violet-500 transition-colors"
               />
-              <div className="flex gap-2">
+              <Flex gap="2">
                 <button
                   onClick={() => createAndAddMutation.mutate()}
                   disabled={!newName.trim() || createAndAddMutation.isPending}
@@ -124,7 +125,7 @@ export default function AddToListModal({ rawgId, gameName }: Props) {
                 >
                   Cancel
                 </button>
-              </div>
+              </Flex>
             </div>
           ) : (
             <button

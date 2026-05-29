@@ -2,6 +2,7 @@
 
 import { use } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Text, Heading, Flex, Box } from "@radix-ui/themes";
 import { ArrowLeft, Users } from "lucide-react";
 import Link from "next/link";
 import { api } from "@/lib/api";
@@ -24,7 +25,7 @@ export default function FollowersPage({ params }: { params: Promise<{ username: 
 
   return (
     <div className="max-w-xl mx-auto space-y-4">
-      <div className="flex items-center gap-3">
+      <Flex align="center" gap="3">
         <Link
           href={`/user/${username}`}
           className="text-gray-400 hover:text-white transition-colors"
@@ -32,17 +33,17 @@ export default function FollowersPage({ params }: { params: Promise<{ username: 
           <ArrowLeft size={20} />
         </Link>
         <div>
-          <h1 className="text-xl font-bold">{username}</h1>
-          <p className="text-gray-400 text-sm">Followers</p>
+          <Heading size="5">{username}</Heading>
+          <Text as="p" size="2" color="gray">Followers</Text>
         </div>
-      </div>
+      </Flex>
 
-      {isLoading && <div className="text-gray-500 text-sm">Loading...</div>}
+      {isLoading && <Text as="p" size="2" color="gray">Loading...</Text>}
 
       {!isLoading && followers.length === 0 && (
-        <div className="text-center py-16 text-gray-500">
+        <div className="text-center py-16">
           <Users size={36} className="mx-auto mb-3 opacity-30" />
-          <p>No followers yet.</p>
+          <Text as="p" color="gray">No followers yet.</Text>
         </div>
       )}
 
@@ -54,10 +55,10 @@ export default function FollowersPage({ params }: { params: Promise<{ username: 
             className="flex items-center gap-3 bg-white/5 backdrop-blur-sm border border-white/8 rounded-xl p-3 hover:border-violet-700 transition-colors"
           >
             <Avatar src={u.avatar} username={u.username} />
-            <div className="flex-1 min-w-0">
-              <p className="text-white font-semibold text-sm">{u.username}</p>
-              {u.bio && <p className="text-gray-500 text-xs truncate">{u.bio}</p>}
-            </div>
+            <Box flexGrow="1" minWidth="0">
+              <Text as="p" size="2" className="font-semibold">{u.username}</Text>
+              {u.bio && <Text as="p" size="1" color="gray" className="truncate">{u.bio}</Text>}
+            </Box>
           </Link>
         ))}
       </div>

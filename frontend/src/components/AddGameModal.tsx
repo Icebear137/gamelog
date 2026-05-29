@@ -6,6 +6,7 @@ import * as Label from "@radix-ui/react-label";
 import * as Select from "@radix-ui/react-select";
 import { Search, X, Plus, Star, ChevronDown, Monitor } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Text, Flex, Grid } from "@radix-ui/themes";
 import { api } from "@/lib/api";
 import { dispatchToast } from "@/lib/toast";
 import { GameStatus, GamePlatform } from "@/lib/types";
@@ -134,7 +135,7 @@ export default function AddGameModal({ preselectedGame, initialValues, trigger }
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/60 z-40" />
         <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 w-full max-w-lg z-50 max-h-[90vh] overflow-y-auto">
-          <div className="flex items-center justify-between mb-4">
+          <Flex align="center" justify="between" className="mb-4">
             <Dialog.Title className="text-white font-bold text-lg">
               {initialValues ? "Update Entry" : "Add a Game"}
             </Dialog.Title>
@@ -143,7 +144,7 @@ export default function AddGameModal({ preselectedGame, initialValues, trigger }
                 <X size={20} />
               </button>
             </Dialog.Close>
-          </div>
+          </Flex>
 
           {!selected ? (
             <div>
@@ -158,7 +159,7 @@ export default function AddGameModal({ preselectedGame, initialValues, trigger }
                 />
               </div>
               <div className="mt-3 space-y-2">
-                {isFetching && <p className="text-gray-500 text-sm text-center py-4">Searching...</p>}
+                {isFetching && <Text as="p" size="2" color="gray" className="text-center py-4">Searching...</Text>}
                 {results.map((g) => (
                   <button
                     key={g.rawgId}
@@ -186,7 +187,7 @@ export default function AddGameModal({ preselectedGame, initialValues, trigger }
             </div>
           ) : (
             <div>
-              <div className="flex items-center gap-3 mb-5 p-3 bg-white/8 rounded-xl">
+              <Flex align="center" gap="3" className="mb-5 p-3 bg-white/8 rounded-xl">
                 {selected.coverImage && (
                   <img
                     src={selected.coverImage}
@@ -195,17 +196,17 @@ export default function AddGameModal({ preselectedGame, initialValues, trigger }
                   />
                 )}
                 <div>
-                  <p className="text-white font-semibold">{selected.name}</p>
-                  <p className="text-gray-400 text-xs">{selected.releaseYear}</p>
+                  <Text as="p" size="3" weight="medium" className="font-semibold">{selected.name}</Text>
+                  <Text as="p" size="1" color="gray">{selected.releaseYear}</Text>
                 </div>
                 {!preselectedGame && (
                   <button onClick={() => setSelected(null)} className="ml-auto text-gray-400 hover:text-white">
                     <X size={16} />
                   </button>
                 )}
-              </div>
+              </Flex>
 
-              <div className="space-y-4">
+              <Flex direction="column" gap="4">
                 <div>
                   <Label.Root className="block text-gray-400 text-xs mb-1.5">Status</Label.Root>
                   <div className="grid grid-cols-2 gap-2">
@@ -225,7 +226,7 @@ export default function AddGameModal({ preselectedGame, initialValues, trigger }
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <Grid columns="2" gap="4">
                   <div className="space-y-1.5">
                     <Label.Root htmlFor="modal-rating" className="block text-gray-400 text-xs">
                       Rating (1–10)
@@ -259,7 +260,7 @@ export default function AddGameModal({ preselectedGame, initialValues, trigger }
                       placeholder="—"
                     />
                   </div>
-                </div>
+                </Grid>
 
                 <div className="space-y-1.5">
                   <Label.Root className="flex items-center gap-1 text-gray-400 text-xs">
@@ -320,7 +321,7 @@ export default function AddGameModal({ preselectedGame, initialValues, trigger }
                       ? "Update Entry"
                       : "Save to Library"}
                 </button>
-              </div>
+              </Flex>
             </div>
           )}
         </Dialog.Content>

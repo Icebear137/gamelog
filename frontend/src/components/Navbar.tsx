@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Gamepad2, Search, LogOut, User, Settings, Bell, List, MessageCircle } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useQuery } from "@tanstack/react-query";
+import { Flex } from "@radix-ui/themes";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import Avatar from "./Avatar";
@@ -53,7 +54,7 @@ export default function Navbar() {
           <Search size={18} />
         </Link>
 
-        <div className="ml-auto flex items-center gap-2">
+        <Flex align="center" gap="2" className="ml-auto">
           {user ? (
             <>
               <Link href="/messages" className="relative text-gray-400 hover:text-white transition-colors p-1.5">
@@ -124,16 +125,16 @@ export default function Navbar() {
               </DropdownMenu.Root>
             </>
           ) : (
-            <div className="flex items-center gap-2">
+            <Flex align="center" gap="2">
               <Link href="/login" className="text-sm text-gray-400 hover:text-white px-3 py-1.5 transition-colors">
                 Login
               </Link>
               <Link href="/register" className="text-sm bg-violet-600 hover:bg-violet-500 text-white px-3 py-1.5 rounded-lg transition-colors">
                 Sign Up
               </Link>
-            </div>
+            </Flex>
           )}
-        </div>
+        </Flex>
       </div>
     </nav>
   );

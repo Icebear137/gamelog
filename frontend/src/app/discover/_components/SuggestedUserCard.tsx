@@ -3,6 +3,7 @@
 import { memo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { Text, Box } from "@radix-ui/themes";
 import { api } from "@/lib/api";
 import { dispatchToast } from "@/lib/toast";
 import Avatar from "@/components/Avatar";
@@ -32,18 +33,18 @@ export default memo(function SuggestedUserCard({ user: su }: { user: SuggestedUs
       <Link href={`/user/${su.username}`} className="shrink-0">
         <Avatar src={su.avatar} username={su.username} />
       </Link>
-      <div className="flex-1 min-w-0">
+      <Box flexGrow="1" minWidth="0">
         <Link
           href={`/user/${su.username}`}
           className="text-white font-semibold text-sm hover:text-violet-300 transition-colors"
         >
           {su.username}
         </Link>
-        {su.bio && <p className="text-gray-500 text-xs truncate">{su.bio}</p>}
-        <p className="text-violet-400 text-xs mt-0.5">
+        {su.bio && <Text as="p" size="1" color="gray" className="truncate">{su.bio}</Text>}
+        <Text as="p" size="1" color="violet" className="mt-0.5">
           {su.commonGames} game{su.commonGames !== 1 ? "s" : ""} in common
-        </p>
-      </div>
+        </Text>
+      </Box>
       <button
         onClick={() => followMutation.mutate()}
         disabled={followMutation.isPending}

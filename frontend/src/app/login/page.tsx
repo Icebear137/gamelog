@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Text, Heading, Flex } from "@radix-ui/themes";
 import { Gamepad2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -31,15 +32,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-[80vh] items-center justify-center">
+    <Flex className="min-h-[80vh]" align="center" justify="center">
       <div className="w-full max-w-sm">
-        <div className="flex items-center gap-2 justify-center mb-8 text-violet-400">
+        <Flex align="center" gap="2" justify="center" className="mb-8 text-violet-400">
           <Gamepad2 size={28} />
           <span className="text-xl font-bold text-white">GameLog</span>
-        </div>
+        </Flex>
 
         <form onSubmit={handleSubmit} className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-2xl p-6 space-y-4">
-          <h1 className="text-white font-bold text-xl text-center mb-2">Welcome back</h1>
+          <Heading size="5" className="text-center mb-2">Welcome back</Heading>
 
           {error && (
             <div className="bg-red-900/30 border border-red-700 text-red-400 text-sm px-3 py-2 rounded-lg">
@@ -48,7 +49,7 @@ export default function LoginPage() {
           )}
 
           <div>
-            <label className="block text-gray-400 text-xs mb-1.5">Email</label>
+            <label className="block mb-1.5"><Text as="span" size="1" color="gray">Email</Text></label>
             <input
               type="email"
               value={email}
@@ -60,7 +61,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-gray-400 text-xs mb-1.5">Password</label>
+            <label className="block mb-1.5"><Text as="span" size="1" color="gray">Password</Text></label>
             <input
               type="password"
               value={password}
@@ -79,15 +80,15 @@ export default function LoginPage() {
             {loading ? "Logging in..." : "Login"}
           </button>
 
-          <p className="text-center text-gray-500 text-sm">
+          <Text as="p" size="2" color="gray" className="text-center">
             No account?{" "}
             <Link href="/register" className="text-violet-400 hover:text-violet-300">
               Sign up
             </Link>
-          </p>
+          </Text>
         </form>
       </div>
-    </div>
+    </Flex>
   );
 }
 

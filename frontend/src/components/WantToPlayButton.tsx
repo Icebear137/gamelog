@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Bookmark, BookmarkCheck } from "lucide-react";
+import { Flex } from "@radix-ui/themes";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { GameEntry } from "@/lib/types";
@@ -10,9 +11,10 @@ import { dispatchToast } from "@/lib/toast";
 interface Props {
   rawgId: number;
   gameName: string;
+  onSuccess?: () => void;
 }
 
-export default function WantToPlayButton({ rawgId, gameName }: Props) {
+export default function WantToPlayButton({ rawgId, gameName, onSuccess }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
 
@@ -56,6 +58,7 @@ export default function WantToPlayButton({ rawgId, gameName }: Props) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-entries"] });
       dispatchToast(`Added "${gameName}" to Want to Play`, "success");
+      onSuccess?.();
     },
   });
 
@@ -63,10 +66,10 @@ export default function WantToPlayButton({ rawgId, gameName }: Props) {
 
   if (existing) {
     return (
-      <div className="flex items-center gap-1 text-xs text-violet-400 font-medium">
+      <Flex align="center" gap="1" className="text-xs text-violet-400 font-medium">
         <BookmarkCheck size={14} />
         <span className="hidden sm:inline">{existing.status.replaceAll("_", " ")}</span>
-      </div>
+      </Flex>
     );
   }
 
