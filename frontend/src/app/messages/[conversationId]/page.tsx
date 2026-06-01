@@ -112,7 +112,7 @@ export default function ConversationPage({ params }: { params: Promise<{ convers
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
-  const { sendMutation, sendImagesMutation, sendGameMutation, sendAudioMutation, forwardMutation, pollMutation, gameNightMutation, pinMutation } =
+  const { sendMutation, sendImagesMutation, sendGameMutation, sendAudioMutation, sendFileMutation, forwardMutation, pollMutation, gameNightMutation, pinMutation } =
     useConversationMutations({
       conversationId,
       qc,
@@ -304,17 +304,18 @@ export default function ConversationPage({ params }: { params: Promise<{ convers
           onSubmitImages={(files, caption) => sendImagesMutation.mutate({ files, caption, replyToId: replyingTo?.id })}
           onSubmitGame={(gameId, caption) => sendGameMutation.mutate({ gameId, caption, replyToId: replyingTo?.id })}
           onSubmitAudio={(blob, duration) => sendAudioMutation.mutate({ blob, duration })}
+          onSubmitFile={(file) => sendFileMutation.mutate(file)}
           onSubmitPoll={(question, options, allowMultiple) => pollMutation.mutate({ question, options, allowMultiple })}
           onSubmitGameNight={conv?.isGroup ? (data) => gameNightMutation.mutate(data) : undefined}
           onTyping={handleTypingEmit}
-          disabled={sendMutation.isPending || sendImagesMutation.isPending || sendGameMutation.isPending || sendAudioMutation.isPending}
+          disabled={sendMutation.isPending || sendImagesMutation.isPending || sendGameMutation.isPending || sendAudioMutation.isPending || sendFileMutation.isPending}
           placeholder={conv?.isGroup ? `Message ${conv.name ?? "group"}…` : `Message ${otherUser?.username ?? ""}…`}
         />
       </div>
 
       {forwardingMsg && (
         <ForwardModal
-          messageId={forwardingMsg.id}
+          message={forwardingMsg}
           onClose={() => setForwardingMsg(null)}
           onForward={(targetConversationId) => forwardMutation.mutate({ messageId: forwardingMsg.id, targetConversationId })}
           forwarding={forwardMutation.isPending}

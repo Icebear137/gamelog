@@ -2,22 +2,36 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { X, Search, Loader2, Forward, Users } from "lucide-react";
+import { X, Search, Loader2, Forward, Users, Mic, ImageIcon, BarChart2, Gamepad2, CalendarDays } from "lucide-react";
 import Image from "next/image";
 import { Text, Flex } from "@radix-ui/themes";
 import { api } from "@/lib/api";
-import { Conversation } from "@/lib/types";
+import { Conversation, ChatMessage } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
 import Avatar from "./Avatar";
 
 interface Props {
-  messageId: string;
+  message: ChatMessage;
   onClose: () => void;
   onForward: (conversationId: string) => void;
   forwarding: boolean;
 }
 
-export default function ForwardModal({ messageId: _messageId, onClose, onForward, forwarding }: Props) {
+function MessagePreview({ message }: { message: ChatMessage }) {
+  if (message.poll)
+    return <><BarChart2 size={12} className="shrink-0" /><span className="truncate">Poll: {message.poll.question}</span></>;
+  if (message.gameNight)
+    return <><CalendarDays size={12} className="shrink-0" /><span className="truncate">Game Night: {message.gameNight.title}</span></>;
+  if (message.audioUrl)
+    return <><Mic size={12} className="shrink-0" /><span>Voice message</span></>;
+  if (message.imageUrls || message.imageUrl)
+    return <><ImageIcon size={12} className="shrink-0" /><span>Photo</span></>;
+  if (message.game)
+    return <><Gamepad2 size={12} className="shrink-0" /><span className="truncate">{message.game.name}</span></>;
+  return <span className="truncate">{message.body}</span>;
+}
+
+export default function ForwardModal({ message, onClose, onForward, forwarding }: Props) {
   const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [forwardingToId, setForwardingToId] = useState<string | null>(null);
@@ -69,6 +83,13 @@ export default function ForwardModal({ messageId: _messageId, onClose, onForward
             <X size={14} />
           </button>
         </Flex>
+
+        {/* Message preview */}
+        <div className="px-4 py-2.5 border-b border-white/8 bg-white/3">
+          <div className="flex items-center gap-1.5 text-xs text-gray-400">
+            <MessagePreview message={message} />
+          </div>
+        </div>
 
         {/* Search */}
         <Flex align="center" gap="2" className="px-4 py-2.5 border-b border-white/8">

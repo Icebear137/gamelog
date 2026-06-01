@@ -95,6 +95,10 @@ const MESSAGE_SELECT = {
   imageUrls: true,
   audioUrl: true,
   audioDuration: true,
+  fileUrl: true,
+  fileName: true,
+  fileSize: true,
+  fileType: true,
   isForwarded: true,
   replyToId: true,
   replyTo: { select: REPLY_SELECT },
@@ -142,6 +146,16 @@ const uploadAudio = multer({
   fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith("audio/")) cb(null, true);
     else cb(new Error("Only audio files are allowed"));
+  },
+});
+
+// Multer — memory storage for file attachments (25 MB, no images)
+const uploadFile = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) cb(new Error("Use the image endpoint for images"));
+    else cb(null, true);
   },
 });
 
@@ -219,6 +233,7 @@ router.get("/conversations", requireAuth, async (req: AuthRequest, res: Response
           : [],
         lastMessage: conv.messages[0] ?? null,
         unreadCount,
+        mutedUntil: p.mutedUntil ?? null,
       };
     })
   );
@@ -669,6 +684,34 @@ router.get("/conversations/:id", requireAuth, async (req: AuthRequest, res: Resp
 });
 
 // ---------------------------------------------------------------------------
+// PUT /api/messages/conversations/:id/mute
+// Mute notifications for this conversation
+// Body: { duration: "1h" | "8h" | "1w" | "always" | null }  (null = unmute)
+// ---------------------------------------------------------------------------
+router.put("/conversations/:id/mute", requireAuth, async (req: AuthRequest, res: Response) => {
+  const myId = req.userId!;
+  const conversationId = String(req.params.id);
+  const { duration } = req.body as { duration: "1h" | "8h" | "1w" | "always" | null };
+
+  const participant = await requireParticipant(conversationId, myId);
+  if (!participant) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  let mutedUntil: Date | null = null;
+  if (duration === "1h")     mutedUntil = new Date(Date.now() + 60 * 60 * 1000);
+  else if (duration === "8h") mutedUntil = new Date(Date.now() + 8 * 60 * 60 * 1000);
+  else if (duration === "1w") mutedUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  else if (duration === "always") mutedUntil = new Date("2099-01-01T00:00:00Z");
+  // null → unmute (mutedUntil stays null)
+
+  await prisma.conversationParticipant.update({
+    where: { conversationId_userId: { conversationId, userId: myId } },
+    data: { mutedUntil },
+  });
+
+  res.json({ mutedUntil });
+});
+
+// ---------------------------------------------------------------------------
 // POST /api/messages/conversations/:id/pin
 // Pin or unpin a message — groups: admin only; DMs: any participant
 // Body: { messageId: string | null }
@@ -1084,6 +1127,140 @@ router.post("/conversations/:id/audio", requireAuth, (req: AuthRequest, res: Res
 });
 
 // ---------------------------------------------------------------------------
+// POST /api/messages/conversations/:id/files
+// Send a file attachment (PDF, ZIP, DOCX, etc.) — NOT for images
+// ---------------------------------------------------------------------------
+router.post("/conversations/:id/files", requireAuth, (req: AuthRequest, res: Response) => {
+  const myId = req.userId!;
+  const conversationId = String(req.params.id);
+
+  uploadFile.single("file")(req as any, res as any, async (err) => {
+    if (err) {
+      res.status(400).json({ error: err.message ?? "Upload failed" });
+      return;
+    }
+
+    const file = (req as any).file as Express.Multer.File | undefined;
+    if (!file) {
+      res.status(400).json({ error: "No file provided" });
+      return;
+    }
+
+    const participant = await requireParticipant(conversationId, myId);
+    if (!participant) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+
+    try {
+      const { url: fileUrl } = await uploadToCloudinary(file.buffer, {
+        folder: "gamelog/files",
+        resourceType: "auto",
+      });
+
+      const message = await prisma.message.create({
+        data: {
+          conversationId,
+          senderId: myId,
+          body: "",
+          fileUrl,
+          fileName: Buffer.from(file.originalname, "latin1").toString("utf8"),
+          fileSize: file.size,
+          fileType: file.mimetype,
+        },
+        select: MESSAGE_SELECT,
+      });
+
+      await prisma.conversation.update({
+        where: { id: conversationId },
+        data: { updatedAt: new Date() },
+      });
+
+      const other = await prisma.conversationParticipant.findFirst({
+        where: { conversationId, userId: { not: myId } },
+      });
+
+      const payload = { conversationId, message };
+      emitToConversation(conversationId, "new_message", payload);
+      if (other) emitToUser(other.userId, "new_message", { conversationId });
+
+      res.status(201).json(message);
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message ?? "Upload failed" });
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/messages/conversations/:id/files
+// List all file attachment messages in a conversation
+// ---------------------------------------------------------------------------
+router.get("/conversations/:id/files", requireAuth, async (req: AuthRequest, res: Response) => {
+  const myId = req.userId!;
+  const conversationId = String(req.params.id);
+
+  const participant = await requireParticipant(conversationId, myId);
+  if (!participant) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+
+  const files = await prisma.message.findMany({
+    where: { conversationId, fileUrl: { not: null } },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+    select: {
+      id: true,
+      fileUrl: true,
+      fileName: true,
+      fileSize: true,
+      fileType: true,
+      createdAt: true,
+      sender: { select: { id: true, username: true, avatar: true } },
+    },
+  });
+
+  res.json(files);
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/messages/conversations/:id/images
+// List all image messages in a conversation (single + multi-image)
+// ---------------------------------------------------------------------------
+router.get("/conversations/:id/images", requireAuth, async (req: AuthRequest, res: Response) => {
+  const myId = req.userId!;
+  const conversationId = String(req.params.id);
+
+  const participant = await requireParticipant(conversationId, myId);
+  if (!participant) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  const messages = await prisma.message.findMany({
+    where: {
+      conversationId,
+      OR: [{ imageUrl: { not: null } }, { imageUrls: { not: null } }],
+    },
+    orderBy: { createdAt: "desc" },
+    take: 60,
+    select: { id: true, imageUrl: true, imageUrls: true, createdAt: true },
+  });
+
+  // Flatten single + multi-image into one list of URLs
+  const images: { url: string; messageId: string }[] = [];
+  for (const msg of messages) {
+    if (msg.imageUrls) {
+      try {
+        const urls: string[] = JSON.parse(msg.imageUrls);
+        urls.forEach((url) => images.push({ url, messageId: msg.id }));
+      } catch { /* ignore */ }
+    } else if (msg.imageUrl) {
+      images.push({ url: msg.imageUrl, messageId: msg.id });
+    }
+  }
+
+  res.json(images);
+});
+
+// ---------------------------------------------------------------------------
 // DELETE /api/messages/conversations/:id/messages/:msgId
 // Soft-delete own message (replace body with "[deleted]")
 // ---------------------------------------------------------------------------
@@ -1305,10 +1482,33 @@ router.post("/conversations/:id/forward", requireAuth, async (req: AuthRequest, 
     return;
   }
 
-  // Fetch the original message
+  // Fetch the original message with all content types
   const original = await prisma.message.findUnique({
     where: { id: messageId },
-    select: { body: true, imageUrl: true, imageUrls: true, gameId: true, senderId: true, conversationId: true },
+    select: {
+      body: true,
+      imageUrl: true,
+      imageUrls: true,
+      audioUrl: true,
+      audioDuration: true,
+      fileUrl: true,
+      fileName: true,
+      fileSize: true,
+      fileType: true,
+      gameId: true,
+      senderId: true,
+      conversationId: true,
+      poll: {
+        select: {
+          question: true,
+          allowMultiple: true,
+          options: { select: { text: true, order: true }, orderBy: { order: "asc" } },
+        },
+      },
+      gameNight: {
+        select: { title: true, scheduledAt: true, platform: true, note: true, gameId: true },
+      },
+    },
   });
   if (!original) {
     res.status(404).json({ error: "Message not found" });
@@ -1326,7 +1526,8 @@ router.post("/conversations/:id/forward", requireAuth, async (req: AuthRequest, 
     return;
   }
 
-  // Create the forwarded message with the same content
+  // Create the forwarded message — deep-copy polls and game nights so each
+  // forwarded instance is independent (own votes / own RSVPs)
   const message = await prisma.message.create({
     data: {
       conversationId,
@@ -1334,8 +1535,37 @@ router.post("/conversations/:id/forward", requireAuth, async (req: AuthRequest, 
       body: original.body,
       imageUrl: original.imageUrl ?? undefined,
       imageUrls: original.imageUrls ?? undefined,
+      audioUrl: original.audioUrl ?? undefined,
+      audioDuration: original.audioDuration ?? undefined,
+      fileUrl: original.fileUrl ?? undefined,
+      fileName: original.fileName ?? undefined,
+      fileSize: original.fileSize ?? undefined,
+      fileType: original.fileType ?? undefined,
       gameId: original.gameId ?? undefined,
       isForwarded: true,
+      ...(original.poll && {
+        poll: {
+          create: {
+            conversationId,
+            question: original.poll.question,
+            allowMultiple: original.poll.allowMultiple,
+            options: { create: original.poll.options.map((o) => ({ text: o.text, order: o.order })) },
+          },
+        },
+      }),
+      ...(original.gameNight && {
+        gameNight: {
+          create: {
+            conversationId,
+            createdBy: myId,
+            title: original.gameNight.title,
+            scheduledAt: original.gameNight.scheduledAt,
+            platform: original.gameNight.platform ?? undefined,
+            note: original.gameNight.note ?? undefined,
+            gameId: original.gameNight.gameId ?? undefined,
+          },
+        },
+      }),
     },
     select: MESSAGE_SELECT,
   });

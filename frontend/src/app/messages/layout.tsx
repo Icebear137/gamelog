@@ -14,10 +14,13 @@ import ConversationInfoPanel from "./_components/ConversationInfoPanel";
  *   Middle (flex-1) — active chat / {children}
  *   Right  (w-60)   — conversation info panel
  */
-export default function MessagesLayout({ children }: { children: React.ReactNode }) {
+export default function MessagesLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <div className="fixed inset-x-0 top-14 bottom-0 flex overflow-hidden">
-
       {/* ── Left panel: conversation list ─────────────────── */}
       <aside className="w-72 shrink-0 flex flex-col overflow-hidden border-r border-white/8 bg-white/2">
         <ConversationList />
@@ -29,10 +32,9 @@ export default function MessagesLayout({ children }: { children: React.ReactNode
       </main>
 
       {/* ── Right panel: conversation info ────────────────── */}
-      <aside className="w-60 shrink-0 flex flex-col overflow-hidden border-l border-white/8 bg-white/2">
+      <aside className="w-72 shrink-0 flex flex-col overflow-hidden border-l border-white/8 bg-white/2">
         <ConversationInfoPanel />
       </aside>
-
     </div>
   );
 }

@@ -249,8 +249,9 @@ model ConversationParticipant {
   id             String   @id @default(cuid())
   conversationId String
   userId         String
-  role           String   @default("member") // "admin" | "member"
-  lastReadAt     DateTime @default(now())
+  role           String    @default("member") // "admin" | "member"
+  lastReadAt     DateTime  @default(now())
+  mutedUntil     DateTime?
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -312,6 +313,10 @@ model Message {
   imageUrls      String?   // JSON array of URLs for multi-image messages
   audioUrl       String?
   audioDuration  Int?      // seconds
+  fileUrl        String?
+  fileName       String?
+  fileSize       Int?      // bytes
+  fileType       String?   // MIME type
   replyToId      String?
   gameId         String?
   isForwarded    Boolean  @default(false)

@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
-import { Send, Smile, ImageIcon, X, Gamepad2, Loader2, Plus, Mic, Square, BarChart2, CalendarDays } from "lucide-react";
+import { Send, Smile, ImageIcon, X, Gamepad2, Loader2, Plus, Mic, Square, BarChart2, CalendarDays, Paperclip } from "lucide-react";
+import { useDropzone } from "react-dropzone";
 import dynamic from "next/dynamic";
 import data from "@emoji-mart/data";
 import Image from "next/image";
@@ -22,6 +23,7 @@ interface Props {
   onSubmitImages?: (files: File[], caption: string) => void;
   onSubmitGame?: (gameId: string, caption: string) => void;
   onSubmitAudio?: (blob: Blob, duration: number) => void;
+  onSubmitFile?: (file: File) => void;
   onSubmitPoll?: (question: string, options: string[], allowMultiple: boolean) => void;
   onSubmitGameNight?: (data: { title: string; scheduledAt: string; rawgId?: number; platform?: string; note?: string }) => void;
   onTyping?: () => void;
@@ -37,6 +39,7 @@ export default function ChatInput({
   onSubmitImages,
   onSubmitGame,
   onSubmitAudio,
+  onSubmitFile,
   onSubmitPoll,
   onSubmitGameNight,
   onTyping,
@@ -44,8 +47,9 @@ export default function ChatInput({
   placeholder = "Type a message…",
   maxLength = 2000,
 }: Props) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef    = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef   = useRef<HTMLInputElement>(null);
+  const attachInputRef = useRef<HTMLInputElement>(null);
   const pickerContainerRef = useRef<HTMLDivElement>(null);
 
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -214,8 +218,24 @@ export default function ChatInput({
     ? "Add a caption… (optional)"
     : placeholder;
 
+  const { getRootProps, isDragActive } = useDropzone({
+    noClick: true,
+    noKeyboard: true,
+    onDrop: (accepted: File[]) => {
+      const imgs  = accepted.filter((f) => f.type.startsWith("image/"));
+      const files = accepted.filter((f) => !f.type.startsWith("image/"));
+      if (imgs.length > 0) addFiles(imgs);
+      if (files.length > 0 && onSubmitFile) files.forEach((f) => onSubmitFile(f));
+    },
+  });
+
   return (
-    <div className="relative">
+    <div {...getRootProps()} className="relative">
+      {isDragActive && (
+        <div className="absolute inset-0 z-50 rounded-2xl border-2 border-dashed border-violet-500/70 bg-violet-500/10 backdrop-blur-sm flex items-center justify-center pointer-events-none">
+          <p className="text-violet-300 text-sm font-medium">Drop files to send</p>
+        </div>
+      )}
       {pickerOpen && (
         <div ref={pickerContainerRef} className="absolute bottom-full right-0 mb-2 z-50 drop-shadow-2xl">
           <Picker
@@ -308,6 +328,16 @@ export default function ChatInput({
 
       <div className="flex items-end gap-2 bg-white/5 backdrop-blur-sm border border-white/8 rounded-2xl px-3 py-2">
         <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileInput} />
+        <input
+          ref={attachInputRef}
+          type="file"
+          accept="*/*"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) { onSubmitFile?.(f); e.target.value = ""; }
+          }}
+        />
 
         {recording ? (
           <div className="flex-1 flex items-center gap-2.5 py-0.5">
@@ -385,6 +415,16 @@ export default function ChatInput({
               >
                 <Gamepad2 size={15} />
               </button>
+              {onSubmitFile && (
+                <button
+                  type="button"
+                  onClick={() => attachInputRef.current?.click()}
+                  className="p-1.5 rounded-xl transition-colors text-gray-500 hover:text-gray-300 hover:bg-white/8"
+                  title="Send a file"
+                >
+                  <Paperclip size={15} />
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}

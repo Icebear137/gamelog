@@ -17,20 +17,22 @@ interface Props {
 export function SharedGamesGrid({ stats, sharedGames, onGameClick, onSeeAll }: Props) {
   return (
     <>
-      <Flex align="center" justify="around" className="px-4 py-3">
-        <div className="text-center">
-          <Text as="p" size="2" weight="medium" className="font-bold text-white">{stats.myTotal}</Text>
-          <Text as="p" className="text-[10px] text-gray-600 mt-0.5">My games</Text>
+      <div className="flex items-center px-4 py-3">
+        <div className="flex-1 text-center">
+          <p className="text-sm font-bold text-white leading-none">{stats.myTotal}</p>
+          <p className="text-[10px] text-gray-500 mt-1">My games</p>
         </div>
-        <div className="text-center">
-          <Text as="p" size="2" weight="medium" className="font-bold text-violet-400">{stats.sharedCount}</Text>
-          <Text as="p" className="text-[10px] text-gray-600 mt-0.5">In common</Text>
+        <div className="w-px h-8 bg-white/10 shrink-0" />
+        <div className="flex-1 text-center">
+          <p className="text-sm font-bold text-violet-400 leading-none">{stats.sharedCount}</p>
+          <p className="text-[10px] text-gray-500 mt-1">In common</p>
         </div>
-        <div className="text-center">
-          <Text as="p" size="2" weight="medium" className="font-bold text-white">{stats.theirTotal}</Text>
-          <Text as="p" className="text-[10px] text-gray-600 mt-0.5">Their games</Text>
+        <div className="w-px h-8 bg-white/10 shrink-0" />
+        <div className="flex-1 text-center">
+          <p className="text-sm font-bold text-white leading-none">{stats.theirTotal}</p>
+          <p className="text-[10px] text-gray-500 mt-1">Their games</p>
         </div>
-      </Flex>
+      </div>
 
       <div className="px-4 py-3 flex-1">
         <Flex align="center" justify="between" className="mb-2.5">

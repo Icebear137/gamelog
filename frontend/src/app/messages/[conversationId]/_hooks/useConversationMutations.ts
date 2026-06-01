@@ -72,6 +72,18 @@ export function useConversationMutations({
     onError: (err: any) => { dispatchToast(err?.response?.data?.error ?? "Failed to send voice message", "error"); },
   });
 
+  const sendFileMutation = useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      return api.post(`/api/messages/conversations/${conversationId}/files`, form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+    },
+    onSuccess: () => afterSend(),
+    onError: (err: any) => { dispatchToast(err?.response?.data?.error ?? "Failed to send file", "error"); },
+  });
+
   const forwardMutation = useMutation({
     mutationFn: ({ messageId, targetConversationId }: { messageId: string; targetConversationId: string }) =>
       api.post(`/api/messages/conversations/${targetConversationId}/forward`, { messageId }),
@@ -104,5 +116,5 @@ export function useConversationMutations({
     onError: (err: any) => { dispatchToast(err?.response?.data?.error ?? "Failed to pin message", "error"); },
   });
 
-  return { sendMutation, sendImagesMutation, sendGameMutation, sendAudioMutation, forwardMutation, pollMutation, gameNightMutation, pinMutation };
+  return { sendMutation, sendImagesMutation, sendGameMutation, sendAudioMutation, sendFileMutation, forwardMutation, pollMutation, gameNightMutation, pinMutation };
 }

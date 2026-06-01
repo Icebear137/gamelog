@@ -15,6 +15,7 @@ import { ImageContent } from "./message/ImageContent";
 import { ImageGrid } from "./message/ImageGrid";
 import { ReplyQuote } from "./message/ReplyQuote";
 import { AudioBubble } from "./message/AudioBubble";
+import { FileBubble } from "./message/FileBubble";
 import { GameCard } from "./message/GameCard";
 import { QuickReactionPicker } from "./message/QuickReactionPicker";
 import { ReactionPills } from "./message/ReactionPills";
@@ -77,10 +78,11 @@ export default function MessageBubble({ message, isOwn, showSender = true, seenB
   const hasImage = !!message.imageUrl && !isDeleted && !hasMultiImage;
   const hasGame = !!message.game && !isDeleted;
   const hasAudio = !!message.audioUrl && !isDeleted;
+  const hasFile  = !!message.fileUrl && !isDeleted;
   const hasPoll = !!message.poll && !isDeleted;
   const hasGameNight = !!message.gameNight && !isDeleted;
   const reactions = message.reactions ?? [];
-  const linkPreviewUrl = !isDeleted && !hasGame && !hasImage && !hasMultiImage && !hasAudio && !hasPoll && !hasGameNight
+  const linkPreviewUrl = !isDeleted && !hasGame && !hasImage && !hasMultiImage && !hasAudio && !hasFile && !hasPoll && !hasGameNight
     ? extractFirstUrl(message.body)
     : null;
 
@@ -156,6 +158,8 @@ export default function MessageBubble({ message, isOwn, showSender = true, seenB
             <ImageContent imageUrl={message.imageUrl!} caption={message.body} isOwn={true} />
           ) : hasAudio ? (
             <AudioBubble audioUrl={message.audioUrl!} duration={message.audioDuration} isOwn={true} />
+          ) : hasFile ? (
+            <FileBubble fileUrl={message.fileUrl!} fileName={message.fileName ?? "file"} fileSize={message.fileSize} fileType={message.fileType} isOwn={true} />
           ) : (
             <div className={`px-3.5 py-2 rounded-2xl rounded-br-sm text-sm leading-relaxed wrap-anywhere min-w-0 ${isDeleted ? "bg-white/8 text-gray-500 italic" : "bg-violet-600/90 text-white shadow-lg shadow-violet-900/30"}`}>
               {isDeleted ? message.body : renderTextWithLinks(message.body, true)}
@@ -228,6 +232,8 @@ export default function MessageBubble({ message, isOwn, showSender = true, seenB
             <ImageContent imageUrl={message.imageUrl!} caption={message.body} isOwn={false} />
           ) : hasAudio ? (
             <AudioBubble audioUrl={message.audioUrl!} duration={message.audioDuration} isOwn={false} />
+          ) : hasFile ? (
+            <FileBubble fileUrl={message.fileUrl!} fileName={message.fileName ?? "file"} fileSize={message.fileSize} fileType={message.fileType} isOwn={false} />
           ) : (
             <div className={`px-3.5 py-2 rounded-2xl rounded-bl-sm text-sm leading-relaxed wrap-anywhere min-w-0 ${isDeleted ? "bg-white/5 text-gray-500 italic" : "bg-white/10 backdrop-blur-sm text-white"}`}>
               {isDeleted ? message.body : renderTextWithLinks(message.body, false)}

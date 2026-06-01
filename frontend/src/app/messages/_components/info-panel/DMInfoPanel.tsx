@@ -8,6 +8,9 @@ import { useAuth } from "@/lib/auth-context";
 import type { User, Conversation } from "@/lib/types";
 import { DMProfileSection } from "./DMProfileSection";
 import { SharedGamesGrid } from "./SharedGamesGrid";
+import { SharedFilesPanel } from "./SharedFilesPanel";
+import { SharedImagesPanel } from "./SharedImagesPanel";
+import { NotificationSettings } from "./NotificationSettings";
 
 interface SharedGame {
   game: { id: string; rawgId: number; name: string; coverImage: string | null };
@@ -58,6 +61,12 @@ export function DMInfoPanel({ conv }: Props) {
         onFollow={(isFollowing) => followMutation.mutate(isFollowing)}
         onViewProfile={() => router.push(`/user/${otherUser.username}`)}
       />
+
+      <Separator.Root className="h-px bg-white/8 mx-4" />
+
+      <NotificationSettings conversationId={conv.id} mutedUntil={conv.mutedUntil} />
+      <SharedImagesPanel conversationId={conv.id} />
+      <SharedFilesPanel conversationId={conv.id} />
 
       <Separator.Root className="h-px bg-white/8 mx-4" />
 

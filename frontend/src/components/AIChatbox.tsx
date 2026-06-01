@@ -24,11 +24,16 @@ export default function AIChatbox() {
   const textareaRef  = useRef<HTMLTextAreaElement>(null);
   const pathname     = usePathname();
 
+  // Hide on messages pages
+  const isMessages = pathname?.startsWith("/messages");
+
   // Extract rawgId if on a game detail page
   const rawgId = useMemo(() => {
     const m = pathname?.match(/^\/game\/(\d+)/);
     return m ? parseInt(m[1]) : undefined;
   }, [pathname]);
+
+  if (isMessages) return null;
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -118,7 +123,7 @@ export default function AIChatbox() {
     <div className="fixed bottom-6 right-6 z-50">
       {/* Chat panel */}
       <div
-        className={`absolute bottom-[72px] right-0 w-80 h-[500px] flex flex-col bg-zinc-950 border border-white/10 rounded-2xl shadow-2xl shadow-black/60 overflow-hidden transition-all duration-200 origin-bottom-right ${
+        className={`absolute bottom-18 right-0 w-80 h-125 flex flex-col bg-zinc-950 border border-white/10 rounded-2xl shadow-2xl shadow-black/60 overflow-hidden transition-all duration-200 origin-bottom-right ${
           isOpen ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"
         }`}
       >
@@ -176,7 +181,7 @@ export default function AIChatbox() {
                       <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:300ms]" />
                     </span>
                   ) : (
-                    <span className="whitespace-pre-wrap break-words">{msg.content}</span>
+                    <span className="whitespace-pre-wrap wrap-break-word">{msg.content}</span>
                   )}
                 </div>
               </div>

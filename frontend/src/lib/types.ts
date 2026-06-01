@@ -135,6 +135,10 @@ export interface ChatMessage {
   imageUrls?: string | null;  // JSON array e.g. '["url1","url2"]'
   audioUrl?: string | null;
   audioDuration?: number | null; // seconds
+  fileUrl?: string | null;
+  fileName?: string | null;
+  fileSize?: number | null;
+  fileType?: string | null;
   replyToId?: string | null;
   replyTo?: ChatMessageReply | null;
   reactions?: MessageReaction[];
@@ -204,4 +208,5 @@ export interface Conversation {
   participants: { id: string; username: string; avatar?: string | null }[]; // group only
   lastMessage: (ChatMessage & { game?: { name: string } | null; imageUrls?: string | null }) | null;
   unreadCount: number;
+  mutedUntil?: string | null;
 }
