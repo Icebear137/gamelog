@@ -24,7 +24,6 @@ export default function AIChatbox() {
   const textareaRef  = useRef<HTMLTextAreaElement>(null);
   const pathname     = usePathname();
 
-  // Hide on messages pages
   const isMessages = pathname?.startsWith("/messages");
 
   // Extract rawgId if on a game detail page
@@ -32,8 +31,6 @@ export default function AIChatbox() {
     const m = pathname?.match(/^\/game\/(\d+)/);
     return m ? parseInt(m[1]) : undefined;
   }, [pathname]);
-
-  if (isMessages) return null;
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -44,6 +41,9 @@ export default function AIChatbox() {
   useEffect(() => {
     if (isOpen) setTimeout(() => textareaRef.current?.focus(), 150);
   }, [isOpen]);
+
+  // Hide on messages pages — after all hooks
+  if (isMessages) return null;
 
   async function send() {
     const text = input.trim();
