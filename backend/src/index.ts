@@ -15,6 +15,7 @@ import activitiesRouter from "./routes/activities";
 import notificationsRouter from "./routes/notifications";
 import listsRouter from "./routes/lists";
 import messagesRouter from "./routes/messages";
+import aiRouter from "./routes/ai";
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
   console.warn("WARNING: JWT_SECRET is missing or too short. Use a random 64-char string in production.");
@@ -39,6 +40,7 @@ app.use("/api/activities", activitiesRouter);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api/lists", listsRouter);
 app.use("/api/messages", messagesRouter);
+app.use("/api/ai", aiRouter);
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
