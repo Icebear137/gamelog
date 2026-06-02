@@ -352,8 +352,11 @@ model Poll {
   messageId      String   @unique
   conversationId String
   question       String
-  allowMultiple  Boolean  @default(false)
-  createdAt      DateTime @default(now())
+  allowMultiple  Boolean   @default(false)
+  anonymous      Boolean   @default(false)
+  endsAt         DateTime?
+  closedAt       DateTime?
+  createdAt      DateTime  @default(now())
 
   message Message    @relation(fields: [messageId], references: [id], onDelete: Cascade)
   options PollOption[]

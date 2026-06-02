@@ -4,10 +4,10 @@ import clsx from "clsx";
 interface AvatarProps {
   src?: string | null;
   username: string;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
 }
 
-const sizes = { sm: "w-8 h-8 text-xs", md: "w-10 h-10 text-sm", lg: "w-16 h-16 text-xl" };
+const sizes = { xs: "w-4 h-4 text-[8px]", sm: "w-8 h-8 text-xs", md: "w-10 h-10 text-sm", lg: "w-16 h-16 text-xl" };
 
 export default function Avatar({ src, username, size = "md" }: AvatarProps) {
   return (

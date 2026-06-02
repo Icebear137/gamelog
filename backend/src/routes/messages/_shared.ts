@@ -73,12 +73,20 @@ export const MESSAGE_SELECT = {
       id: true,
       question: true,
       allowMultiple: true,
+      anonymous: true,
+      endsAt: true,
+      closedAt: true,
       options: {
         select: {
           id: true,
           text: true,
           order: true,
-          votes: { select: { userId: true } },
+          votes: {
+            select: {
+              userId: true,
+              user: { select: { id: true, username: true, avatar: true } },
+            },
+          },
         },
         orderBy: { order: "asc" as const },
       },

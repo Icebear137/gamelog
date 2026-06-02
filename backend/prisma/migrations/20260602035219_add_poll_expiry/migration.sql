@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Poll" ADD COLUMN "closedAt" DATETIME;
+ALTER TABLE "Poll" ADD COLUMN "endsAt" DATETIME;

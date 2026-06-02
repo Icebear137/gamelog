@@ -97,8 +97,8 @@ export function useConversationMutations({
   });
 
   const pollMutation = useMutation({
-    mutationFn: ({ question, options, allowMultiple }: { question: string; options: string[]; allowMultiple: boolean }) =>
-      api.post(`/api/messages/conversations/${conversationId}/polls`, { question, options, allowMultiple }),
+    mutationFn: ({ question, options, allowMultiple, endsAt, anonymous }: { question: string; options: string[]; allowMultiple: boolean; endsAt?: string; anonymous?: boolean }) =>
+      api.post(`/api/messages/conversations/${conversationId}/polls`, { question, options, allowMultiple, endsAt, anonymous }),
     onSuccess: () => afterSend(),
     onError: (err: any) => { dispatchToast(err?.response?.data?.error ?? "Failed to create poll", "error"); },
   });

@@ -172,13 +172,16 @@ export interface PollOptionData {
   id: string;
   text: string;
   order: number;
-  votes: { userId: string }[];
+  votes: { userId: string; user?: { id: string; username: string; avatar?: string } }[];
 }
 
 export interface PollData {
   id: string;
   question: string;
   allowMultiple: boolean;
+  anonymous: boolean;
+  endsAt?: string | null;
+  closedAt?: string | null;
   options: PollOptionData[];
 }
 

@@ -1,19 +1,69 @@
 import { Router, Response } from "express";
 import prisma from "../../lib/prisma";
 import { requireAuth, AuthRequest } from "../../middleware/auth";
-import { emitToUser, emitToConversation } from "../../lib/socket";
+import { emitToConversation, emitToUser } from "../../lib/socket";
 import { MESSAGE_SELECT, requireParticipant } from "./_shared";
 
 const router = Router();
 
+const POLL_SELECT = {
+  id: true,
+  question: true,
+  allowMultiple: true,
+  anonymous: true,
+  endsAt: true,
+  closedAt: true,
+  messageId: true,
+  conversationId: true,
+  options: {
+    select: {
+      id: true,
+      text: true,
+      order: true,
+      votes: {
+        select: {
+          userId: true,
+          user: { select: { id: true, username: true, avatar: true } },
+        },
+      },
+    },
+    orderBy: { order: "asc" as const },
+  },
+};
+
+type PollResult = Awaited<ReturnType<typeof prisma.poll.findUnique>> & {
+  options: { id: string; text: string; order: number; votes: { userId: string; user: { id: string; username: string; avatar: string | null } }[] }[];
+  anonymous: boolean;
+};
+
+/** Strip user details from votes when poll is anonymous */
+function sanitize(poll: any) {
+  if (!poll) return poll;
+  return {
+    ...poll,
+    options: poll.options.map((o: any) => ({
+      ...o,
+      votes: poll.anonymous
+        ? o.votes.map((v: any) => ({ userId: v.userId }))
+        : o.votes,
+    })),
+  };
+}
+
+function isPollClosed(poll: { closedAt: Date | null; endsAt: Date | null }) {
+  if (poll.closedAt) return true;
+  if (poll.endsAt && new Date(poll.endsAt) <= new Date()) return true;
+  return false;
+}
+
 // ---------------------------------------------------------------------------
 // POST /api/messages/conversations/:id/polls
-// Create a poll message — body: { question, options: string[], allowMultiple? }
+// Body: { question, options: string[], allowMultiple?, anonymous?, endsAt? }
 // ---------------------------------------------------------------------------
 router.post("/conversations/:id/polls", requireAuth, async (req: AuthRequest, res: Response) => {
   const myId = req.userId!;
   const conversationId = String(req.params.id);
-  const { question, options, allowMultiple = false } = req.body;
+  const { question, options, allowMultiple = false, anonymous = false, endsAt } = req.body;
 
   if (!question || typeof question !== "string" || question.trim().length === 0) {
     res.status(400).json({ error: "Question is required" }); return;
@@ -26,6 +76,14 @@ router.post("/conversations/:id/polls", requireAuth, async (req: AuthRequest, re
     .filter((o) => o.length > 0);
   if (cleanOptions.length < 2) {
     res.status(400).json({ error: "At least 2 non-empty options required" }); return;
+  }
+
+  let endsAtDate: Date | undefined;
+  if (endsAt) {
+    endsAtDate = new Date(endsAt);
+    if (isNaN(endsAtDate.getTime()) || endsAtDate <= new Date()) {
+      res.status(400).json({ error: "endsAt must be a valid future date" }); return;
+    }
   }
 
   const participant = await requireParticipant(conversationId, myId);
@@ -41,6 +99,8 @@ router.post("/conversations/:id/polls", requireAuth, async (req: AuthRequest, re
           conversationId,
           question: question.trim().slice(0, 200),
           allowMultiple: !!allowMultiple,
+          anonymous: !!anonymous,
+          ...(endsAtDate ? { endsAt: endsAtDate } : {}),
           options: {
             create: cleanOptions.map((text, i) => ({ text: text.slice(0, 100), order: i })),
           },
@@ -63,8 +123,6 @@ router.post("/conversations/:id/polls", requireAuth, async (req: AuthRequest, re
 
 // ---------------------------------------------------------------------------
 // POST /api/messages/polls/:pollId/vote
-// Toggle a vote on an option — body: { optionId }
-// If allowMultiple=false, replaces any existing vote; else toggles this option
 // ---------------------------------------------------------------------------
 router.post("/polls/:pollId/vote", requireAuth, async (req: AuthRequest, res: Response) => {
   const myId = req.userId!;
@@ -80,12 +138,13 @@ router.post("/polls/:pollId/vote", requireAuth, async (req: AuthRequest, res: Re
     include: { options: { select: { id: true } } },
   });
   if (!poll) { res.status(404).json({ error: "Poll not found" }); return; }
+  if (isPollClosed(poll)) { res.status(400).json({ error: "This poll is closed" }); return; }
 
   const participant = await requireParticipant(poll.conversationId, myId);
   if (!participant) { res.status(403).json({ error: "Forbidden" }); return; }
-
-  const validOption = poll.options.some((o) => o.id === optionId);
-  if (!validOption) { res.status(400).json({ error: "Invalid optionId" }); return; }
+  if (!poll.options.some((o) => o.id === optionId)) {
+    res.status(400).json({ error: "Invalid optionId" }); return;
+  }
 
   const existing = await prisma.pollVote.findUnique({
     where: { pollId_optionId_userId: { pollId, optionId, userId: myId } },
@@ -93,43 +152,58 @@ router.post("/polls/:pollId/vote", requireAuth, async (req: AuthRequest, res: Re
 
   await prisma.$transaction(async (tx) => {
     if (existing) {
-      // Toggle off — remove this vote
       await tx.pollVote.delete({ where: { id: existing.id } });
     } else {
       if (!poll.allowMultiple) {
-        // Single-choice: remove any existing votes first
         await tx.pollVote.deleteMany({ where: { pollId, userId: myId } });
       }
       await tx.pollVote.create({ data: { pollId, optionId, userId: myId } });
     }
   });
 
-  // Fetch updated poll to broadcast
-  const updatedPoll = await prisma.poll.findUnique({
-    where: { id: pollId },
-    select: {
-      id: true,
-      question: true,
-      allowMultiple: true,
-      options: {
-        select: {
-          id: true,
-          text: true,
-          order: true,
-          votes: { select: { userId: true } },
-        },
-        orderBy: { order: "asc" },
-      },
-    },
-  });
+  const updatedPoll = await prisma.poll.findUnique({ where: { id: pollId }, select: POLL_SELECT });
+  const payload = sanitize(updatedPoll);
 
   emitToConversation(poll.conversationId, "poll_updated", {
     conversationId: poll.conversationId,
     messageId: poll.messageId,
-    poll: updatedPoll,
+    poll: payload,
   });
 
-  res.json({ poll: updatedPoll });
+  res.json({ poll: payload });
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/messages/polls/:pollId/close
+// ---------------------------------------------------------------------------
+router.post("/polls/:pollId/close", requireAuth, async (req: AuthRequest, res: Response) => {
+  const myId = req.userId!;
+  const pollId = String(req.params.pollId);
+
+  const poll = await prisma.poll.findUnique({
+    where: { id: pollId },
+    include: { message: { select: { senderId: true } } },
+  });
+  if (!poll) { res.status(404).json({ error: "Poll not found" }); return; }
+  if (poll.message.senderId !== myId) {
+    res.status(403).json({ error: "Only the poll creator can close it" }); return;
+  }
+  if (isPollClosed(poll)) { res.status(400).json({ error: "Poll is already closed" }); return; }
+
+  const updated = await prisma.poll.update({
+    where: { id: pollId },
+    data: { closedAt: new Date() },
+    select: POLL_SELECT,
+  });
+  const payload = sanitize(updated);
+
+  emitToConversation(poll.conversationId, "poll_updated", {
+    conversationId: poll.conversationId,
+    messageId: poll.messageId,
+    poll: payload,
+  });
+
+  res.json({ poll: payload });
 });
 
 export default router;

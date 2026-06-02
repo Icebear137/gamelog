@@ -24,7 +24,7 @@ interface Props {
   onSubmitGame?: (gameId: string, caption: string) => void;
   onSubmitAudio?: (blob: Blob, duration: number) => void;
   onSubmitFile?: (file: File) => void;
-  onSubmitPoll?: (question: string, options: string[], allowMultiple: boolean) => void;
+  onSubmitPoll?: (question: string, options: string[], allowMultiple: boolean, endsAt?: string, anonymous?: boolean) => void;
   onSubmitGameNight?: (data: { title: string; scheduledAt: string; rawgId?: number; platform?: string; note?: string }) => void;
   onTyping?: () => void;
   disabled?: boolean;

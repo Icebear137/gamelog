@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ChatMessage, MessageReaction } from "@/lib/types";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { formatDistanceToNow, extractFirstUrl } from "@/lib/utils";
+import { formatMessageTime, formatMessageFull, extractFirstUrl } from "@/lib/utils";
 import Avatar from "./Avatar";
 import PollBubble from "./PollBubble";
 import GameNightBubble from "./GameNightBubble";
@@ -144,7 +144,7 @@ export default function MessageBubble({ message, isOwn, showSender = true, seenB
           <QuickReactionPicker isOwn={true} open={pickerOpen} onSelect={(e) => toggleReaction.mutate(e)} onClose={() => setPickerOpen(false)} />
           {PinBtn}{ForwardBtn}{ReplyBtn}{ReactBtn}
 
-          <span className="text-[10px] text-gray-600 mb-0.5 shrink-0">{formatDistanceToNow(message.createdAt)}</span>
+          <span className="text-[10px] text-gray-600 mb-0.5 shrink-0" title={formatMessageFull(message.createdAt)}>{formatMessageTime(message.createdAt)}</span>
 
           {hasGameNight ? (
             <GameNightBubble gameNight={message.gameNight!} conversationId={message.conversationId} currentUserId={user.id} isOwn={true} />
@@ -240,7 +240,7 @@ export default function MessageBubble({ message, isOwn, showSender = true, seenB
             </div>
           )}
 
-          <span className="text-[10px] text-gray-600 mb-0.5 shrink-0">{formatDistanceToNow(message.createdAt)}</span>
+          <span className="text-[10px] text-gray-600 mb-0.5 shrink-0" title={formatMessageFull(message.createdAt)}>{formatMessageTime(message.createdAt)}</span>
           {ReactBtn}{ReplyBtn}{ForwardBtn}{PinBtn}
         </div>
 

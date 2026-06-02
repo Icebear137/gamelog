@@ -305,7 +305,7 @@ export default function ConversationPage({ params }: { params: Promise<{ convers
           onSubmitGame={(gameId, caption) => sendGameMutation.mutate({ gameId, caption, replyToId: replyingTo?.id })}
           onSubmitAudio={(blob, duration) => sendAudioMutation.mutate({ blob, duration })}
           onSubmitFile={(file) => sendFileMutation.mutate(file)}
-          onSubmitPoll={(question, options, allowMultiple) => pollMutation.mutate({ question, options, allowMultiple })}
+          onSubmitPoll={(question, options, allowMultiple, endsAt, anonymous) => pollMutation.mutate({ question, options, allowMultiple, endsAt, anonymous })}
           onSubmitGameNight={conv?.isGroup ? (data) => gameNightMutation.mutate(data) : undefined}
           onTyping={handleTypingEmit}
           disabled={sendMutation.isPending || sendImagesMutation.isPending || sendGameMutation.isPending || sendAudioMutation.isPending || sendFileMutation.isPending}

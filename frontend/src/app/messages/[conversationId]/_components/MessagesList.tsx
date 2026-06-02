@@ -3,6 +3,14 @@
 import { Loader2, ArrowDown } from "lucide-react";
 import { ChatMessage, Conversation } from "@/lib/types";
 import MessageBubble from "@/components/MessageBubble";
+import { formatDateSeparator } from "@/lib/utils";
+
+function isSameDay(a: string, b: string) {
+  const da = new Date(a), db = new Date(b);
+  return da.getFullYear() === db.getFullYear()
+    && da.getMonth() === db.getMonth()
+    && da.getDate() === db.getDate();
+}
 
 interface Member { id: string; username: string; avatar?: string | null }
 
@@ -103,29 +111,42 @@ export function MessagesList({
             const showSender = !prevMsg || prevMsg.senderId !== msg.senderId;
             const isLastInGroup = !nextMsg || nextMsg.senderId !== msg.senderId;
             const seenBy = isOwn ? (seenByMap.get(msg.id) ?? []) : [];
+            const showDateSep = !prevMsg || !isSameDay(prevMsg.createdAt, msg.createdAt);
             return (
-              <div
-                key={msg.id}
-                ref={(el) => {
-                  if (el) messageRefsMap.current.set(msg.id, el);
-                  else messageRefsMap.current.delete(msg.id);
-                }}
-                className={`flex w-full ${isOwn ? "justify-end" : "justify-start"} ${
-                  showSender && i > 0 ? "mt-4" : "mt-0.5"
-                } ${isLastInGroup ? "mb-1" : ""} ${
-                  highlightedMsgId === msg.id ? "bg-violet-500/10 rounded-xl transition-colors duration-700" : ""
-                }`}
-              >
-                <MessageBubble
-                  message={msg}
-                  isOwn={isOwn}
-                  showSender={showSender}
-                  seenBy={seenBy}
-                  nickname={nicknames.get(msg.senderId)}
-                  onReply={onReply}
-                  onForward={onForward}
-                  onPin={canPin ? (m) => onPin(m.id) : undefined}
-                />
+              <div key={msg.id}>
+                {/* Date separator */}
+                {showDateSep && (
+                  <div className="flex items-center gap-3 my-4 px-2">
+                    <div className="flex-1 h-px bg-white/8" />
+                    <span className="text-[11px] text-gray-500 font-medium shrink-0 select-none">
+                      {formatDateSeparator(msg.createdAt)}
+                    </span>
+                    <div className="flex-1 h-px bg-white/8" />
+                  </div>
+                )}
+
+                <div
+                  ref={(el) => {
+                    if (el) messageRefsMap.current.set(msg.id, el);
+                    else messageRefsMap.current.delete(msg.id);
+                  }}
+                  className={`flex w-full ${isOwn ? "justify-end" : "justify-start"} ${
+                    showSender && !showDateSep && i > 0 ? "mt-4" : showDateSep ? "mt-0" : "mt-0.5"
+                  } ${isLastInGroup ? "mb-1" : ""} ${
+                    highlightedMsgId === msg.id ? "bg-violet-500/10 rounded-xl transition-colors duration-700" : ""
+                  }`}
+                >
+                  <MessageBubble
+                    message={msg}
+                    isOwn={isOwn}
+                    showSender={showSender}
+                    seenBy={seenBy}
+                    nickname={nicknames.get(msg.senderId)}
+                    onReply={onReply}
+                    onForward={onForward}
+                    onPin={canPin ? (m) => onPin(m.id) : undefined}
+                  />
+                </div>
               </div>
             );
           })}
