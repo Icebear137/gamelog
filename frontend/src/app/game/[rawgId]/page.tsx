@@ -2,19 +2,21 @@
 
 import { use, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Star, Users, Tag, BookOpen, Clock, Globe, Monitor, Building2, ChevronDown, ChevronUp } from "lucide-react";
+import { Star, Users, Tag, BookOpen, Clock, Globe, Monitor, Building2, ChevronDown, ChevronUp, UserCheck } from "lucide-react";
 import Link from "next/link";
 import { Text, Heading, Flex } from "@radix-ui/themes";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { GameEntry, GameStatus, Activity } from "@/lib/types";
 import * as Separator from "@radix-ui/react-separator";
+import Avatar from "@/components/Avatar";
 import AddGameModal from "@/components/AddGameModal";
 import AddToListModal from "@/components/AddToListModal";
 import StatusBadge from "@/components/StatusBadge";
 import ActivityCard from "@/components/ActivityCard";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MarkdownReview from "@/components/MarkdownReview";
+import { GameTagsSection } from "./_components/GameTagsSection";
 
 interface GameDetail {
   id: string;
@@ -59,6 +61,21 @@ export default function GamePage({ params }: { params: Promise<{ rawgId: string 
     queryKey: ["my-entries"],
     queryFn: () => api.get("/api/entries/me").then((r) => r.data),
     enabled: !!user,
+  });
+
+  interface FriendEntry {
+    id: string;
+    status: string;
+    rating?: number | null;
+    playtime?: number | null;
+    user: { id: string; username: string; avatar?: string };
+  }
+
+  const { data: friendEntries = [] } = useQuery<FriendEntry[]>({
+    queryKey: ["game-friends", rawgId],
+    queryFn: () => api.get(`/api/games/${rawgId}/friends`).then((r) => r.data),
+    enabled: !!user && !!game,
+    staleTime: 2 * 60_000,
   });
 
   const { data: communityActivities = [] } = useQuery<Activity[]>({
@@ -278,6 +295,9 @@ export default function GamePage({ params }: { params: Promise<{ rawgId: string 
         </div>
       )}
 
+      {/* ── Tags ── */}
+      <GameTagsSection rawgId={rawgId} />
+
       {/* ── Community Status ── */}
       {totalInLibrary > 0 && (
         <div className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-xl p-4">
@@ -296,6 +316,44 @@ export default function GamePage({ params }: { params: Promise<{ rawgId: string 
               </div>
             ))}
           </Flex>
+        </div>
+      )}
+
+      {/* ── Friends playing this ── */}
+      {user && friendEntries.length > 0 && (
+        <div>
+          <Flex align="center" gap="2" className="mb-3">
+            <UserCheck size={16} className="text-violet-400" />
+            <Heading size="4" as="h2">
+              Friends{" "}
+              <span className="text-gray-500 font-normal text-sm">({friendEntries.length})</span>
+            </Heading>
+          </Flex>
+          <div className="flex flex-wrap gap-2">
+            {friendEntries.map((fe) => (
+              <Link
+                key={fe.id}
+                href={`/user/${fe.user.username}`}
+                className="flex items-center gap-2.5 bg-white/5 hover:bg-white/10 border border-white/8 hover:border-violet-500/40 rounded-xl px-3 py-2 transition-colors group"
+              >
+                <Avatar src={fe.user.avatar} username={fe.user.username} size="sm" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-white group-hover:text-violet-300 transition-colors truncate">
+                    {fe.user.username}
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <StatusBadge status={fe.status as GameStatus} />
+                    {fe.rating != null && (
+                      <span className="flex items-center gap-0.5 text-xs text-yellow-400">
+                        <Star size={10} fill="currentColor" />
+                        {fe.rating}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
       )}
 

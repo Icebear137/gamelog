@@ -145,4 +145,32 @@ router.get("/me", requireAuth, async (req: AuthRequest, res: Response) => {
   );
 });
 
+// ---------------------------------------------------------------------------
+// POST /api/entries/:entryId/helpful — toggle "helpful" on a review
+// ---------------------------------------------------------------------------
+router.post("/:entryId/helpful", requireAuth, async (req: AuthRequest, res: Response) => {
+  const entryId = String(req.params.entryId);
+  const userId  = req.userId!;
+
+  const entry = await prisma.gameEntry.findUnique({
+    where: { id: entryId },
+    select: { review: true, userId: true },
+  });
+  if (!entry?.review) { res.status(404).json({ error: "Review not found" }); return; }
+  if (entry.userId === userId) { res.status(400).json({ error: "Cannot mark your own review as helpful" }); return; }
+
+  const existing = await prisma.reviewLike.findUnique({
+    where: { userId_entryId: { userId, entryId } },
+  });
+
+  if (existing) {
+    await prisma.reviewLike.delete({ where: { id: existing.id } });
+  } else {
+    await prisma.reviewLike.create({ data: { userId, entryId } });
+  }
+
+  const count = await prisma.reviewLike.count({ where: { entryId } });
+  res.json({ helpful: !existing, count });
+});
+
 export default router;

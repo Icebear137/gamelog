@@ -2,7 +2,8 @@
 
 import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { TrendingUp, Gamepad2, Users, Sparkles } from "lucide-react";
+import { TrendingUp, Gamepad2, Users, Sparkles, Tag } from "lucide-react";
+import Link from "next/link";
 import { Text, Heading, Flex } from "@radix-ui/themes";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -39,6 +40,12 @@ export default function DiscoverPage() {
     queryFn: () => api.get("/api/games/recommendations").then((r) => r.data),
     enabled: !!user,
     staleTime: FIVE_MINUTES,
+  });
+
+  const { data: popularTags = [] } = useQuery<{ tag: string; votes: number }[]>({
+    queryKey: ["popular-tags"],
+    queryFn: () => api.get("/api/games/popular-tags").then((r) => r.data),
+    staleTime: 5 * 60_000,
   });
 
   const MAX_VISIBLE = 8;
@@ -103,6 +110,27 @@ export default function DiscoverPage() {
                 game={game}
                 onDismiss={handleDismiss}
               />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {popularTags.length > 0 && (
+        <section>
+          <Flex align="center" gap="2" className="mb-4">
+            <Tag size={20} className="text-violet-400" />
+            <Heading size="5" as="h2">Browse by Tag</Heading>
+          </Flex>
+          <div className="flex flex-wrap gap-2">
+            {popularTags.map(({ tag, votes }) => (
+              <Link
+                key={tag}
+                href={`/games/tag/${tag}`}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-violet-500/15 border border-white/10 hover:border-violet-500/40 rounded-full text-sm text-gray-300 hover:text-violet-300 transition-colors"
+              >
+                {tag}
+                <span className="text-xs text-gray-600">{votes}</span>
+              </Link>
             ))}
           </div>
         </section>

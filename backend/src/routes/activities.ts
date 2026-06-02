@@ -41,7 +41,10 @@ router.get("/:id", optionalAuth, async (req: AuthRequest, res: Response) => {
 
 router.post("/:id/like", requireAuth, async (req: AuthRequest, res: Response) => {
   const id = String(req.params.id);
-  const activity = await prisma.activity.findUnique({ where: { id } });
+  const activity = await prisma.activity.findUnique({
+    where: { id },
+    include: { user: { select: { notifLike: true } } },
+  });
   if (!activity) { res.status(404).json({ error: "Activity not found" }); return; }
 
   const existing = await prisma.like.findUnique({ where: { userId_activityId: { userId: req.userId!, activityId: id } } });
@@ -50,7 +53,7 @@ router.post("/:id/like", requireAuth, async (req: AuthRequest, res: Response) =>
     create: { userId: req.userId!, activityId: id },
     update: {},
   });
-  if (!existing && activity.userId !== req.userId) {
+  if (!existing && activity.userId !== req.userId && activity.user.notifLike) {
     const notif = await prisma.notification.create({
       data: { userId: activity.userId, actorId: req.userId!, type: "LIKE", activityId: id },
       select: NOTIF_SELECT,
@@ -84,7 +87,10 @@ router.post("/:id/comments", requireAuth, async (req: AuthRequest, res: Response
   const parsed = CommentSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
 
-  const activity = await prisma.activity.findUnique({ where: { id } });
+  const activity = await prisma.activity.findUnique({
+    where: { id },
+    include: { user: { select: { notifComment: true } } },
+  });
   if (!activity) { res.status(404).json({ error: "Activity not found" }); return; }
 
   const comment = await prisma.comment.create({
@@ -92,7 +98,7 @@ router.post("/:id/comments", requireAuth, async (req: AuthRequest, res: Response
     include: { user: { select: { id: true, username: true, avatar: true } } },
   });
 
-  if (activity.userId !== req.userId) {
+  if (activity.userId !== req.userId && activity.user.notifComment) {
     const notif = await prisma.notification.create({
       data: { userId: activity.userId, actorId: req.userId!, type: "COMMENT", activityId: id },
       select: NOTIF_SELECT,
@@ -102,9 +108,13 @@ router.post("/:id/comments", requireAuth, async (req: AuthRequest, res: Response
 
   const mentions = [...new Set((parsed.data.body.match(/@(\w+)/g) ?? []).map((m) => m.slice(1).toLowerCase()))];
   if (mentions.length > 0) {
-    const mentioned = await prisma.user.findMany({ where: { username: { in: mentions } }, select: { id: true } });
+    const mentioned = await prisma.user.findMany({
+      where: { username: { in: mentions } },
+      select: { id: true, notifMention: true },
+    });
     for (const u of mentioned) {
       if (u.id === req.userId || u.id === activity.userId) continue;
+      if (!u.notifMention) continue;
       const notif = await prisma.notification.create({
         data: { userId: u.id, actorId: req.userId!, type: "MENTION", activityId: id },
         select: NOTIF_SELECT,

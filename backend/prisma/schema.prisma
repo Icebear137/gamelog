@@ -21,6 +21,10 @@ model User {
   updatedAt  DateTime @updatedAt
 
   emailNotifications     Boolean             @default(true)
+  notifFollow            Boolean             @default(true)
+  notifLike              Boolean             @default(true)
+  notifComment           Boolean             @default(true)
+  notifMention           Boolean             @default(true)
   lastDigestAt           DateTime?
   lastSeen               DateTime?
 
@@ -35,6 +39,8 @@ model User {
   gameLists              GameList[]
   gameListLikes          GameListLike[]
   gameListComments       GameListComment[]
+  reviewLikes            ReviewLike[]
+  gameTagVotes           GameTagVote[]
   yearlyChallenges       YearlyChallenge[]
   achievements           UserAchievement[]
   conversationParticipants ConversationParticipant[]
@@ -69,6 +75,7 @@ model Game {
   listEntries GameListEntry[]
   messages    Message[]
   gameNights  GameNight[]
+  tags        GameTag[]
 }
 
 model GameEntry {
@@ -83,9 +90,10 @@ model GameEntry {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  game       Game       @relation(fields: [gameId], references: [id])
-  activities Activity[]
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game         Game         @relation(fields: [gameId], references: [id])
+  activities   Activity[]
+  reviewLikes  ReviewLike[]
 
   @@unique([userId, gameId])
 }
@@ -114,6 +122,42 @@ model Like {
   activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
 
   @@unique([userId, activityId])
+}
+
+model ReviewLike {
+  id        String   @id @default(cuid())
+  userId    String
+  entryId   String
+  createdAt DateTime @default(now())
+
+  user  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entry GameEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, entryId])
+}
+
+model GameTag {
+  id        String   @id @default(cuid())
+  gameId    String
+  tag       String
+  createdAt DateTime @default(now())
+
+  game  Game          @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  votes GameTagVote[]
+
+  @@unique([gameId, tag])
+}
+
+model GameTagVote {
+  id        String   @id @default(cuid())
+  tagId     String
+  userId    String
+  createdAt DateTime @default(now())
+
+  gameTag GameTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tagId, userId])
 }
 
 model Comment {

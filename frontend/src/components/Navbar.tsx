@@ -50,6 +50,9 @@ export default function Navbar() {
         <Link href="/lists/discover" className="text-gray-400 hover:text-white transition-colors text-sm">
           Lists
         </Link>
+        <Link href="/reviews" className="text-gray-400 hover:text-white transition-colors text-sm">
+          Reviews
+        </Link>
         <Link href="/search" className="text-gray-400 hover:text-white transition-colors text-sm">
           <Search size={18} />
         </Link>

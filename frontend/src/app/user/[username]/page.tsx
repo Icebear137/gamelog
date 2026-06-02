@@ -11,13 +11,14 @@ import { Text, Heading, Flex, Box } from "@radix-ui/themes";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { dispatchToast } from "@/lib/toast";
-import { User, Activity, GameEntry, GameStatus, GameListPreview } from "@/lib/types";
+import { User, Activity, GameEntry, GameStatus, GameListPreview, GameReview } from "@/lib/types";
 import Avatar from "@/components/Avatar";
 import ActivityCard from "@/components/ActivityCard";
 import StatusBadge from "@/components/StatusBadge";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import YearlyChallengeCard from "./_components/YearlyChallengeCard";
 import AchievementsSection from "./_components/AchievementsSection";
+import { ReviewCard } from "@/components/ReviewCard";
 
 export default function UserProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = use(params);
@@ -48,6 +49,13 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
   const { data: lists = [] } = useQuery<GameListPreview[]>({
     queryKey: ["user-lists", username],
     queryFn: () => api.get(`/api/users/${username}/lists`).then((r) => r.data),
+    enabled: !!profile,
+  });
+
+  const reviewsQueryKey = ["user-reviews", username];
+  const { data: reviews = [] } = useQuery<GameReview[]>({
+    queryKey: reviewsQueryKey,
+    queryFn: () => api.get(`/api/users/${username}/reviews`).then((r) => r.data),
     enabled: !!profile,
   });
 
@@ -285,6 +293,26 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
                 </Link>
               )}
             </div>
+          )}
+
+          {/* Reviews */}
+          {reviews.length > 0 && (
+            <Flex direction="column" gap="3">
+              <Flex align="center" justify="between">
+                <Heading size="4" as="h2">Reviews</Heading>
+                <Link href={`/reviews`} className="text-sm text-violet-400 hover:text-violet-300 transition-colors">
+                  All reviews →
+                </Link>
+              </Flex>
+              {reviews.slice(0, 3).map((r) => (
+                <ReviewCard key={r.id} review={r} showGame queryKey={reviewsQueryKey} />
+              ))}
+              {reviews.length > 3 && (
+                <p className="text-sm text-center text-gray-500">
+                  {reviews.length - 3} more review{reviews.length - 3 !== 1 ? "s" : ""} hidden
+                </p>
+              )}
+            </Flex>
           )}
 
           {/* Recent activity */}

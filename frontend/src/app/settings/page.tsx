@@ -8,6 +8,7 @@ import { ProfileSection } from "./_components/ProfileSection";
 import { PasswordSection } from "./_components/PasswordSection";
 import { PrivacySection } from "./_components/PrivacySection";
 import { EmailSection } from "./_components/EmailSection";
+import { NotificationSection } from "./_components/NotificationSection";
 import { DeleteAccountDialog } from "./_components/DeleteAccountDialog";
 
 export default function SettingsPage() {
@@ -27,6 +28,7 @@ export default function SettingsPage() {
         <ProfileSection user={user} />
         <PasswordSection />
         <PrivacySection user={user} />
+        <NotificationSection user={user} />
         <EmailSection user={user} />
         <DeleteAccountDialog />
       </Flex>

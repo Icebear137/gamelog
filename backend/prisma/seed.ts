@@ -92,6 +92,11 @@ async function main() {
   await prisma.notification.deleteMany();
   await prisma.comment.deleteMany();
   await prisma.like.deleteMany();
+  await prisma.gameTagVote.deleteMany();
+  await prisma.gameTag.deleteMany();
+  await prisma.reviewLike.deleteMany();
+  await prisma.gameListLike.deleteMany();
+  await prisma.gameListComment.deleteMany();
   await prisma.activity.deleteMany();
   await prisma.follow.deleteMany();
   await prisma.gameListEntry.deleteMany();
@@ -573,6 +578,205 @@ async function main() {
   ]);
   console.log("✅ Comments created\n");
 
+  // ── Review Helpful Votes ───────────────────────────────────────────
+  console.log("👍 Creating review helpful votes...");
+
+  function rl(entryId: string | undefined, userIds: string[]) {
+    if (!entryId) return [] as Promise<unknown>[];
+    return userIds.map((uid) =>
+      prisma.reviewLike.create({ data: { userId: uid, entryId } }).catch(() => null)
+    );
+  }
+
+  await Promise.all([
+    // vinh's reviews — well-written Soulslike takes
+    ...rl(vE[0]?.entry.id, [souls.id, nhan.id, kazuki.id, speedster.id]),   // Elden Ring
+    ...rl(vE[1]?.entry.id, [souls.id, kazuki.id, speedster.id]),             // Sekiro
+    ...rl(vE[3]?.entry.id, [souls.id, nhan.id, kazuki.id]),                  // Bloodborne
+    ...rl(vE[2]?.entry.id, [souls.id, speedster.id]),                        // DS3
+    ...rl(vE[7]?.entry.id, [nhan.id, indieQueen.id, speedster.id]),          // Hades
+    // soulsaddict — platinum veteran reviews
+    ...rl(soE[0]?.entry.id, [vinh.id, nhan.id, kazuki.id, speedster.id, strats.id]), // Elden Ring
+    ...rl(soE[1]?.entry.id, [vinh.id, kazuki.id, speedster.id, nhan.id]),   // Sekiro
+    ...rl(soE[4]?.entry.id, [vinh.id, kazuki.id, nhan.id]),                 // Bloodborne
+    ...rl(soE[7]?.entry.id, [vinh.id, speedster.id]),                       // Doom Eternal
+    // sakura — JRPG depth
+    ...rl(sE[0]?.entry.id, [kazuki.id, rpgMaster.id, strats.id, loot.id]),  // Persona 5
+    ...rl(sE[1]?.entry.id, [strats.id, rpgMaster.id, nhan.id]),             // BG3
+    ...rl(sE[2]?.entry.id, [strats.id, loot.id, rpgMaster.id]),             // Witcher 3
+    // loot — open world expertise
+    ...rl(lE[0]?.entry.id, [nhan.id, sakura.id, indieQueen.id]),            // Stardew
+    ...rl(lE[1]?.entry.id, [vinh.id, strats.id, kazuki.id, rpgMaster.id]),  // RDR2
+    ...rl(lE[6]?.entry.id, [kazuki.id, sakura.id]),                          // Horizon
+    ...rl(lE[7]?.entry.id, [loot.id === loot.id ? strats.id : "", speedster.id]), // BotW
+    // nhan — indie authority
+    ...rl(nE[0]?.entry.id, [indieQueen.id, speedster.id, vinh.id, loot.id, souls.id]), // Hollow Knight
+    ...rl(nE[1]?.entry.id, [strats.id, rpgMaster.id, vinh.id, souls.id]),   // Disco Elysium
+    ...rl(nE[4]?.entry.id, [indieQueen.id, speedster.id, loot.id]),         // Undertale
+    ...rl(nE[7]?.entry.id, [indieQueen.id, speedster.id, sakura.id]),        // Hades
+    // strats — narrative RPG gospel
+    ...rl(stE[0]?.entry.id, [sakura.id, rpgMaster.id, nhan.id, kazuki.id]), // BG3
+    ...rl(stE[1]?.entry.id, [loot.id, rpgMaster.id, sakura.id, kazuki.id]), // Witcher 3
+    ...rl(stE[5]?.entry.id, [nhan.id, rpgMaster.id, indieQueen.id]),        // Disco Elysium
+    ...rl(stE[4]?.entry.id, [kazuki.id, rpgMaster.id, sakura.id]),          // Last of Us
+    // kazuki — action/console champion
+    ...rl(kE[0]?.entry.id, [sakura.id, strats.id, loot.id, rpgMaster.id]),  // God of War
+    ...rl(kE[1]?.entry.id, [loot.id, sakura.id, vinh.id]),                  // Ghost of Tsushima
+    ...rl(kE[3]?.entry.id, [souls.id, speedster.id, vinh.id]),              // MHW
+    ...rl(kE[4]?.entry.id, [strats.id, rpgMaster.id, sakura.id]),           // Last of Us
+    // indieQueen — indie credentials
+    ...rl(iE[0]?.entry.id, [nhan.id, speedster.id, sakura.id, loot.id]),    // Hades
+    ...rl(iE[1]?.entry.id, [nhan.id, souls.id, speedster.id, vinh.id]),     // Hollow Knight
+    ...rl(iE[2]?.entry.id, [nhan.id, sakura.id, loot.id]),                  // Stardew
+    ...rl(iE[4]?.entry.id, [nhan.id, speedster.id, sakura.id]),             // Undertale
+    // rpgMaster — CRPG deep dives
+    ...rl(rE[0]?.entry.id, [sakura.id, kazuki.id, strats.id]),              // Persona 5
+    ...rl(rE[1]?.entry.id, [strats.id, sakura.id, nhan.id, loot.id]),       // BG3
+    ...rl(rE[2]?.entry.id, [strats.id, loot.id, sakura.id, kazuki.id]),     // Witcher 3
+    // speedster — speedrun perspective
+    ...rl(spE[0]?.entry.id, [nhan.id, indieQueen.id, souls.id]),            // Portal 2
+    ...rl(spE[1]?.entry.id, [souls.id, nhan.id, indieQueen.id]),            // Hollow Knight
+    ...rl(spE[3]?.entry.id, [nhan.id, indieQueen.id, vinh.id]),             // Hades
+  ].flat().filter(Boolean));
+  console.log("✅ Review helpful votes created\n");
+
+  // ── Game Tags ─────────────────────────────────────────────────────
+  console.log("🏷️  Creating game tags...");
+
+  async function createTag(game: any, tag: string, voterIds: string[]) {
+    if (!game) return;
+    const gt = await prisma.gameTag.upsert({
+      where: { gameId_tag: { gameId: game.id, tag } },
+      create: { gameId: game.id, tag },
+      update: {},
+    });
+    for (const uid of voterIds) {
+      await prisma.gameTagVote.upsert({
+        where: { tagId_userId: { tagId: gt.id, userId: uid } },
+        create: { tagId: gt.id, userId: uid },
+        update: {},
+      }).catch(() => {});
+    }
+  }
+
+  const allU = [vinh, sakura, loot, souls, nhan, strats, kazuki, indieQueen, rpgMaster, speedster];
+
+  await Promise.all([
+    // Elden Ring
+    createTag(eldenRing,    "difficult",      [vinh.id, souls.id, nhan.id, kazuki.id, speedster.id]),
+    createTag(eldenRing,    "open-world",     [vinh.id, loot.id, strats.id, rpgMaster.id]),
+    createTag(eldenRing,    "atmospheric",    [vinh.id, souls.id, nhan.id]),
+    createTag(eldenRing,    "action",         [souls.id, kazuki.id, speedster.id]),
+
+    // Sekiro
+    createTag(sekiro,       "difficult",      [vinh.id, souls.id, speedster.id, kazuki.id]),
+    createTag(sekiro,       "action",         [vinh.id, kazuki.id, souls.id]),
+    createTag(sekiro,       "short",          [speedster.id, souls.id]),
+
+    // Bloodborne
+    createTag(bloodborne,   "difficult",      [vinh.id, souls.id, kazuki.id]),
+    createTag(bloodborne,   "atmospheric",    [vinh.id, souls.id, nhan.id, strats.id]),
+    createTag(bloodborne,   "horror",         [souls.id, nhan.id, kazuki.id]),
+
+    // BG3
+    createTag(bg3,          "story-rich",     [sakura.id, strats.id, rpgMaster.id, nhan.id, kazuki.id]),
+    createTag(bg3,          "rpg",            [strats.id, rpgMaster.id, sakura.id, loot.id]),
+    createTag(bg3,          "co-op",          [strats.id, nhan.id, indieQueen.id]),
+    createTag(bg3,          "long",           [strats.id, rpgMaster.id, sakura.id]),
+
+    // Witcher 3
+    createTag(witcher3,     "open-world",     [sakura.id, loot.id, strats.id, rpgMaster.id]),
+    createTag(witcher3,     "story-rich",     [sakura.id, strats.id, rpgMaster.id, loot.id]),
+    createTag(witcher3,     "rpg",            [strats.id, rpgMaster.id, sakura.id]),
+    createTag(witcher3,     "long",           [rpgMaster.id, strats.id, loot.id]),
+
+    // Persona 5
+    createTag(persona5,     "story-rich",     [sakura.id, kazuki.id, rpgMaster.id, strats.id]),
+    createTag(persona5,     "rpg",            [sakura.id, rpgMaster.id, strats.id]),
+    createTag(persona5,     "long",           [sakura.id, rpgMaster.id, kazuki.id]),
+    createTag(persona5,     "atmospheric",    [sakura.id, kazuki.id, nhan.id]),
+
+    // Hades
+    createTag(hades,        "roguelike",      [nhan.id, indieQueen.id, speedster.id, vinh.id]),
+    createTag(hades,        "story-rich",     [nhan.id, indieQueen.id, strats.id]),
+    createTag(hades,        "action",         [nhan.id, speedster.id, vinh.id]),
+
+    // Hollow Knight
+    createTag(hollowKnight, "difficult",      [nhan.id, souls.id, speedster.id, indieQueen.id]),
+    createTag(hollowKnight, "atmospheric",    [nhan.id, indieQueen.id, vinh.id]),
+    createTag(hollowKnight, "platformer",     [nhan.id, indieQueen.id, speedster.id]),
+
+    // Stardew Valley
+    createTag(stardew,      "relaxing",       [loot.id, nhan.id, sakura.id, indieQueen.id, rpgMaster.id]),
+    createTag(stardew,      "sandbox",        [loot.id, rpgMaster.id, indieQueen.id]),
+    createTag(stardew,      "long",           [loot.id, nhan.id, sakura.id]),
+
+    // RDR2
+    createTag(rdr2,         "open-world",     [loot.id, strats.id, kazuki.id, rpgMaster.id]),
+    createTag(rdr2,         "story-rich",     [loot.id, strats.id, kazuki.id, rpgMaster.id]),
+    createTag(rdr2,         "atmospheric",    [strats.id, kazuki.id, rpgMaster.id]),
+
+    // God of War
+    createTag(godOfWar,     "story-rich",     [sakura.id, kazuki.id, strats.id, rpgMaster.id]),
+    createTag(godOfWar,     "action",         [kazuki.id, vinh.id, souls.id]),
+    createTag(godOfWar,     "emotional",      [sakura.id, strats.id, rpgMaster.id]),
+
+    // Ghost of Tsushima
+    createTag(ghost,        "open-world",     [loot.id, kazuki.id]),
+    createTag(ghost,        "atmospheric",    [kazuki.id, loot.id, vinh.id]),
+    createTag(ghost,        "action",         [kazuki.id, loot.id]),
+
+    // Portal 2
+    createTag(portal2,      "puzzle",         [nhan.id, indieQueen.id, speedster.id]),
+    createTag(portal2,      "co-op",          [nhan.id, indieQueen.id, speedster.id]),
+    createTag(portal2,      "funny",          [nhan.id, speedster.id]),
+    createTag(portal2,      "short",          [speedster.id, nhan.id, indieQueen.id]),
+
+    // Undertale
+    createTag(undertale,    "story-rich",     [nhan.id, indieQueen.id, sakura.id]),
+    createTag(undertale,    "emotional",      [nhan.id, indieQueen.id]),
+    createTag(undertale,    "short",          [nhan.id, speedster.id, indieQueen.id]),
+    createTag(undertale,    "funny",          [nhan.id, indieQueen.id]),
+
+    // Dead Cells
+    createTag(deadCells,    "roguelike",      [nhan.id, indieQueen.id, speedster.id]),
+    createTag(deadCells,    "difficult",      [nhan.id, speedster.id]),
+    createTag(deadCells,    "action",         [speedster.id, nhan.id]),
+
+    // Disco Elysium
+    createTag(discoElysium, "story-rich",     [nhan.id, strats.id, rpgMaster.id, indieQueen.id]),
+    createTag(discoElysium, "rpg",            [strats.id, rpgMaster.id, nhan.id]),
+    createTag(discoElysium, "atmospheric",    [nhan.id, strats.id]),
+
+    // Ori
+    createTag(ori,          "platformer",     [nhan.id, indieQueen.id, speedster.id]),
+    createTag(ori,          "emotional",      [nhan.id, indieQueen.id]),
+    createTag(ori,          "atmospheric",    [nhan.id, indieQueen.id]),
+    createTag(ori,          "short",          [speedster.id, nhan.id]),
+
+    // Doom Eternal
+    createTag(doom,         "action",         [souls.id, kazuki.id, speedster.id]),
+    createTag(doom,         "difficult",      [souls.id, speedster.id]),
+
+    // Cyberpunk 2077
+    createTag(cyberpunk,    "open-world",     [loot.id, vinh.id]),
+    createTag(cyberpunk,    "story-rich",     [loot.id, strats.id]),
+    createTag(cyberpunk,    "atmospheric",    [loot.id, vinh.id]),
+
+    // Last of Us
+    createTag(lastOfUs,     "story-rich",     [strats.id, kazuki.id, rpgMaster.id]),
+    createTag(lastOfUs,     "emotional",      [strats.id, kazuki.id]),
+    createTag(lastOfUs,     "horror",         [kazuki.id, strats.id]),
+
+    // Divinity 2
+    createTag(divinity2,    "rpg",            [strats.id, rpgMaster.id]),
+    createTag(divinity2,    "story-rich",     [strats.id, rpgMaster.id]),
+    createTag(divinity2,    "co-op",          [strats.id]),
+    createTag(divinity2,    "long",           [strats.id, rpgMaster.id]),
+  ].filter(Boolean));
+
+  console.log("✅ Game tags created\n");
+
   // ── Yearly Challenges ──────────────────────────────────────────────
   console.log("🏆 Creating yearly challenges...");
   const year = new Date().getFullYear();
@@ -665,7 +869,7 @@ async function main() {
   console.log("✅ Game lists created\n");
 
   // ── Summary ────────────────────────────────────────────────────────
-  const [userCount, gameCount, entryCount, activityCount, followCount, likeCount, commentCount, challengeCount, listCount] =
+  const [userCount, gameCount, entryCount, activityCount, followCount, likeCount, commentCount, reviewLikeCount, tagCount, challengeCount, listCount] =
     await Promise.all([
       prisma.user.count(),
       prisma.game.count(),
@@ -674,6 +878,8 @@ async function main() {
       prisma.follow.count(),
       prisma.like.count(),
       prisma.comment.count(),
+      prisma.reviewLike.count(),
+      prisma.gameTag.count(),
       prisma.yearlyChallenge.count(),
       prisma.gameList.count(),
     ]);
@@ -688,6 +894,8 @@ async function main() {
   console.log(`🤝 Follows:           ${followCount}`);
   console.log(`❤️  Likes:             ${likeCount}`);
   console.log(`💬 Comments:          ${commentCount}`);
+  console.log(`👍 Review helpful:    ${reviewLikeCount}`);
+  console.log(`🏷️  Game tags:         ${tagCount}`);
   console.log(`🏆 Yearly challenges: ${challengeCount}`);
   console.log(`📋 Game lists:        ${listCount}`);
   console.log("═══════════════════════════════════════════════════");

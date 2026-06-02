@@ -26,6 +26,10 @@ const UpdateProfileSchema = z.object({
   discordTag: z.string().optional(),
   isPrivate: z.boolean().optional(),
   emailNotifications: z.boolean().optional(),
+  notifFollow:  z.boolean().optional(),
+  notifLike:    z.boolean().optional(),
+  notifComment: z.boolean().optional(),
+  notifMention: z.boolean().optional(),
 });
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -159,7 +163,7 @@ router.patch("/me", requireAuth, async (req: AuthRequest, res: Response) => {
   const user = await prisma.user.update({
     where: { id: req.userId },
     data: parsed.data,
-    select: { id: true, username: true, bio: true, avatar: true, steamId: true, discordTag: true, isPrivate: true, emailNotifications: true },
+    select: { id: true, username: true, bio: true, avatar: true, steamId: true, discordTag: true, isPrivate: true, emailNotifications: true, notifFollow: true, notifLike: true, notifComment: true, notifMention: true },
   });
   res.json(user);
 });
@@ -185,7 +189,7 @@ router.post("/me/avatar", requireAuth, (req: AuthRequest, res: Response) => {
       const user = await prisma.user.update({
         where: { id: req.userId },
         data: { avatar: avatarUrl },
-        select: { id: true, username: true, bio: true, avatar: true, steamId: true, discordTag: true, isPrivate: true, emailNotifications: true },
+        select: { id: true, username: true, bio: true, avatar: true, steamId: true, discordTag: true, isPrivate: true, emailNotifications: true, notifFollow: true, notifLike: true, notifComment: true, notifMention: true },
       });
       res.json(user);
     } catch (e: any) {
@@ -195,7 +199,10 @@ router.post("/me/avatar", requireAuth, (req: AuthRequest, res: Response) => {
 });
 
 router.get("/me/email-preferences", requireAuth, async (req: AuthRequest, res: Response) => {
-  const user = await prisma.user.findUnique({ where: { id: req.userId! }, select: { emailNotifications: true } });
+  const user = await prisma.user.findUnique({
+    where: { id: req.userId! },
+    select: { emailNotifications: true, notifFollow: true, notifLike: true, notifComment: true, notifMention: true },
+  });
   res.json(user);
 });
 
@@ -215,14 +222,16 @@ router.post("/:username/follow", requireAuth, async (req: AuthRequest, res: Resp
     update: {},
   });
   if (!existing) {
-    const notif = await prisma.notification.create({
-      data: { userId: target.id, actorId: req.userId!, type: "FOLLOW" },
-      select: {
-        id: true, type: true, read: true, createdAt: true,
-        actor: { select: { id: true, username: true, avatar: true } },
-      },
-    });
-    emitToUser(target.id, "notification", notif);
+    if (target.notifFollow) {
+      const notif = await prisma.notification.create({
+        data: { userId: target.id, actorId: req.userId!, type: "FOLLOW" },
+        select: {
+          id: true, type: true, read: true, createdAt: true,
+          actor: { select: { id: true, username: true, avatar: true } },
+        },
+      });
+      emitToUser(target.id, "notification", notif);
+    }
     checkAndAwardAchievements(req.userId!).catch(() => {});
     checkAndAwardAchievements(target.id).catch(() => {});
   }
@@ -295,6 +304,45 @@ router.get("/:username/lists", optionalAuth, async (req: AuthRequest, res: Respo
     },
   });
   res.json(lists);
+});
+
+router.get("/:username/reviews", optionalAuth, async (req: AuthRequest, res: Response) => {
+  const user = await prisma.user.findUnique({ where: { username: String(req.params.username) } });
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+  if (user.isPrivate && req.userId !== user.id) {
+    const ok = req.userId ? await prisma.follow.findUnique({ where: { followerId_followingId: { followerId: req.userId, followingId: user.id } } }) : null;
+    if (!ok) { res.status(403).json({ error: "This profile is private", isPrivate: true }); return; }
+  }
+
+  const entries = await prisma.gameEntry.findMany({
+    where: { userId: user.id, review: { not: null } },
+    orderBy: { updatedAt: "desc" },
+    take: 30,
+    select: {
+      id: true,
+      rating: true,
+      review: true,
+      status: true,
+      platform: true,
+      updatedAt: true,
+      _count: { select: { reviewLikes: true } },
+      game: { select: { rawgId: true, name: true, coverImage: true } },
+      user: { select: { id: true, username: true, avatar: true } },
+    },
+  });
+
+  const likedSet = req.userId && entries.length > 0
+    ? new Set((await prisma.reviewLike.findMany({
+        where: { userId: req.userId, entryId: { in: entries.map((e) => e.id) } },
+        select: { entryId: true },
+      })).map((l) => l.entryId))
+    : new Set<string>();
+
+  res.json(entries.map((e) => ({
+    ...e,
+    helpfulCount: e._count.reviewLikes,
+    helpfulByMe: likedSet.has(e.id),
+  })));
 });
 
 // ── Stats & Activity ─────────────────────────────────────────────────────────

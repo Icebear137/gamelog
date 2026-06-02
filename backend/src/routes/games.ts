@@ -221,6 +221,89 @@ router.get("/upcoming", async (_req: Request, res: Response) => {
   res.json(result);
 });
 
+const REVIEW_SELECT = {
+  id: true,
+  rating: true,
+  review: true,
+  status: true,
+  platform: true,
+  updatedAt: true,
+  user: { select: { id: true, username: true, avatar: true } },
+  _count: { select: { reviewLikes: true } },
+};
+
+async function attachHelpfulByMe(entries: any[], userId?: string) {
+  if (!userId || entries.length === 0)
+    return entries.map((e) => ({ ...e, helpfulByMe: false, helpfulCount: e._count.reviewLikes }));
+  const liked = await prisma.reviewLike.findMany({
+    where: { userId, entryId: { in: entries.map((e) => e.id) } },
+    select: { entryId: true },
+  });
+  const likedSet = new Set(liked.map((l) => l.entryId));
+  return entries.map((e) => ({ ...e, helpfulByMe: likedSet.has(e.id), helpfulCount: e._count.reviewLikes }));
+}
+
+/** Popular tags across all games */
+router.get("/popular-tags", async (_req: Request, res: Response) => {
+  const tags = await prisma.gameTag.findMany({
+    select: {
+      tag: true,
+      _count: { select: { votes: true } },
+    },
+    orderBy: { votes: { _count: "desc" } },
+    take: 30,
+  });
+
+  // Group and sum by tag name across all games
+  const map = new Map<string, number>();
+  for (const t of tags) {
+    map.set(t.tag, (map.get(t.tag) ?? 0) + t._count.votes);
+  }
+  const result = [...map.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 20)
+    .map(([tag, votes]) => ({ tag, votes }));
+
+  res.json(result);
+});
+
+/** Games filtered by community tag */
+router.get("/by-tag/:tag", async (req: Request, res: Response) => {
+  const tag = String(req.params.tag).toLowerCase();
+  const gameTags = await prisma.gameTag.findMany({
+    where: { tag },
+    select: {
+      game: {
+        select: { id: true, rawgId: true, name: true, slug: true, coverImage: true, releaseYear: true, rawgRating: true, genres: true },
+      },
+      _count: { select: { votes: true } },
+    },
+    orderBy: { votes: { _count: "desc" } },
+    take: 30,
+  });
+
+  res.json(gameTags.map(({ game, _count }) => ({
+    ...game,
+    genres: JSON.parse(game.genres),
+    tagVotes: _count.votes,
+  })));
+});
+
+/** Global recent reviews feed — must be before /:rawgId */
+router.get("/reviews", optionalAuth, async (req: AuthRequest, res: Response) => {
+  const sort = req.query.sort === "helpful" ? "helpful" : "recent";
+  const entries = await prisma.gameEntry.findMany({
+    where: { review: { not: null }, user: { isPrivate: false } },
+    orderBy: sort === "helpful" ? { reviewLikes: { _count: "desc" } } : { updatedAt: "desc" },
+    take: 30,
+    select: {
+      ...REVIEW_SELECT,
+      game: { select: { rawgId: true, name: true, coverImage: true } },
+    },
+  });
+  res.json(await attachHelpfulByMe(entries, req.userId));
+});
+
 router.get("/:rawgId", async (req: Request, res: Response) => {
   const rawgId = parseInt(String(req.params.rawgId));
   if (isNaN(rawgId)) {
@@ -265,33 +348,54 @@ router.get("/:rawgId", async (req: Request, res: Response) => {
   });
 });
 
+/** Friends who have this game in their library */
+router.get("/:rawgId/friends", requireAuth, async (req: AuthRequest, res: Response) => {
+  const rawgId = parseInt(String(req.params.rawgId));
+  if (isNaN(rawgId)) { res.status(400).json({ error: "Invalid game id" }); return; }
+
+  const game = await prisma.game.findUnique({ where: { rawgId }, select: { id: true } });
+  if (!game) { res.json([]); return; }
+
+  const follows = await prisma.follow.findMany({
+    where: { followerId: req.userId! },
+    select: { followingId: true },
+  });
+  if (follows.length === 0) { res.json([]); return; }
+
+  const entries = await prisma.gameEntry.findMany({
+    where: {
+      gameId: game.id,
+      userId: { in: follows.map((f) => f.followingId) },
+    },
+    select: {
+      id: true,
+      status: true,
+      rating: true,
+      playtime: true,
+      user: { select: { id: true, username: true, avatar: true } },
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+
+  res.json(entries);
+});
+
 /** All text reviews for a game — excludes private users */
-router.get("/:rawgId/reviews", async (req: Request, res: Response) => {
+router.get("/:rawgId/reviews", optionalAuth, async (req: AuthRequest, res: Response) => {
   const rawgId = parseInt(String(req.params.rawgId));
   if (isNaN(rawgId)) { res.status(400).json({ error: "Invalid game id" }); return; }
 
   const game = await prisma.game.findUnique({ where: { rawgId } });
   if (!game) { res.json([]); return; }
 
+  const sort = req.query.sort === "helpful" ? "helpful" : "recent";
   const entries = await prisma.gameEntry.findMany({
-    where: {
-      gameId: game.id,
-      review: { not: null },
-      user: { isPrivate: false },
-    },
-    orderBy: { updatedAt: "desc" },
+    where: { gameId: game.id, review: { not: null }, user: { isPrivate: false } },
+    orderBy: sort === "helpful" ? { reviewLikes: { _count: "desc" } } : { updatedAt: "desc" },
     take: 50,
-    select: {
-      id: true,
-      rating: true,
-      review: true,
-      status: true,
-      platform: true,
-      updatedAt: true,
-      user: { select: { id: true, username: true, avatar: true } },
-    },
+    select: REVIEW_SELECT,
   });
-  res.json(entries);
+  res.json(await attachHelpfulByMe(entries, req.userId));
 });
 
 router.get("/:rawgId/activities", optionalAuth, async (req: AuthRequest, res: Response) => {
@@ -329,6 +433,90 @@ router.get("/:rawgId/activities", optionalAuth, async (req: AuthRequest, res: Re
       .filter((a) => a.gameEntry?.game != null)
       .map((a) => ({ ...a, likedByMe: likedSet.has(a.id) }))
   );
+});
+
+// ── Game Tags ─────────────────────────────────────────────────────────────────
+
+// Allowed tag characters: lowercase letters, digits, hyphens; max 30 chars
+const TAG_RE = /^[a-z0-9-]{2,30}$/;
+
+/** GET /api/games/:rawgId/tags — tags with vote counts + votedByMe */
+router.get("/:rawgId/tags", optionalAuth, async (req: AuthRequest, res: Response) => {
+  const rawgId = parseInt(String(req.params.rawgId));
+  if (isNaN(rawgId)) { res.status(400).json({ error: "Invalid game id" }); return; }
+
+  const game = await prisma.game.findUnique({ where: { rawgId }, select: { id: true } });
+  if (!game) { res.json([]); return; }
+
+  const tags = await prisma.gameTag.findMany({
+    where: { gameId: game.id },
+    select: {
+      id: true,
+      tag: true,
+      _count: { select: { votes: true } },
+    },
+    orderBy: { votes: { _count: "desc" } },
+  });
+
+  const votedSet = req.userId && tags.length > 0
+    ? new Set((await prisma.gameTagVote.findMany({
+        where: { userId: req.userId, tagId: { in: tags.map((t) => t.id) } },
+        select: { tagId: true },
+      })).map((v) => v.tagId))
+    : new Set<string>();
+
+  res.json(tags.map((t) => ({ id: t.id, tag: t.tag, votes: t._count.votes, votedByMe: votedSet.has(t.id) })));
+});
+
+/** POST /api/games/:rawgId/tags — add a tag (auto-votes for it) */
+router.post("/:rawgId/tags", requireAuth, async (req: AuthRequest, res: Response) => {
+  const rawgId = parseInt(String(req.params.rawgId));
+  if (isNaN(rawgId)) { res.status(400).json({ error: "Invalid game id" }); return; }
+
+  const raw = String(req.body.tag ?? "").toLowerCase().trim();
+  if (!TAG_RE.test(raw)) {
+    res.status(400).json({ error: "Tag must be 2–30 chars: lowercase letters, digits, hyphens only" });
+    return;
+  }
+
+  const game = await prisma.game.findUnique({ where: { rawgId }, select: { id: true } });
+  if (!game) { res.status(404).json({ error: "Game not found" }); return; }
+
+  // Upsert tag, then upsert vote
+  const gameTag = await prisma.gameTag.upsert({
+    where: { gameId_tag: { gameId: game.id, tag: raw } },
+    create: { gameId: game.id, tag: raw },
+    update: {},
+    select: { id: true, tag: true },
+  });
+
+  await prisma.gameTagVote.upsert({
+    where: { tagId_userId: { tagId: gameTag.id, userId: req.userId! } },
+    create: { tagId: gameTag.id, userId: req.userId! },
+    update: {},
+  });
+
+  const votes = await prisma.gameTagVote.count({ where: { tagId: gameTag.id } });
+  res.status(201).json({ id: gameTag.id, tag: gameTag.tag, votes, votedByMe: true });
+});
+
+/** POST /api/games/tags/:tagId/vote — toggle vote on a tag */
+router.post("/tags/:tagId/vote", requireAuth, async (req: AuthRequest, res: Response) => {
+  const tagId = String(req.params.tagId);
+  const userId = req.userId!;
+
+  const existing = await prisma.gameTagVote.findUnique({
+    where: { tagId_userId: { tagId, userId } },
+  });
+
+  if (existing) {
+    await prisma.gameTagVote.delete({ where: { id: existing.id } });
+  } else {
+    await prisma.gameTagVote.create({ data: { tagId, userId } });
+  }
+
+  const votes = await prisma.gameTagVote.count({ where: { tagId } });
+  res.json({ voted: !existing, votes });
 });
 
 export default router;

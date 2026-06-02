@@ -1,4 +1,17 @@
 export type GameStatus = "PLAYING" | "COMPLETED" | "DROPPED" | "WANT_TO_PLAY";
+
+export interface GameReview {
+  id: string;
+  rating?: number | null;
+  review: string;
+  status: string;
+  platform?: string | null;
+  updatedAt: string;
+  helpfulCount: number;
+  helpfulByMe: boolean;
+  user: { id: string; username: string; avatar?: string };
+  game?: { rawgId: number; name: string; coverImage?: string | null };
+}
 export type ActivityType = "STARTED" | "COMPLETED" | "DROPPED" | "RATED" | "ADDED_TO_WISHLIST";
 
 export interface User {
@@ -11,6 +24,10 @@ export interface User {
   isPrivate?: boolean;
   createdAt: string;
   isFollowing?: boolean;
+  notifFollow?: boolean;
+  notifLike?: boolean;
+  notifComment?: boolean;
+  notifMention?: boolean;
   _count: { gameEntries: number; followers: number; following: number };
 }
 
