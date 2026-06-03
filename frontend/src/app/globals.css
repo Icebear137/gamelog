@@ -11,16 +11,47 @@
 }
 
 /* ── Tiptap prose styles for club posts ───────────────────────────── */
-.club-post-content p          { margin: 0.4rem 0; }
-.club-post-content ul         { list-style: disc; padding-left: 1.25rem; margin: 0.4rem 0; }
-.club-post-content ol         { list-style: decimal; padding-left: 1.25rem; margin: 0.4rem 0; }
-.club-post-content li         { margin: 0.15rem 0; }
-.club-post-content strong     { color: #fff; font-weight: 600; }
-.club-post-content em         { color: #d1d5db; }
-.club-post-content s          { color: #9ca3af; }
-.club-post-content code       { background: rgba(255,255,255,0.08); padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.85em; color: #c4b5fd; }
-.club-post-content a          { color: #a78bfa; text-decoration: underline; }
-.club-post-content hr         { border-color: rgba(255,255,255,0.08); margin: 0.75rem 0; }
+.club-post-content p {
+  margin: 0.4rem 0;
+}
+.club-post-content ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+  margin: 0.4rem 0;
+}
+.club-post-content ol {
+  list-style: decimal;
+  padding-left: 1.25rem;
+  margin: 0.4rem 0;
+}
+.club-post-content li {
+  margin: 0.15rem 0;
+}
+.club-post-content strong {
+  color: #fff;
+  font-weight: 600;
+}
+.club-post-content em {
+  color: #d1d5db;
+}
+.club-post-content s {
+  color: #9ca3af;
+}
+.club-post-content code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.85em;
+  color: #c4b5fd;
+}
+.club-post-content a {
+  color: #a78bfa;
+  text-decoration: underline;
+}
+.club-post-content hr {
+  border-color: rgba(255, 255, 255, 0.08);
+  margin: 0.75rem 0;
+}
 
 * {
   box-sizing: border-box;
@@ -37,15 +68,15 @@
   --code-font-family: ui-monospace, monospace;
 
   /* Align Radix gray scale with our slate/zinc palette */
-  --gray-1:  #080612;
-  --gray-2:  #0e0b1a;
-  --gray-3:  #16122a;
-  --gray-4:  #1c1830;
-  --gray-5:  #221e38;
-  --gray-6:  #2a2540;
-  --gray-7:  #353049;
-  --gray-8:  #4a4466;
-  --gray-9:  #6b6480;
+  --gray-1: #080612;
+  --gray-2: #0e0b1a;
+  --gray-3: #16122a;
+  --gray-4: #1c1830;
+  --gray-5: #221e38;
+  --gray-6: #2a2540;
+  --gray-7: #353049;
+  --gray-8: #4a4466;
+  --gray-9: #6b6480;
   --gray-10: #8a84a0;
   --gray-11: #b8b2cc;
   --gray-12: #f2f0f8;
@@ -57,10 +88,27 @@
 body {
   /* ── Gradient background — fixed so it stays while scrolling ── */
   background:
-    radial-gradient(ellipse 80% 60% at 15% -5%,  rgba(124, 58, 237, 0.18) 0%, transparent 65%),
-    radial-gradient(ellipse 65% 50% at 88% 105%, rgba(29,  78, 216, 0.14) 0%, transparent 60%),
-    radial-gradient(ellipse 55% 35% at 50%  50%, rgba(109, 40, 217, 0.06) 0%, transparent 75%),
-    #06030f;
+    radial-gradient(
+      ellipse 90% 70% at 10% -10%,
+      rgba(139, 60, 255, 0.35) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 70% 55% at 90% 110%,
+      rgba(37, 99, 235, 0.28) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 60% 40% at 55% 55%,
+      rgba(124, 58, 237, 0.14) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 40% 30% at 80% 20%,
+      rgba(168, 85, 247, 0.12) 0%,
+      transparent 60%
+    ),
+    #0d0824;
   background-attachment: fixed;
   color: #f9fafb;
   font-family: inherit;
@@ -68,10 +116,19 @@ body {
 }
 
 /* ── Scrollbar ─────────────────────────────────────────────────── */
-::-webkit-scrollbar        { width: 5px; }
-::-webkit-scrollbar-track  { background: transparent; }
-::-webkit-scrollbar-thumb  { background: rgba(139, 92, 246, 0.25); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.45); }
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.25);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.45);
+}
 
 input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
