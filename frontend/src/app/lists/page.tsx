@@ -7,9 +7,9 @@ import { Slot } from "@radix-ui/react-slot";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Label from "@radix-ui/react-label";
 import { Plus, List, Lock, Globe, Gamepad2, X } from "lucide-react";
-import { Text, Heading, Flex, Box } from "@radix-ui/themes";
-import { api } from "@/lib/api";
+import { Text, Heading, Flex } from "@radix-ui/themes";
 import { useAuth } from "@/lib/auth-context";
+import { getMyListsService, createListService } from "@/services/list.service";
 import { GameListPreview } from "@/lib/types";
 import { dispatchToast } from "@/lib/toast";
 
@@ -28,13 +28,13 @@ export default function ListsPage() {
 
   const { data: lists = [], isLoading } = useQuery<GameListPreview[]>({
     queryKey: ["my-lists"],
-    queryFn: () => api.get("/api/lists/me").then((r) => r.data),
+    queryFn: () => getMyListsService(),
     enabled: !!user,
   });
 
   const createMutation = useMutation({
     mutationFn: () =>
-      api.post("/api/lists", {
+      createListService({
         name: name.trim(),
         description: description.trim() || undefined,
         isPublic,

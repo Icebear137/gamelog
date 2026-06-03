@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tag, Plus, X, Check } from "lucide-react";
 import { Heading, Flex } from "@radix-ui/themes";
-import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { getGameTagsService, addGameTagService, voteGameTagService } from "@/services/game.service";
 import { dispatchToast } from "@/lib/toast";
 
 interface GameTag {
@@ -34,27 +34,27 @@ export function GameTagsSection({ rawgId }: Props) {
   const queryKey = ["game-tags", rawgId];
   const { data: tags = [] } = useQuery<GameTag[]>({
     queryKey,
-    queryFn: () => api.get(`/api/games/${rawgId}/tags`).then((r) => r.data),
+    queryFn: () => getGameTagsService(parseInt(rawgId)),
     staleTime: 60_000,
   });
 
   const voteMutation = useMutation({
-    mutationFn: (tagId: string) => api.post(`/api/games/tags/${tagId}/vote`),
+    mutationFn: (tagId: string) => voteGameTagService(tagId),
     onSuccess: (res, tagId) => {
       qc.setQueryData(queryKey, (old: GameTag[] | undefined) =>
-        old?.map((t) => t.id === tagId ? { ...t, votes: res.data.votes, votedByMe: res.data.voted } : t)
+        old?.map((t) => t.id === tagId ? { ...t, votes: res.votes, votedByMe: res.voted } : t)
       );
     },
     onError: (err: any) => dispatchToast(err?.response?.data?.error ?? "Failed", "error"),
   });
 
   const addMutation = useMutation({
-    mutationFn: (tag: string) => api.post(`/api/games/${rawgId}/tags`, { tag }),
+    mutationFn: (tag: string) => addGameTagService(parseInt(rawgId), tag),
     onSuccess: (res) => {
       qc.setQueryData(queryKey, (old: GameTag[] | undefined) => {
-        if (!old) return [res.data];
-        const exists = old.find((t) => t.id === res.data.id);
-        return exists ? old.map((t) => t.id === res.data.id ? res.data : t) : [...old, res.data];
+        if (!old) return [res];
+        const exists = old.find((t) => t.id === res.id);
+        return exists ? old.map((t) => t.id === res.id ? res : t) : [...old, res];
       });
       setInput(""); setShowInput(false); setFiltered([]);
     },
@@ -148,7 +148,8 @@ export function GameTagsSection({ rawgId }: Props) {
                 <button
                   key={s}
                   onClick={() => submit(s)}
-                  className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-white/8 transition-colors"
+                  disabled={addMutation.isPending}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-white/8 transition-colors disabled:opacity-40"
                 >
                   {s}
                 </button>

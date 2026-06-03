@@ -80,4 +80,74 @@ router.get("/global", optionalAuth, async (req: AuthRequest, res: Response) => {
   );
 });
 
+// ---------------------------------------------------------------------------
+// GET /api/feed/leaderboard?period=week|month|alltime&category=games|reviews|likes
+// ---------------------------------------------------------------------------
+router.get("/leaderboard", async (req: AuthRequest, res: Response) => {
+  const period   = (req.query.period as string)   || "week";
+  const category = (req.query.category as string) || "games";
+
+  const now  = new Date();
+  let since: Date | undefined;
+  if (period === "week")  since = new Date(now.getTime() - 7  * 24 * 60 * 60 * 1000);
+  if (period === "month") since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  const dateFilter = since ? { gte: since } : undefined;
+
+  let rows: { userId: string; score: number }[] = [];
+
+  if (category === "games") {
+    // Most games COMPLETED in period
+    const data = await prisma.activity.groupBy({
+      by: ["userId"],
+      where: { type: "COMPLETED", ...(dateFilter ? { createdAt: dateFilter } : {}) },
+      _count: { id: true },
+      orderBy: { _count: { id: "desc" } },
+      take: 20,
+    });
+    rows = data.map((d) => ({ userId: d.userId, score: d._count.id }));
+  } else if (category === "reviews") {
+    // Most reviews written (entries with non-null review, ordered by updatedAt)
+    const data = await prisma.gameEntry.groupBy({
+      by: ["userId"],
+      where: { review: { not: null }, ...(dateFilter ? { updatedAt: dateFilter } : {}) },
+      _count: { id: true },
+      orderBy: { _count: { id: "desc" } },
+      take: 20,
+    });
+    rows = data.map((d) => ({ userId: d.userId, score: d._count.id }));
+  } else if (category === "likes") {
+    // Count likes received per activity owner
+    const likes = await prisma.like.findMany({
+      where: dateFilter ? { createdAt: dateFilter } : {},
+      select: { activity: { select: { userId: true } } },
+      take: 5000,
+    });
+    const countMap = new Map<string, number>();
+    for (const l of likes) {
+      if (!l.activity) continue;
+      const uid = l.activity.userId;
+      countMap.set(uid, (countMap.get(uid) ?? 0) + 1);
+    }
+    rows = Array.from(countMap.entries())
+      .map(([userId, score]) => ({ userId, score }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 20);
+  }
+
+  if (rows.length === 0) { res.json([]); return; }
+
+  const users = await prisma.user.findMany({
+    where: { id: { in: rows.map((r) => r.userId), }, isPrivate: false },
+    select: { id: true, username: true, avatar: true },
+  });
+  const userMap = new Map(users.map((u) => [u.id, u]));
+
+  res.json(
+    rows
+      .filter((r) => userMap.has(r.userId))
+      .map((r, i) => ({ rank: i + 1, score: r.score, user: userMap.get(r.userId)! }))
+  );
+});
+
 export default router;

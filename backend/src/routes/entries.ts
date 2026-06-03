@@ -146,6 +146,52 @@ router.get("/me", requireAuth, async (req: AuthRequest, res: Response) => {
 });
 
 // ---------------------------------------------------------------------------
+// GET /api/entries/export?format=csv|json  — download full library
+// ---------------------------------------------------------------------------
+router.get("/export", requireAuth, async (req: AuthRequest, res: Response) => {
+  const format = req.query.format === "csv" ? "csv" : "json";
+
+  const entries = await prisma.gameEntry.findMany({
+    where: { userId: req.userId! },
+    include: { game: { select: { rawgId: true, name: true, genres: true, releaseYear: true } } },
+    orderBy: { updatedAt: "desc" },
+  });
+
+  const rows = entries.map((e) => ({
+    name:        e.game.name,
+    rawgId:      e.game.rawgId,
+    status:      e.status,
+    rating:      e.rating ?? "",
+    review:      e.review ?? "",
+    playtime:    e.playtime ?? "",
+    platform:    e.platform ?? "",
+    genres:      (() => { try { return (JSON.parse(e.game.genres) as string[]).join(", "); } catch { return ""; } })(),
+    releaseYear: e.game.releaseYear ?? "",
+    addedAt:     e.createdAt.toISOString().split("T")[0],
+    updatedAt:   e.updatedAt.toISOString().split("T")[0],
+  }));
+
+  if (format === "json") {
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader("Content-Disposition", "attachment; filename=\"gamelog-library.json\"");
+    res.json(rows);
+    return;
+  }
+
+  // CSV
+  const headers = ["name", "rawgId", "status", "rating", "review", "playtime", "platform", "genres", "releaseYear", "addedAt", "updatedAt"];
+  const escape  = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const csv = [
+    headers.join(","),
+    ...rows.map((r) => headers.map((h) => escape(r[h as keyof typeof r])).join(",")),
+  ].join("\n");
+
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", "attachment; filename=\"gamelog-library.csv\"");
+  res.send("﻿" + csv); // BOM for Excel UTF-8 compatibility
+});
+
+// ---------------------------------------------------------------------------
 // POST /api/entries/:entryId/helpful — toggle "helpful" on a review
 // ---------------------------------------------------------------------------
 router.post("/:entryId/helpful", requireAuth, async (req: AuthRequest, res: Response) => {
@@ -171,6 +217,61 @@ router.post("/:entryId/helpful", requireAuth, async (req: AuthRequest, res: Resp
 
   const count = await prisma.reviewLike.count({ where: { entryId } });
   res.json({ helpful: !existing, count });
+});
+
+// ---------------------------------------------------------------------------
+// GET  /api/entries/:entryId/playthroughs
+// POST /api/entries/:entryId/playthroughs
+// DELETE /api/entries/:entryId/playthroughs/:id
+// ---------------------------------------------------------------------------
+
+const PlaythroughSchema = z.object({
+  playtime:    z.number().int().min(0).optional().nullable(),
+  platform:    z.string().max(50).optional().nullable(),
+  completedAt: z.string().optional().nullable(),
+  note:        z.string().max(500).optional().nullable(),
+});
+
+router.get("/:entryId/playthroughs", requireAuth, async (req: AuthRequest, res: Response) => {
+  const entryId = String(req.params.entryId);
+  const entry = await prisma.gameEntry.findUnique({ where: { id: entryId } });
+  if (!entry || entry.userId !== req.userId) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  const runs = await prisma.gamePlaythrough.findMany({
+    where: { entryId, userId: req.userId! },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json(runs);
+});
+
+router.post("/:entryId/playthroughs", requireAuth, async (req: AuthRequest, res: Response) => {
+  const entryId = String(req.params.entryId);
+  const entry = await prisma.gameEntry.findUnique({ where: { id: entryId } });
+  if (!entry || entry.userId !== req.userId) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  const parsed = PlaythroughSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
+
+  const { playtime, platform, completedAt, note } = parsed.data;
+  const run = await prisma.gamePlaythrough.create({
+    data: {
+      userId: req.userId!,
+      entryId,
+      playtime:    playtime  ?? null,
+      platform:    platform  ?? null,
+      completedAt: completedAt ? new Date(completedAt) : null,
+      note:        note ?? null,
+    },
+  });
+  res.status(201).json(run);
+});
+
+router.delete("/:entryId/playthroughs/:runId", requireAuth, async (req: AuthRequest, res: Response) => {
+  const runId = String(req.params.runId);
+  const run = await prisma.gamePlaythrough.findUnique({ where: { id: runId } });
+  if (!run || run.userId !== req.userId) { res.status(403).json({ error: "Forbidden" }); return; }
+  await prisma.gamePlaythrough.delete({ where: { id: runId } });
+  res.json({ deleted: true });
 });
 
 export default router;

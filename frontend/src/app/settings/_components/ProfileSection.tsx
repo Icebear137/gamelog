@@ -3,15 +3,15 @@
 import { useState, useEffect, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as Label from "@radix-ui/react-label";
-import { Text, Heading, Flex, Box } from "@radix-ui/themes";
+import { Text, Heading, Flex } from "@radix-ui/themes";
 import { Save, Camera } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { dispatchToast } from "@/lib/toast";
-import { User } from "@/lib/types";
+import type { AuthUser } from "@/lib/stores/auth";
 import Avatar from "@/components/Avatar";
 
-export function ProfileSection({ user }: { user: User }) {
+export function ProfileSection({ user }: { user: AuthUser }) {
   const { login, token } = useAuth();
   const qc = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement | null>(null);

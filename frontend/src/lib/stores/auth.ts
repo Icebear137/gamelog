@@ -12,6 +12,10 @@ export interface AuthUser {
   discordTag?: string;
   isPrivate?: boolean;
   emailNotifications?: boolean;
+  notifFollow?: boolean;
+  notifLike?: boolean;
+  notifComment?: boolean;
+  notifMention?: boolean;
 }
 
 interface AuthStore {

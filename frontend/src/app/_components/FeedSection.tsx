@@ -4,8 +4,8 @@ import { useMemo, useEffect, useRef } from "react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { Gamepad2, Loader2, ArrowUp } from "lucide-react";
 import { Text, Heading, Flex, Box } from "@radix-ui/themes";
-import { api } from "@/lib/api";
 import { Activity } from "@/lib/types";
+import { getFeedService } from "@/services/activity.service";
 import { useRealtimeStore } from "@/lib/stores/realtime";
 import ActivityCard from "@/components/ActivityCard";
 import AddGameModal from "@/components/AddGameModal";
@@ -20,8 +20,7 @@ export default function FeedSection() {
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useInfiniteQuery<Activity[]>({
       queryKey: ["feed"],
-      queryFn: ({ pageParam }) =>
-        api.get(`/api/feed?page=${pageParam}`).then((r) => r.data),
+      queryFn: ({ pageParam }) => getFeedService(pageParam as number),
       initialPageParam: 1,
       getNextPageParam: (lastPage, pages) =>
         lastPage.length === 20 ? pages.length + 1 : undefined,

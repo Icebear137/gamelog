@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Text, Heading, Flex, Box } from "@radix-ui/themes";
 import { ArrowLeft, Users } from "lucide-react";
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { getUserFollowingService } from "@/services/user.service";
 import Avatar from "@/components/Avatar";
 
 interface FollowUser {
@@ -20,7 +20,7 @@ export default function FollowingPage({ params }: { params: Promise<{ username: 
 
   const { data: following = [], isLoading } = useQuery<FollowUser[]>({
     queryKey: ["following", username],
-    queryFn: () => api.get(`/api/users/${username}/following`).then((r) => r.data),
+    queryFn: () => getUserFollowingService(username),
   });
 
   return (

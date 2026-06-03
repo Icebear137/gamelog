@@ -7,9 +7,9 @@ import { Text, Heading, Flex } from "@radix-ui/themes";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { dispatchToast } from "@/lib/toast";
-import { User } from "@/lib/types";
+import type { AuthUser } from "@/lib/stores/auth";
 
-export function EmailSection({ user }: { user: User }) {
+export function EmailSection({ user }: { user: AuthUser }) {
   const { login, token } = useAuth();
   const qc = useQueryClient();
   const [emailNotifications, setEmailNotifications] = useState((user as any).emailNotifications ?? true);

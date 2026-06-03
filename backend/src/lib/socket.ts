@@ -26,16 +26,38 @@ async function getPartnerIds(userId: string): Promise<string[]> {
   return rows.map((r) => r.userId);
 }
 
-/** Broadcast presence to all conversation partners of userId */
+/** Broadcast presence_update to all conversation partners AND club co-members */
 async function broadcastPresence(
   userId: string,
   isOnline: boolean,
   lastSeen: string | null = null
 ) {
-  const partnerIds = await getPartnerIds(userId);
   const payload = { userId, isOnline, lastSeen };
+
+  // DM conversation partners
+  const partnerIds = await getPartnerIds(userId);
   for (const pid of partnerIds) {
     io.to(`user:${pid}`).emit("presence_update", payload);
+  }
+
+  // Club co-members (excluding duplicates already covered by DM partners)
+  const partnerSet = new Set(partnerIds);
+  const memberships = await prisma.gameClubMember.findMany({
+    where: { userId, isBanned: false },
+    select: { clubId: true },
+  });
+  if (memberships.length > 0) {
+    const clubIds = memberships.map((m) => m.clubId);
+    const clubMembers = await prisma.gameClubMember.findMany({
+      where: { clubId: { in: clubIds }, userId: { not: userId }, isBanned: false },
+      select: { userId: true },
+      distinct: ["userId"],
+    });
+    for (const { userId: memberId } of clubMembers) {
+      if (!partnerSet.has(memberId)) {
+        io.to(`user:${memberId}`).emit("presence_update", payload);
+      }
+    }
   }
 }
 

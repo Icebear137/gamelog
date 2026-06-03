@@ -3,8 +3,9 @@
 import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Clock, Trophy, BarChart3 } from "lucide-react";
-import { api } from "@/lib/api";
+import { Clock, Trophy, BarChart3, Download } from "lucide-react";
+import { EnvConstant } from "@/constant";
+import { getMyEntriesService } from "@/services/entry.service";
 import { useAuth } from "@/lib/auth-context";
 import { GameEntry, GamePlatform } from "@/lib/types";
 import { useState } from "react";
@@ -12,7 +13,7 @@ import * as Tabs from "@radix-ui/react-tabs";
 import { RadixSelect } from "@/components/ui";
 import AddGameModal from "@/components/AddGameModal";
 import { GameGrid } from "./_components/GameGrid";
-import { Text, Heading, Flex, Box, Grid } from "@radix-ui/themes";
+import { Text, Heading, Flex, Grid } from "@radix-ui/themes";
 
 const TABS = [
   { value: "all", label: "All" },
@@ -57,7 +58,7 @@ export default function LibraryPage() {
 
   const { data: entries = [], isLoading } = useQuery<GameEntry[]>({
     queryKey: ["my-entries"],
-    queryFn: () => api.get("/api/entries/me").then((r) => r.data),
+    queryFn: () => getMyEntriesService(),
     enabled: !!user,
   });
 
@@ -93,7 +94,10 @@ export default function LibraryPage() {
     <div>
       <Flex align="center" justify="between" className="mb-5">
         <Heading size="6">My Library</Heading>
-        <AddGameModal />
+        <Flex gap="2" align="center">
+          <ExportButton />
+          <AddGameModal />
+        </Flex>
       </Flex>
 
       {entries.length > 0 && (
@@ -159,6 +163,61 @@ export default function LibraryPage() {
           );
         })}
       </Tabs.Root>
+    </div>
+  );
+}
+
+// ── Export button ─────────────────────────────────────────────────────────────
+
+function ExportButton() {
+  const [open, setOpen] = useState(false);
+
+  function download(format: "csv" | "json") {
+    const token = localStorage.getItem("token");
+    const url   = `${EnvConstant.API_URL}/api/entries/export?format=${format}`;
+    const a     = document.createElement("a");
+    a.href      = url;
+    // Pass token via fetch to get the file, then create blob URL
+    fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.blob())
+      .then((blob) => {
+        a.href     = URL.createObjectURL(blob);
+        a.download = `gamelog-library.${format}`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
+    setOpen(false);
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-gray-400 bg-white/5 border border-white/10 hover:border-white/20 hover:text-white transition-colors"
+        title="Export library"
+      >
+        <Download size={14} />
+        Export
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-1 z-20 bg-zinc-950 border border-white/10 rounded-xl overflow-hidden shadow-xl min-w-36">
+            <button
+              onClick={() => download("csv")}
+              className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/8 transition-colors"
+            >
+              Download CSV
+            </button>
+            <button
+              onClick={() => download("json")}
+              className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/8 transition-colors"
+            >
+              Download JSON
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

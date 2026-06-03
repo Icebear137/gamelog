@@ -4,8 +4,8 @@ import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MessageCircle, Send, Trash2, Loader2 } from "lucide-react";
 import { Text, Heading, Flex } from "@radix-ui/themes";
-import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { getListCommentsService, addListCommentService, deleteListCommentService } from "@/services/list.service";
 import { GameListComment } from "@/lib/types";
 import { formatDistanceToNow } from "@/lib/utils";
 import { dispatchToast } from "@/lib/toast";
@@ -23,11 +23,11 @@ export default function ListComments({ listId }: Props) {
 
   const { data: comments = [], isLoading } = useQuery<GameListComment[]>({
     queryKey: ["list-comments", listId],
-    queryFn: () => api.get(`/api/lists/${listId}/comments`).then((r) => r.data),
+    queryFn: () => getListCommentsService(listId),
   });
 
   const addMutation = useMutation({
-    mutationFn: (text: string) => api.post(`/api/lists/${listId}/comments`, { body: text }),
+    mutationFn: (text: string) => addListCommentService(listId, text),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["list-comments", listId] });
       qc.invalidateQueries({ queryKey: ["list", listId] });
@@ -38,7 +38,7 @@ export default function ListComments({ listId }: Props) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (commentId: string) => api.delete(`/api/lists/${listId}/comments/${commentId}`),
+    mutationFn: (commentId: string) => deleteListCommentService(listId, commentId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["list-comments", listId] });
       qc.invalidateQueries({ queryKey: ["list", listId] });

@@ -5,8 +5,9 @@ import { useQuery } from "@tanstack/react-query";
 import { TrendingUp, Gamepad2, Users, Sparkles, Tag } from "lucide-react";
 import Link from "next/link";
 import { Text, Heading, Flex } from "@radix-ui/themes";
-import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { getTrendingGamesService, getRecommendationsService, getPopularTagsService } from "@/services/game.service";
+import { discoverUsersService } from "@/services/user.service";
 import TrendingGameCard, {
   type TrendingGame,
 } from "./_components/TrendingGameCard";
@@ -24,27 +25,27 @@ export default function DiscoverPage() {
 
   const { data: trending = [], isLoading } = useQuery<TrendingGame[]>({
     queryKey: ["trending"],
-    queryFn: () => api.get("/api/games/trending").then((r) => r.data),
+    queryFn: () => getTrendingGamesService(),
     staleTime: FIVE_MINUTES,
   });
 
   const { data: suggested = [] } = useQuery<SuggestedUser[]>({
     queryKey: ["discover-people"],
-    queryFn: () => api.get("/api/users/discover").then((r) => r.data),
+    queryFn: () => discoverUsersService(),
     enabled: !!user,
     staleTime: FIVE_MINUTES,
   });
 
   const { data: recommendations = [] } = useQuery<RecommendedGame[]>({
     queryKey: ["recommendations"],
-    queryFn: () => api.get("/api/games/recommendations").then((r) => r.data),
+    queryFn: () => getRecommendationsService(),
     enabled: !!user,
     staleTime: FIVE_MINUTES,
   });
 
   const { data: popularTags = [] } = useQuery<{ tag: string; votes: number }[]>({
     queryKey: ["popular-tags"],
-    queryFn: () => api.get("/api/games/popular-tags").then((r) => r.data),
+    queryFn: () => getPopularTagsService(),
     staleTime: 5 * 60_000,
   });
 

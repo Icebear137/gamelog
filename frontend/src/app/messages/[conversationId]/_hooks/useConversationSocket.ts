@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { QueryClient } from "@tanstack/react-query";
 import { getSocket } from "@/lib/socket-client";
-import { ChatMessage, GroupMember, PinnedMessage } from "@/lib/types";
+import { ChatMessage, GroupMember, PinnedMessage, PollData, GameNightData } from "@/lib/types";
 
 interface MessagesData {
   messages: ChatMessage[];
@@ -188,7 +188,7 @@ export function useConversationSocket({
     const socket = getSocket();
     if (!socket) return;
     function handlePollUpdated({ conversationId: cid, messageId, poll }: {
-      conversationId: string; messageId: string; poll: unknown;
+      conversationId: string; messageId: string; poll: PollData;
     }) {
       if (cid !== conversationId) return;
       qc.setQueryData(
@@ -209,7 +209,7 @@ export function useConversationSocket({
     const socket = getSocket();
     if (!socket) return;
     function handleGameNightUpdated({ conversationId: cid, messageId, gameNight }: {
-      conversationId: string; messageId: string; gameNight: unknown;
+      conversationId: string; messageId: string; gameNight: GameNightData;
     }) {
       if (cid !== conversationId) return;
       qc.setQueryData(

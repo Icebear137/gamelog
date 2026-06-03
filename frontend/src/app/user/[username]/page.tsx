@@ -4,11 +4,11 @@ import { use } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Slot } from "@radix-ui/react-slot";
-import * as Separator from "@radix-ui/react-separator";
 import { Gamepad2, Settings, Globe, Lock, EyeOff, GitCompare, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { Text, Heading, Flex, Box } from "@radix-ui/themes";
 import { api } from "@/lib/api";
+import { getUserService, getUserGamesService, getUserReviewsService, getUserActivitiesService, followUserService, unfollowUserService } from "@/services/user.service";
 import { useAuth } from "@/lib/auth-context";
 import { dispatchToast } from "@/lib/toast";
 import { User, Activity, GameEntry, GameStatus, GameListPreview, GameReview } from "@/lib/types";
@@ -28,7 +28,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
 
   const { data: profile, isLoading } = useQuery<User>({
     queryKey: ["profile", username],
-    queryFn: () => api.get(`/api/users/${username}`).then((r) => r.data),
+    queryFn: () => getUserService(username),
   });
 
   // Only fetch games/activities if profile is not private (or it's me)
@@ -36,13 +36,13 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
 
   const { data: games = [] } = useQuery<GameEntry[]>({
     queryKey: ["user-games", username],
-    queryFn: () => api.get(`/api/users/${username}/games`).then((r) => r.data),
+    queryFn: () => getUserGamesService(username),
     enabled: !!canSeeContent,
   });
 
   const { data: activities = [] } = useQuery<Activity[]>({
     queryKey: ["user-activities", username],
-    queryFn: () => api.get(`/api/users/${username}/activities`).then((r) => r.data),
+    queryFn: () => getUserActivitiesService(username),
     enabled: !!canSeeContent,
   });
 
@@ -55,15 +55,15 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
   const reviewsQueryKey = ["user-reviews", username];
   const { data: reviews = [] } = useQuery<GameReview[]>({
     queryKey: reviewsQueryKey,
-    queryFn: () => api.get(`/api/users/${username}/reviews`).then((r) => r.data),
-    enabled: !!profile,
+    queryFn: () => getUserReviewsService(username),
+    enabled: !!canSeeContent,
   });
 
   const followMutation = useMutation({
     mutationFn: (following: boolean) =>
       following
-        ? api.delete(`/api/users/${username}/follow`)
-        : api.post(`/api/users/${username}/follow`),
+        ? unfollowUserService(username)
+        : followUserService(username),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["profile", username] });
       qc.invalidateQueries({ queryKey: ["user-games", username] });
@@ -300,7 +300,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
             <Flex direction="column" gap="3">
               <Flex align="center" justify="between">
                 <Heading size="4" as="h2">Reviews</Heading>
-                <Link href={`/reviews`} className="text-sm text-violet-400 hover:text-violet-300 transition-colors">
+                <Link href={`/user/${username}/reviews`} className="text-sm text-violet-400 hover:text-violet-300 transition-colors">
                   All reviews →
                 </Link>
               </Flex>

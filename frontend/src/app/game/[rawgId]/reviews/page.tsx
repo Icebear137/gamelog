@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import { MessageSquare, ArrowLeft, Clock, ThumbsUp } from "lucide-react";
 import Link from "next/link";
 import { Heading, Flex } from "@radix-ui/themes";
-import { api } from "@/lib/api";
 import { GameReview } from "@/lib/types";
+import { getGameService, getGameReviewsService } from "@/services/game.service";
 import { ReviewCard } from "@/components/ReviewCard";
 
 type Sort = "recent" | "helpful";
@@ -21,14 +21,14 @@ export default function GameReviewsPage({ params }: { params: Promise<{ rawgId: 
 
   const { data: game } = useQuery<GameBasic>({
     queryKey: ["game", rawgId],
-    queryFn: () => api.get(`/api/games/${rawgId}`).then((r) => r.data),
+    queryFn: () => getGameService(parseInt(rawgId)),
     staleTime: 5 * 60_000,
   });
 
   const queryKey = ["game-reviews", rawgId, sort];
   const { data: reviews = [], isLoading } = useQuery<GameReview[]>({
     queryKey,
-    queryFn: () => api.get(`/api/games/${rawgId}/reviews?sort=${sort}`).then((r) => r.data),
+    queryFn: () => getGameReviewsService(parseInt(rawgId), sort),
   });
 
   return (

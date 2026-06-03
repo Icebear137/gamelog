@@ -1,12 +1,11 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
-import { Send, Smile, ImageIcon, X, Gamepad2, Loader2, Plus, Mic, Square, BarChart2, CalendarDays, Paperclip } from "lucide-react";
+import { Send, Smile, ImageIcon, X, Gamepad2, Plus, Mic, Square, BarChart2, CalendarDays, Paperclip } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 import dynamic from "next/dynamic";
 import data from "@emoji-mart/data";
 import Image from "next/image";
-import { api } from "@/lib/api";
 import { ChatMessageGame } from "@/lib/types";
 import { PollCreator } from "./chat-input/PollCreator";
 import { GameNightCreator } from "./chat-input/GameNightCreator";

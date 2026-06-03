@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, FileImage, FileVideo, FileAudio, FileArchive, File, Download } from "lucide-react";
+import { FileText, FileVideo, FileAudio, FileArchive, File, Download } from "lucide-react";
 
 interface Props {
   fileUrl: string;

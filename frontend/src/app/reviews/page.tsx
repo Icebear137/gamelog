@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { MessageSquare, Clock, ThumbsUp } from "lucide-react";
 import { Heading, Text, Flex, Box } from "@radix-ui/themes";
-import { api } from "@/lib/api";
 import { GameReview } from "@/lib/types";
+import { getGlobalReviewsService } from "@/services/game.service";
 import { ReviewCard } from "@/components/ReviewCard";
 
 type Sort = "recent" | "helpful";
@@ -16,7 +16,7 @@ export default function ReviewsPage() {
   const queryKey = ["reviews-global", sort];
   const { data: reviews = [], isLoading } = useQuery<GameReview[]>({
     queryKey,
-    queryFn: () => api.get(`/api/games/reviews?sort=${sort}`).then((r) => r.data),
+    queryFn: () => getGlobalReviewsService(sort),
     staleTime: 2 * 60_000,
   });
 

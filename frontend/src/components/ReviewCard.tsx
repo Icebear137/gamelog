@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Star, ThumbsUp, Monitor } from "lucide-react";
 import Link from "next/link";
@@ -21,18 +21,20 @@ interface Props {
   queryKey: unknown[];
 }
 
-export function ReviewCard({ review: r, showGame = false, queryKey }: Props) {
+export const ReviewCard = memo(function ReviewCard({ review: r, showGame = false, queryKey }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const [helpful, setHelpful]   = useState(r.helpfulByMe);
-  const [count, setCount]       = useState(r.helpfulCount);
   const isOwn = user?.id === r.user.id;
+
+  // Derive directly from the cache-updated prop — no local mirror needed.
+  // The mutation's onSuccess patches the cache, which triggers a re-render
+  // with the updated values here automatically.
+  const helpful = r.helpfulByMe;
+  const count   = r.helpfulCount;
 
   const mutation = useMutation({
     mutationFn: () => api.post(`/api/entries/${r.id}/helpful`),
     onSuccess: (res) => {
-      setHelpful(res.data.helpful);
-      setCount(res.data.count);
       qc.setQueryData(queryKey, (old: GameReview[] | undefined) =>
         old?.map((rev) => rev.id === r.id
           ? { ...rev, helpfulByMe: res.data.helpful, helpfulCount: res.data.count }
@@ -121,4 +123,4 @@ export function ReviewCard({ review: r, showGame = false, queryKey }: Props) {
       </div>
     </div>
   );
-}
+});

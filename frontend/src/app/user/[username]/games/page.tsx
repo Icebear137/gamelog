@@ -6,7 +6,7 @@ import { ArrowLeft, Gamepad2, Star } from "lucide-react";
 import Link from "next/link";
 import { Heading, Text, Flex } from "@radix-ui/themes";
 import * as Tabs from "@radix-ui/react-tabs";
-import { api } from "@/lib/api";
+import { getUserGamesService } from "@/services/user.service";
 import { GameEntry, GameStatus } from "@/lib/types";
 import StatusBadge from "@/components/StatusBadge";
 
@@ -23,7 +23,7 @@ export default function UserGamesPage({ params }: { params: Promise<{ username: 
 
   const { data: entries = [], isLoading } = useQuery<GameEntry[]>({
     queryKey: ["user-games-full", username],
-    queryFn: () => api.get(`/api/users/${username}/games`).then((r) => r.data),
+    queryFn: () => getUserGamesService(username),
   });
 
   return (

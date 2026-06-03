@@ -1,3 +1,4 @@
+import { memo } from "react";
 import * as RadixAvatar from "@radix-ui/react-avatar";
 import clsx from "clsx";
 
@@ -9,7 +10,7 @@ interface AvatarProps {
 
 const sizes = { xs: "w-4 h-4 text-[8px]", sm: "w-8 h-8 text-xs", md: "w-10 h-10 text-sm", lg: "w-16 h-16 text-xl" };
 
-export default function Avatar({ src, username, size = "md" }: AvatarProps) {
+const Avatar = memo(function Avatar({ src, username, size = "md" }: AvatarProps) {
   return (
     <RadixAvatar.Root
       className={clsx(
@@ -29,4 +30,6 @@ export default function Avatar({ src, username, size = "md" }: AvatarProps) {
       </RadixAvatar.Fallback>
     </RadixAvatar.Root>
   );
-}
+});
+
+export default Avatar;

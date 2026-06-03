@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, memo } from "react";
 import { Reply, Smile, Forward, Pin } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ChatMessage, MessageReaction } from "@/lib/types";
@@ -65,7 +65,7 @@ function renderTextWithLinks(text: string, isOwn: boolean): React.ReactNode {
   return <>{segments}</>;
 }
 
-export default function MessageBubble({ message, isOwn, showSender = true, seenBy = [], nickname, onReply, onForward, onPin }: Props) {
+const MessageBubble = memo(function MessageBubble({ message, isOwn, showSender = true, seenBy = [], nickname, onReply, onForward, onPin }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -252,4 +252,6 @@ export default function MessageBubble({ message, isOwn, showSender = true, seenB
       </div>
     </div>
   );
-}
+});
+
+export default MessageBubble;

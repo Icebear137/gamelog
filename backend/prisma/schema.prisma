@@ -41,6 +41,13 @@ model User {
   gameListComments       GameListComment[]
   reviewLikes            ReviewLike[]
   gameTagVotes           GameTagVote[]
+  playthroughs           GamePlaythrough[]
+  clubsCreated           GameClub[]          @relation("ClubCreator")
+  clubMemberships        GameClubMember[]
+  clubPosts              GameClubPost[]
+  clubComments           GameClubComment[]
+  clubPostLikes          GameClubPostLike[]
+  clubPostReactions      GameClubPostReaction[]
   yearlyChallenges       YearlyChallenge[]
   achievements           UserAchievement[]
   conversationParticipants ConversationParticipant[]
@@ -76,6 +83,7 @@ model Game {
   messages    Message[]
   gameNights  GameNight[]
   tags        GameTag[]
+  clubs       GameClub[]
 }
 
 model GameEntry {
@@ -90,10 +98,11 @@ model GameEntry {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  game         Game         @relation(fields: [gameId], references: [id])
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game         Game          @relation(fields: [gameId], references: [id])
   activities   Activity[]
   reviewLikes  ReviewLike[]
+  playthroughs GamePlaythrough[]
 
   @@unique([userId, gameId])
 }
@@ -134,6 +143,107 @@ model ReviewLike {
   entry GameEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
 
   @@unique([userId, entryId])
+}
+
+// ── Game Clubs ────────────────────────────────────────────────────────────────
+
+model GameClub {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  avatar        String?
+  gameId        String?
+  genre         String?  // genre tag e.g. "RPG", "Action"
+  createdBy     String
+  pinnedPostId  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  creator     User             @relation("ClubCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  game        Game?            @relation(fields: [gameId], references: [id], onDelete: SetNull)
+  members     GameClubMember[]
+  posts       GameClubPost[]
+  pinnedPost  GameClubPost?    @relation("PinnedPost", fields: [pinnedPostId], references: [id], onDelete: SetNull)
+}
+
+model GameClubMember {
+  id        String   @id @default(cuid())
+  clubId    String
+  userId    String
+  role      String   @default("member") // "admin" | "member"
+  isBanned  Boolean  @default(false)
+  joinedAt  DateTime @default(now())
+
+  club GameClub @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([clubId, userId])
+}
+
+model GameClubPost {
+  id        String   @id @default(cuid())
+  clubId    String
+  userId    String
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  club          GameClub              @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments      GameClubComment[]
+  likes         GameClubPostLike[]
+  reactions     GameClubPostReaction[]
+  pinnedInClubs GameClub[]            @relation("PinnedPost")
+}
+
+model GameClubComment {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  body      String
+  createdAt DateTime @default(now())
+
+  post GameClubPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model GameClubPostLike {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post GameClubPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+}
+
+model GameClubPostReaction {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  post GameClubPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId, emoji])
+}
+
+model GamePlaythrough {
+  id          String   @id @default(cuid())
+  userId      String
+  entryId     String
+  playtime    Int?     // hours for this run
+  platform    String?
+  completedAt DateTime?
+  note        String?
+  createdAt   DateTime @default(now())
+
+  user  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entry GameEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
 }
 
 model GameTag {

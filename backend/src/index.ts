@@ -16,6 +16,8 @@ import notificationsRouter from "./routes/notifications";
 import listsRouter from "./routes/lists";
 import messagesRouter from "./routes/messages";
 import aiRouter from "./routes/ai";
+import clubsRouter from "./routes/clubs";
+import uploadRouter from "./routes/upload";
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
   console.warn("WARNING: JWT_SECRET is missing or too short. Use a random 64-char string in production.");
@@ -41,6 +43,8 @@ app.use("/api/notifications", notificationsRouter);
 app.use("/api/lists", listsRouter);
 app.use("/api/messages", messagesRouter);
 app.use("/api/ai", aiRouter);
+app.use("/api/clubs", clubsRouter);
+app.use("/api/upload", uploadRouter);
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 

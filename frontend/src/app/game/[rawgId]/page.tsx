@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Text, Heading, Flex } from "@radix-ui/themes";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { getGameService, getGameFriendsService, getGameActivitiesService } from "@/services/game.service";
 import { GameEntry, GameStatus, Activity } from "@/lib/types";
 import * as Separator from "@radix-ui/react-separator";
 import Avatar from "@/components/Avatar";
@@ -17,6 +18,7 @@ import ActivityCard from "@/components/ActivityCard";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MarkdownReview from "@/components/MarkdownReview";
 import { GameTagsSection } from "./_components/GameTagsSection";
+import { PlaythroughsSection } from "./_components/PlaythroughsSection";
 
 interface GameDetail {
   id: string;
@@ -54,7 +56,7 @@ export default function GamePage({ params }: { params: Promise<{ rawgId: string 
 
   const { data: game, isLoading } = useQuery<GameDetail>({
     queryKey: ["game", rawgId],
-    queryFn: () => api.get(`/api/games/${rawgId}`).then((r) => r.data),
+    queryFn: () => getGameService(parseInt(rawgId)),
   });
 
   const { data: myEntries = [] } = useQuery<GameEntry[]>({
@@ -73,14 +75,14 @@ export default function GamePage({ params }: { params: Promise<{ rawgId: string 
 
   const { data: friendEntries = [] } = useQuery<FriendEntry[]>({
     queryKey: ["game-friends", rawgId],
-    queryFn: () => api.get(`/api/games/${rawgId}/friends`).then((r) => r.data),
+    queryFn: () => getGameFriendsService(parseInt(rawgId)),
     enabled: !!user && !!game,
     staleTime: 2 * 60_000,
   });
 
   const { data: communityActivities = [] } = useQuery<Activity[]>({
     queryKey: ["game-activities", rawgId],
-    queryFn: () => api.get(`/api/games/${rawgId}/activities`).then((r) => r.data),
+    queryFn: () => getGameActivitiesService(parseInt(rawgId)),
     enabled: !!game,
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
@@ -297,6 +299,9 @@ export default function GamePage({ params }: { params: Promise<{ rawgId: string 
 
       {/* ── Tags ── */}
       <GameTagsSection rawgId={rawgId} />
+
+      {/* ── Playthroughs (own runs) ── */}
+      {myEntry && <PlaythroughsSection entryId={myEntry.id} />}
 
       {/* ── Community Status ── */}
       {totalInLibrary > 0 && (

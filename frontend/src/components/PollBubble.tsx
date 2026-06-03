@@ -141,7 +141,7 @@ export default function PollBubble({ poll, conversationId, currentUserId, isOwn 
             {poll.anonymous   ? " · Anonymous" : ""}
           </Flex>
           <div className="flex items-center gap-1.5">
-            {poll.anonymous && <EyeOff size={9} className="text-gray-600" title="Anonymous poll" />}
+            {poll.anonymous && <span title="Anonymous poll"><EyeOff size={9} className="text-gray-600" /></span>}
             {isClosed ? (
               <span className="flex items-center gap-0.5 text-[10px] text-gray-500">
                 <LockKeyhole size={9} /> Closed

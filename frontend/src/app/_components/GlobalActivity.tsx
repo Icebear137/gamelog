@@ -3,8 +3,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { TrendingUp } from "lucide-react";
 import { Heading, Flex } from "@radix-ui/themes";
-import { api } from "@/lib/api";
 import { Activity } from "@/lib/types";
+import { getGlobalFeedService } from "@/services/activity.service";
 import ActivityCard from "@/components/ActivityCard";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
@@ -13,7 +13,7 @@ const FIVE_MINUTES = 5 * 60 * 1000;
 export default function GlobalActivity() {
   const { data: global = [] } = useQuery<Activity[]>({
     queryKey: ["feed-global"],
-    queryFn: () => api.get("/api/feed/global").then((r) => r.data),
+    queryFn: () => getGlobalFeedService(),
     staleTime: FIVE_MINUTES,
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,

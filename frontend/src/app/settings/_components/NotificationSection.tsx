@@ -7,7 +7,7 @@ import { Text, Heading, Flex } from "@radix-ui/themes";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { dispatchToast } from "@/lib/toast";
-import { User } from "@/lib/types";
+import type { AuthUser } from "@/lib/stores/auth";
 
 const NOTIF_SETTINGS = [
   {
@@ -51,7 +51,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
   );
 }
 
-export function NotificationSection({ user }: { user: User }) {
+export function NotificationSection({ user }: { user: AuthUser }) {
   const { login, token } = useAuth();
   const qc = useQueryClient();
 

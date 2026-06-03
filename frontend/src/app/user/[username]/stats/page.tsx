@@ -8,7 +8,7 @@ import * as Select from "@radix-ui/react-select";
 import * as Separator from "@radix-ui/react-separator";
 import { ArrowLeft, Star, Clock, Gamepad2, ChevronDown, BarChart3, TrendingUp } from "lucide-react";
 import { Heading, Text, Flex } from "@radix-ui/themes";
-import { api } from "@/lib/api";
+import { getUserStatsService } from "@/services/user.service";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -46,7 +46,7 @@ export default function StatsPage({ params }: { params: Promise<{ username: stri
 
   const { data: stats, isLoading, isError } = useQuery<Stats>({
     queryKey: ["user-stats", username, year],
-    queryFn: () => api.get(`/api/users/${username}/stats?year=${year}`).then((r) => r.data),
+    queryFn: () => getUserStatsService(username, Number(year)),
   });
 
   const maxMonth = stats ? Math.max(...stats.byMonth, 1) : 1;

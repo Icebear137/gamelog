@@ -10,8 +10,8 @@ import * as Select from "@radix-ui/react-select";
 import * as Separator from "@radix-ui/react-separator";
 import { Gamepad2, Globe, Lock, Pencil, Trash2, X, Check, ChevronDown, AlertTriangle, Heart, MessageCircle } from "lucide-react";
 import { Text, Heading, Flex, Box } from "@radix-ui/themes";
-import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { getListService, updateListService, deleteListService, likeListService, unlikeListService, removeGameFromListService } from "@/services/list.service";
 import { GameListDetail } from "@/lib/types";
 import { dispatchToast } from "@/lib/toast";
 import ListComments from "./_components/ListComments";
@@ -42,12 +42,12 @@ export default function ListDetailPage({ params }: { params: Promise<{ id: strin
 
   const { data: list, isLoading } = useQuery<GameListDetail>({
     queryKey: ["list", id],
-    queryFn: () => api.get(`/api/lists/${id}`).then((r) => r.data),
+    queryFn: () => getListService(id),
   });
 
   const updateMutation = useMutation({
     mutationFn: (data: { name: string; description?: string; isPublic: boolean }) =>
-      api.patch(`/api/lists/${id}`, data),
+      updateListService(id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["list", id] });
       qc.invalidateQueries({ queryKey: ["my-lists"] });
@@ -58,7 +58,7 @@ export default function ListDetailPage({ params }: { params: Promise<{ id: strin
   });
 
   const deleteMutation = useMutation({
-    mutationFn: () => api.delete(`/api/lists/${id}`),
+    mutationFn: () => deleteListService(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-lists"] });
       dispatchToast("List deleted", "success");
@@ -68,7 +68,7 @@ export default function ListDetailPage({ params }: { params: Promise<{ id: strin
   });
 
   const removeGameMutation = useMutation({
-    mutationFn: (gameId: string) => api.delete(`/api/lists/${id}/games/${gameId}`),
+    mutationFn: (gameId: string) => removeGameFromListService(id, gameId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["list", id] });
       qc.invalidateQueries({ queryKey: ["my-lists"] });
@@ -110,13 +110,13 @@ export default function ListDetailPage({ params }: { params: Promise<{ id: strin
     likePending.current = true;
     try {
       if (isLiked) {
-        const res = await api.delete(`/api/lists/${id}/like`);
+        const res = await unlikeListService(id);
         setLiked(false);
-        setLikeCount(res.data.count);
+        setLikeCount(res.count);
       } else {
-        const res = await api.post(`/api/lists/${id}/like`);
+        const res = await likeListService(id);
         setLiked(true);
-        setLikeCount(res.data.count);
+        setLikeCount(res.count);
       }
     } catch {
       dispatchToast("Failed to update like", "error");

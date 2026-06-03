@@ -92,11 +92,20 @@ async function main() {
   await prisma.notification.deleteMany();
   await prisma.comment.deleteMany();
   await prisma.like.deleteMany();
+  await prisma.reviewLike.deleteMany();
   await prisma.gameTagVote.deleteMany();
   await prisma.gameTag.deleteMany();
-  await prisma.reviewLike.deleteMany();
   await prisma.gameListLike.deleteMany();
   await prisma.gameListComment.deleteMany();
+  // Club data
+  await prisma.gameClubPostReaction.deleteMany();
+  await prisma.gameClubPostLike.deleteMany();
+  await prisma.gameClubComment.deleteMany();
+  await prisma.gameClubPost.deleteMany();
+  await prisma.gameClubMember.deleteMany();
+  await prisma.gameClub.deleteMany();
+  // Playthroughs
+  await prisma.gamePlaythrough.deleteMany();
   await prisma.activity.deleteMany();
   await prisma.follow.deleteMany();
   await prisma.gameListEntry.deleteMany();
@@ -868,8 +877,307 @@ async function main() {
   ]);
   console.log("✅ Game lists created\n");
 
+  // ── Game Clubs ─────────────────────────────────────────────────────
+  console.log("🎯 Creating game clubs...");
+
+  const post = (body: string) => `<p>${body}</p>`;
+  const rich = (body: string) => body; // already HTML
+
+  // Helper to create club + members + posts + reactions
+  async function createClub(
+    creatorId: string,
+    name: string,
+    description: string,
+    genre: string,
+    memberIds: string[],
+    posts: { userId: string; body: string; likeIds: string[]; reactions: { emoji: string; userId: string }[]; comments: { userId: string; body: string }[] }[],
+  ) {
+    const club = await prisma.gameClub.create({
+      data: {
+        name, description, genre,
+        createdBy: creatorId,
+        members: {
+          create: [
+            { userId: creatorId, role: "admin" },
+            ...memberIds.filter((id) => id !== creatorId).map((id) => ({ userId: id, role: "member" })),
+          ],
+        },
+      },
+    });
+
+    for (const p of posts) {
+      const clubPost = await prisma.gameClubPost.create({
+        data: { clubId: club.id, userId: p.userId, body: p.body },
+      });
+      for (const uid of p.likeIds) {
+        await prisma.gameClubPostLike.create({ data: { postId: clubPost.id, userId: uid } }).catch(() => {});
+      }
+      for (const r of p.reactions) {
+        await prisma.gameClubPostReaction.create({ data: { postId: clubPost.id, emoji: r.emoji, userId: r.userId } }).catch(() => {});
+      }
+      for (const c of p.comments) {
+        await prisma.gameClubComment.create({ data: { postId: clubPost.id, userId: c.userId, body: c.body } }).catch(() => {});
+      }
+    }
+    return club;
+  }
+
+  // 1. Souls & Soulslike — vinh creates
+  await createClub(
+    vinh.id, "Souls & Soulslike", "The hardest games deserve the toughest community. Discuss FromSoftware and all soulslike games.", "Action / Soulslike",
+    [vinh.id, souls.id, kazuki.id, speedster.id, nhan.id],
+    [
+      {
+        userId: vinh.id,
+        body: rich(`<p><strong>Welcome to Souls &amp; Soulslike!</strong></p><p>This is the place to discuss everything FromSoftware — boss strategies, lore theories, build recommendations. Whether you're struggling with Margit or going for Malenia platinum, you're among friends.</p><ul><li>Share your best builds 🗡️</li><li>Ask for boss tips</li><li>Post your achievements</li></ul>`),
+        likeIds: [souls.id, kazuki.id, speedster.id, nhan.id],
+        reactions: [{ emoji: "🔥", userId: souls.id }, { emoji: "🎮", userId: kazuki.id }, { emoji: "👏", userId: speedster.id }],
+        comments: [
+          { userId: souls.id, body: "Finally a club for us! Ready to discuss Malenia strategies 24/7." },
+          { userId: kazuki.id, body: "Love it. First topic: most satisfying boss kill ever?" },
+        ],
+      },
+      {
+        userId: souls.id,
+        body: rich(`<p>🏆 <strong>Challenge thread: Malenia no-hit run</strong></p><p>After 147 attempts, I finally got her no-hit. Here's what worked for me:</p><ol><li>Bloodhound's Step dodge timing</li><li>Rivers of Blood bleed proc resets her health regen</li><li>Stay <em>aggressive</em> — she heals on every hit she lands</li></ol><p>Anyone else grinding this? Drop your attempt count below 👇</p>`),
+        likeIds: [vinh.id, kazuki.id, speedster.id],
+        reactions: [{ emoji: "🔥", userId: vinh.id }, { emoji: "👏", userId: kazuki.id }, { emoji: "😮", userId: speedster.id }],
+        comments: [
+          { userId: vinh.id, body: "147 attempts is nothing. Mine was 230. Respect." },
+          { userId: speedster.id, body: "I can do it with just jumping attacks if you want a real challenge lol" },
+        ],
+      },
+      {
+        userId: kazuki.id,
+        body: rich(`<p>Hot take: <strong>Sekiro is the best FromSoftware game</strong>, not Elden Ring.</p><p>The parry system creates the most satisfying combat loop in gaming. Every boss fight is a rhythm game. Elden Ring is great but it lets you overlevel and cheese everything — Sekiro forces you to actually git gud.</p><p>Discuss. 🔥</p>`),
+        likeIds: [vinh.id, souls.id],
+        reactions: [{ emoji: "🔥", userId: souls.id }, { emoji: "👍", userId: vinh.id }],
+        comments: [
+          { userId: vinh.id, body: "Hard disagree but I respect it. Elden Ring world design is unmatched." },
+          { userId: souls.id, body: "Sekiro combat > everything. But Elden Ring has Malenia so..." },
+          { userId: nhan.id, body: "As an outsider: Hollow Knight is better than both 😂" },
+        ],
+      },
+    ]
+  );
+
+  // 2. JRPG Paradise — sakura creates
+  await createClub(
+    sakura.id, "JRPG Paradise", "For lovers of turn-based combat, wild storylines, and 100+ hour completionist runs.", "JRPG",
+    [sakura.id, kazuki.id, rpgMaster.id, strats.id, loot.id],
+    [
+      {
+        userId: sakura.id,
+        body: rich(`<p>👋 <strong>Welcome to JRPG Paradise!</strong></p><p>Whether you're a Persona purist, a Final Fantasy veteran, or just starting out — you belong here. Let's talk about the genre that defined gaming storytelling.</p><p><strong>Current club focus:</strong> Persona 5 Royal — we're doing a group playthrough. Join in!</p>`),
+        likeIds: [kazuki.id, rpgMaster.id, strats.id],
+        reactions: [{ emoji: "❤️", userId: kazuki.id }, { emoji: "👍", userId: rpgMaster.id }, { emoji: "🎮", userId: strats.id }],
+        comments: [
+          { userId: rpgMaster.id, body: "Already on my 4th P5R playthrough. Happy to guide newcomers!" },
+          { userId: kazuki.id, body: "The soundtrack alone is worth the price of admission." },
+        ],
+      },
+      {
+        userId: rpgMaster.id,
+        body: rich(`<p>📖 <strong>JRPG Starter Guide — Where to Begin?</strong></p><p>People always ask me where to start with JRPGs. Here's my answer based on playstyle:</p><ul><li><strong>Want accessibility?</strong> → Persona 5 Royal. Best UI in gaming.</li><li><strong>Want epic scope?</strong> → Baldur's Gate 3 (honorary CRPG/JRPG)</li><li><strong>Want pure vibes?</strong> → Stardew Valley (yes it counts)</li><li><strong>Want challenge?</strong> → Divinity: Original Sin 2</li></ul><p>What would you add?</p>`),
+        likeIds: [sakura.id, strats.id, loot.id],
+        reactions: [{ emoji: "👍", userId: sakura.id }, { emoji: "❤️", userId: strats.id }],
+        comments: [
+          { userId: sakura.id, body: "Perfect list. I'd add Witcher 3 for storytelling masterclass." },
+          { userId: strats.id, body: "BG3 is absolutely CRPG royalty. Larian outdid themselves." },
+        ],
+      },
+    ]
+  );
+
+  // 3. Indie Gems — nhan creates
+  await createClub(
+    nhan.id, "Indie Gems", "AAA budgets can't buy heart. Celebrating the best indie games and the developers who make them.", "Indie",
+    [nhan.id, indieQueen.id, speedster.id, sakura.id, loot.id],
+    [
+      {
+        userId: nhan.id,
+        body: rich(`<p>🌟 <strong>Welcome to Indie Gems!</strong></p><p>This club exists because some of the best games ever made were created by a single person or tiny team. No bloat, no FOMO, just pure creative vision.</p><p>Monthly spotlight: <strong>Hollow Knight</strong> — Team Cherry's masterpiece that still gets updates in 2024.</p>`),
+        likeIds: [indieQueen.id, speedster.id, sakura.id],
+        reactions: [{ emoji: "❤️", userId: indieQueen.id }, { emoji: "🎮", userId: speedster.id }, { emoji: "👏", userId: sakura.id }],
+        comments: [
+          { userId: indieQueen.id, body: "FINALLY a club that gets it. Support small devs always!" },
+          { userId: speedster.id, body: "Hollow Knight speedrun community is one of the best in gaming." },
+        ],
+      },
+      {
+        userId: indieQueen.id,
+        body: rich(`<p>💔 <strong>Underrated indie games that deserved more attention</strong></p><p>Some of my personal heartbreaks — games I loved that almost no one played:</p><ol><li><strong>Disco Elysium</strong> — most ambitious RPG ever, criminally underplayed</li><li><strong>Return of the Obra Dinn</strong> — puzzle perfection</li><li><strong>Celeste</strong> — platforming poetry</li><li><strong>Night in the Woods</strong> — best writing about modern anxiety</li></ol><p>What's yours?</p>`),
+        likeIds: [nhan.id, speedster.id, sakura.id, loot.id],
+        reactions: [{ emoji: "😢", userId: nhan.id }, { emoji: "❤️", userId: speedster.id }],
+        comments: [
+          { userId: nhan.id, body: "Disco Elysium is legitimately a 10/10 piece of literature." },
+          { userId: speedster.id, body: "Celeste is incredible and the speedrun scene is amazing too." },
+          { userId: loot.id, body: "Adding: Outer Wilds. Nothing else like it in gaming." },
+        ],
+      },
+    ]
+  );
+
+  // 4. Open World Explorers — loot creates
+  await createClub(
+    loot.id, "Open World Explorers", "The world is a sandbox. Tips, screenshots, and discoveries from the best open world games.", "Open World",
+    [loot.id, vinh.id, kazuki.id, strats.id, rpgMaster.id],
+    [
+      {
+        userId: loot.id,
+        body: rich(`<p>🌍 <strong>What makes a great open world?</strong></p><p>After 1000+ hours across RDR2, Witcher 3, BotW, and Ghost of Tsushima, here's my opinion on what separates great open worlds from mediocre ones:</p><ul><li><strong>Density over size</strong> — every corner should have a story</li><li><strong>Environmental storytelling</strong> — the world itself should explain its history</li><li><strong>Meaningful traversal</strong> — the act of moving should be fun (horseback in RDR2, gliding in BotW)</li></ul><p>What's your favorite open world and why?</p>`),
+        likeIds: [vinh.id, kazuki.id, strats.id, rpgMaster.id],
+        reactions: [{ emoji: "👍", userId: vinh.id }, { emoji: "🔥", userId: kazuki.id }, { emoji: "👏", userId: strats.id }],
+        comments: [
+          { userId: kazuki.id, body: "Ghost of Tsushima is my personal peak. Every hill is a painting." },
+          { userId: strats.id, body: "Witcher 3 still the GOAT for density. Every side quest has a moral." },
+          { userId: vinh.id, body: "Elden Ring changed what I think about open world structure. Zero handholding." },
+        ],
+      },
+    ]
+  );
+
+  // 5. Speedrunners United — speedster creates
+  await createClub(
+    speedster.id, "Speedrunners United", "Every frame counts. Share PBs, routing discussions, tech discoveries.", "Speedrunning",
+    [speedster.id, nhan.id, souls.id, indieQueen.id],
+    [
+      {
+        userId: speedster.id,
+        body: rich(`<p>⏱️ <strong>Welcome to Speedrunners United!</strong></p><p>Whether you're chasing world records or just trying to beat your friend — you're a speedrunner. This club is for:</p><ul><li>Sharing PBs 🏆</li><li>Discussing movement tech</li><li>Finding running partners</li><li>Routing new games</li></ul><p>Current PB showcase: <strong>Portal 2 any% — 17:43</strong>. Anyone beating that?</p>`),
+        likeIds: [nhan.id, souls.id, indieQueen.id],
+        reactions: [{ emoji: "🔥", userId: nhan.id }, { emoji: "😮", userId: souls.id }, { emoji: "👏", userId: indieQueen.id }],
+        comments: [
+          { userId: nhan.id, body: "17:43 is insane. My Portal 2 any% PB is 21:12 and I thought that was decent 😅" },
+          { userId: souls.id, body: "Elden Ring any% is my current obsession. Glitchless or bust." },
+        ],
+      },
+      {
+        userId: nhan.id,
+        body: rich(`<p>🦋 <strong>Hollow Knight NMG any% routing breakdown</strong></p><p>For anyone getting into HK speedrunning, here are the key tech pieces:</p><ol><li><strong>Nail pogo</strong> — fundamental movement, learn this first</li><li><strong>Shade skips</strong> — skip entire areas with precise positioning</li><li><strong>Boss order</strong> — Hornet 1 → False Knight skip → ...</li></ol><p>The current WR route saves ~23 minutes over casual playthrough. Insane.</p>`),
+        likeIds: [speedster.id, indieQueen.id],
+        reactions: [{ emoji: "🎮", userId: speedster.id }, { emoji: "😮", userId: indieQueen.id }],
+        comments: [
+          { userId: speedster.id, body: "Solid breakdown. Shade skips took me weeks to get consistent." },
+        ],
+      },
+    ]
+  );
+
+  console.log("✅ Game clubs created\n");
+
+  // ── Game Playthroughs ──────────────────────────────────────────────
+  console.log("🔄 Creating playthroughs...");
+
+  // Helper to find entry id
+  async function entryId(userId: string, gameId: string | undefined) {
+    if (!gameId) return null;
+    const e = await prisma.gameEntry.findUnique({ where: { userId_gameId: { userId, gameId } } });
+    return e?.id ?? null;
+  }
+
+  const [
+    vinhEldenId, vinhBloodId, vinhDs3Id,
+    soulsEldenId, soulsSekiroId, soulsBloodId, soulsDs3Id,
+    speedPortalId, speedHkId, speedHadesId,
+    nahnHkId, nahnHadesId,
+  ] = await Promise.all([
+    entryId(vinh.id,     eldenRing?.id ?? ""),
+    entryId(vinh.id,     bloodborne?.id ?? ""),
+    entryId(vinh.id,     ds3?.id ?? ""),
+    entryId(souls.id,    eldenRing?.id ?? ""),
+    entryId(souls.id,    sekiro?.id ?? ""),
+    entryId(souls.id,    bloodborne?.id ?? ""),
+    entryId(souls.id,    ds3?.id ?? ""),
+    entryId(speedster.id, portal2?.id ?? ""),
+    entryId(speedster.id, hollowKnight?.id ?? ""),
+    entryId(speedster.id, hades?.id ?? ""),
+    entryId(nhan.id,     hollowKnight?.id ?? ""),
+    entryId(nhan.id,     hades?.id ?? ""),
+  ]);
+
+  const playthroughs: { entryId: string; userId: string; playtime?: number; platform?: string; completedAt?: Date; note?: string }[] = [];
+
+  if (vinhEldenId) {
+    playthroughs.push(
+      { entryId: vinhEldenId, userId: vinh.id, playtime: 120, platform: "PC",  completedAt: new Date("2023-04-01"), note: "First playthrough — Malenia took 67 tries" },
+      { entryId: vinhEldenId, userId: vinh.id, playtime: 85,  platform: "PC",  completedAt: new Date("2023-09-15"), note: "NG+ — Faith/Strength build, much easier" },
+    );
+  }
+  if (vinhBloodId) playthroughs.push({ entryId: vinhBloodId, userId: vinh.id, playtime: 70, platform: "PS5", completedAt: new Date("2023-06-10"), note: "PS5 remaster, incredible" });
+  if (vinhDs3Id)   playthroughs.push({ entryId: vinhDs3Id,   userId: vinh.id, playtime: 95, platform: "PC",  completedAt: new Date("2023-02-20"), note: "All bosses, no summons" });
+
+  if (soulsEldenId) {
+    playthroughs.push(
+      { entryId: soulsEldenId, userId: souls.id, playtime: 200, platform: "PC",  completedAt: new Date("2022-04-15"), note: "Platinum run — Malenia 47 tries" },
+      { entryId: soulsEldenId, userId: souls.id, playtime: 90,  platform: "PC",  completedAt: new Date("2022-09-01"), note: "NG++ — pure quality build" },
+      { entryId: soulsEldenId, userId: souls.id, playtime: 60,  platform: "PC",  completedAt: new Date("2023-05-20"), note: "DLC patch run — Shadow of the Erdtree prep" },
+    );
+  }
+  if (soulsSekiroId) {
+    playthroughs.push(
+      { entryId: soulsSekiroId, userId: souls.id, playtime: 160, platform: "PC", completedAt: new Date("2021-07-01"), note: "All endings — Shura last" },
+      { entryId: soulsSekiroId, userId: souls.id, playtime: 40,  platform: "PC", completedAt: new Date("2022-01-10"), note: "Demon Bell + Kuro's Charm — REAL difficulty" },
+    );
+  }
+  if (soulsBloodId) {
+    playthroughs.push(
+      { entryId: soulsBloodId, userId: souls.id, playtime: 100, platform: "PS5", completedAt: new Date("2020-11-20"), note: "Platinum — Orphan took 89 tries" },
+      { entryId: soulsBloodId, userId: souls.id, playtime: 50,  platform: "PS5", completedAt: new Date("2021-04-05"), note: "Arcane build run, very different experience" },
+    );
+  }
+  if (soulsDs3Id) {
+    playthroughs.push(
+      { entryId: soulsDs3Id, userId: souls.id, playtime: 130, platform: "PC", completedAt: new Date("2019-06-01"), note: "All bosses first playthrough" },
+      { entryId: soulsDs3Id, userId: souls.id, playtime: 80,  platform: "PC", completedAt: new Date("2020-03-10"), note: "NG+7 — Pyromancy only challenge" },
+    );
+  }
+
+  if (speedPortalId) {
+    playthroughs.push(
+      { entryId: speedPortalId, userId: speedster.id, playtime: 20, platform: "PC", completedAt: new Date("2022-05-01"), note: "Casual first run" },
+      { entryId: speedPortalId, userId: speedster.id, playtime: 1,  platform: "PC", completedAt: new Date("2022-06-15"), note: "Any% — 18:42, learning the route" },
+      { entryId: speedPortalId, userId: speedster.id, playtime: 1,  platform: "PC", completedAt: new Date("2023-01-20"), note: "Any% PB — 17:43, still chasing sub-17" },
+    );
+  }
+  if (speedHkId) {
+    playthroughs.push(
+      { entryId: speedHkId, userId: speedster.id, playtime: 60, platform: "PC", completedAt: new Date("2021-08-01"), note: "Casual 112% completion" },
+      { entryId: speedHkId, userId: speedster.id, playtime: 1,  platform: "PC", completedAt: new Date("2022-03-15"), note: "NMG any% PB — 1:12:34" },
+    );
+  }
+  if (speedHadesId) {
+    playthroughs.push(
+      { entryId: speedHadesId, userId: speedster.id, playtime: 150, platform: "PC", completedAt: new Date("2021-10-01"), note: "Heat 32 cleared — BiS build" },
+      { entryId: speedHadesId, userId: speedster.id, playtime: 1,   platform: "PC", completedAt: new Date("2022-05-10"), note: "Speedrun any% — optimizing Ares + Aphrodite build" },
+    );
+  }
+
+  if (nahnHkId) {
+    playthroughs.push(
+      { entryId: nahnHkId, userId: nhan.id, playtime: 85, platform: "PC",      completedAt: new Date("2021-04-01"), note: "112% completion + all DLCs" },
+      { entryId: nahnHkId, userId: nhan.id, playtime: 30, platform: "Switch",  completedAt: new Date("2022-07-20"), note: "Replay on Switch — just as good" },
+    );
+  }
+  if (nahnHadesId) {
+    playthroughs.push(
+      { entryId: nahnHadesId, userId: nhan.id, playtime: 100, platform: "PC", completedAt: new Date("2021-11-01"), note: "Finished story, all endings" },
+      { entryId: nahnHadesId, userId: nhan.id, playtime: 40,  platform: "Switch", completedAt: new Date("2022-08-15"), note: "Replay on Switch for portability" },
+    );
+  }
+
+  await Promise.all(
+    playthroughs.map((p) =>
+      prisma.gamePlaythrough.create({
+        data: { userId: p.userId, entryId: p.entryId, playtime: p.playtime, platform: p.platform, completedAt: p.completedAt, note: p.note },
+      }).catch(() => {})
+    )
+  );
+
+  console.log("✅ Playthroughs created\n");
+
   // ── Summary ────────────────────────────────────────────────────────
-  const [userCount, gameCount, entryCount, activityCount, followCount, likeCount, commentCount, reviewLikeCount, tagCount, challengeCount, listCount] =
+  const [userCount, gameCount, entryCount, activityCount, followCount, likeCount, commentCount, reviewLikeCount, tagCount, clubCount, playthroughCount, challengeCount, listCount] =
     await Promise.all([
       prisma.user.count(),
       prisma.game.count(),
@@ -880,6 +1188,8 @@ async function main() {
       prisma.comment.count(),
       prisma.reviewLike.count(),
       prisma.gameTag.count(),
+      prisma.gameClub.count(),
+      prisma.gamePlaythrough.count(),
       prisma.yearlyChallenge.count(),
       prisma.gameList.count(),
     ]);
@@ -896,6 +1206,8 @@ async function main() {
   console.log(`💬 Comments:          ${commentCount}`);
   console.log(`👍 Review helpful:    ${reviewLikeCount}`);
   console.log(`🏷️  Game tags:         ${tagCount}`);
+  console.log(`🎯 Game clubs:        ${clubCount}`);
+  console.log(`🔄 Playthroughs:      ${playthroughCount}`);
   console.log(`🏆 Yearly challenges: ${challengeCount}`);
   console.log(`📋 Game lists:        ${listCount}`);
   console.log("═══════════════════════════════════════════════════");

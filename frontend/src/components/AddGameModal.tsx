@@ -8,6 +8,7 @@ import { Search, X, Plus, Star, ChevronDown, Monitor } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Text, Flex, Grid } from "@radix-ui/themes";
 import { api } from "@/lib/api";
+import { upsertEntryService } from "@/services/entry.service";
 import { dispatchToast } from "@/lib/toast";
 import { GameStatus, GamePlatform } from "@/lib/types";
 import ReviewEditor from "./ReviewEditor";
@@ -85,7 +86,7 @@ export default function AddGameModal({ preselectedGame, initialValues, trigger }
 
   const mutation = useMutation({
     mutationFn: () =>
-      api.post("/api/entries", {
+      upsertEntryService({
         rawgId: selected!.rawgId,
         status,
         rating: rating === "" ? null : rating,
@@ -99,7 +100,7 @@ export default function AddGameModal({ preselectedGame, initialValues, trigger }
       qc.invalidateQueries({ queryKey: ["game", String(selected!.rawgId)] });
       qc.invalidateQueries({ queryKey: ["achievements-me"] });
       // Show toast for each newly earned achievement
-      const newAchievements: { name: string; icon: string }[] = res.data?.newAchievements ?? [];
+      const newAchievements: { name: string; icon: string }[] = (res as any)?.newAchievements ?? [];
       newAchievements.forEach((a) => dispatchToast(`${a.icon} Achievement unlocked: ${a.name}!`, "success"));
       setOpen(false);
       reset();

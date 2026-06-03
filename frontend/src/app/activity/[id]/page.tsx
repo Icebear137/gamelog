@@ -7,8 +7,8 @@ import { Slot } from "@radix-ui/react-slot";
 import * as Separator from "@radix-ui/react-separator";
 import { Text, Heading, Flex, Box } from "@radix-ui/themes";
 import { ArrowLeft, Send } from "lucide-react";
-import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { getActivityService, getActivityCommentsService, addActivityCommentService } from "@/services/activity.service";
 import { Activity, Comment } from "@/lib/types";
 import { dispatchToast } from "@/lib/toast";
 import { formatDistanceToNow } from "@/lib/utils";
@@ -26,21 +26,21 @@ export default function ActivityDetailPage({ params }: { params: Promise<{ id: s
 
   const { data: activity, isLoading } = useQuery<Activity>({
     queryKey: ["activity", id],
-    queryFn: () => api.get(`/api/activities/${id}`).then((r) => r.data),
+    queryFn: () => getActivityService(id),
     refetchInterval: 15_000,
     refetchIntervalInBackground: false,
   });
 
   const { data: comments = [] } = useQuery<Comment[]>({
     queryKey: ["comments", id],
-    queryFn: () => api.get(`/api/activities/${id}/comments`).then((r) => r.data),
+    queryFn: () => getActivityCommentsService(id),
     enabled: !!activity,
     refetchInterval: 10_000,
     refetchIntervalInBackground: false,
   });
 
   const commentMutation = useMutation({
-    mutationFn: () => api.post(`/api/activities/${id}/comments`, { body }),
+    mutationFn: () => addActivityCommentService(id, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["comments", id] });
       qc.invalidateQueries({ queryKey: ["activity", id] });

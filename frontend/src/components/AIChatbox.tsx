@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
+import { EnvConstant, ApiConstant } from "@/constant";
 import { usePathname } from "next/navigation";
 import { Sparkles, X, Send, Loader2, Trash2 } from "lucide-react";
 import { Text } from "@radix-ui/themes";
@@ -61,7 +62,7 @@ export default function AIChatbox() {
 
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ai/chat`, {
+      const res = await fetch(`${EnvConstant.API_URL}${ApiConstant.AI_CHAT}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

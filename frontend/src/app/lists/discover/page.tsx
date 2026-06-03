@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import { Slot } from "@radix-ui/react-slot";
 import { List, Gamepad2, Globe, Search, Heart, MessageCircle, Flame, Clock, Trophy } from "lucide-react";
 import { Text, Heading, Flex, Box } from "@radix-ui/themes";
-import { api } from "@/lib/api";
 import { GameListPreview } from "@/lib/types";
+import { getDiscoverListsService } from "@/services/list.service";
 import Avatar from "@/components/Avatar";
 
 type SortKey = "popular" | "newest" | "most_games";
@@ -29,7 +29,7 @@ export default function DiscoverListsPage() {
 
   const { data: lists = [], isLoading } = useQuery<GameListPreview[]>({
     queryKey: ["lists-discover"],
-    queryFn: () => api.get("/api/lists/discover").then((r) => r.data),
+    queryFn: () => getDiscoverListsService(),
     staleTime: 2 * 60 * 1000,
   });
 

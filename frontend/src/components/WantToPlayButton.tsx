@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Bookmark, BookmarkCheck } from "lucide-react";
 import { Flex } from "@radix-ui/themes";
-import { api } from "@/lib/api";
+import { getMyEntriesService, upsertEntryService } from "@/services/entry.service";
 import { useAuth } from "@/lib/auth-context";
 import { GameEntry } from "@/lib/types";
 import { dispatchToast } from "@/lib/toast";
@@ -22,14 +22,14 @@ export default function WantToPlayButton({ rawgId, gameName, onSuccess }: Props)
   // THIS game's entry changes, not when any other entry is added/removed.
   const { data: existing } = useQuery<GameEntry[], Error, GameEntry | undefined>({
     queryKey: ["my-entries"],
-    queryFn: () => api.get("/api/entries/me").then((r) => r.data),
+    queryFn: () => getMyEntriesService(),
     select: (data) => data.find((e) => e.game.rawgId === rawgId),
     enabled: !!user,
     staleTime: 5 * 60 * 1000,
   });
 
   const addMutation = useMutation({
-    mutationFn: () => api.post("/api/entries", { rawgId, status: "WANT_TO_PLAY" }),
+    mutationFn: () => upsertEntryService({ rawgId, status: "WANT_TO_PLAY" }),
     // Optimistic update: show BookmarkCheck immediately on click,
     // before the API responds. Reverts on error.
     onMutate: async () => {

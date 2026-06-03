@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, GitCompare, Star, Users, Percent } from "lucide-react";
 import { Slot } from "@radix-ui/react-slot";
 import { Heading, Text, Flex, Box } from "@radix-ui/themes";
-import { api } from "@/lib/api";
+import { getUserCompareService } from "@/services/user.service";
 import { useAuth } from "@/lib/auth-context";
 import Avatar from "@/components/Avatar";
 import StatusBadge from "@/components/StatusBadge";
@@ -36,7 +36,7 @@ export default function ComparePage({ params }: { params: Promise<{ username: st
 
   const { data, isLoading, error } = useQuery<CompareResult>({
     queryKey: ["compare", username],
-    queryFn: () => api.get(`/api/users/${username}/compare`).then((r) => r.data),
+    queryFn: () => getUserCompareService(username),
     enabled: !!me,
     retry: false,
   });

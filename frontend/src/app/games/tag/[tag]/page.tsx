@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Tag, ArrowLeft, Gamepad2, Star } from "lucide-react";
 import Link from "next/link";
 import { Heading, Text, Flex } from "@radix-ui/themes";
-import { api } from "@/lib/api";
+import { getGamesByTagService } from "@/services/game.service";
 
 interface TagGame {
   rawgId: number;
@@ -25,7 +25,7 @@ export default function TagPage({ params }: { params: Promise<{ tag: string }> }
 
   const { data: games = [], isLoading } = useQuery<TagGame[]>({
     queryKey: ["games-by-tag", decoded],
-    queryFn: () => api.get(`/api/games/by-tag/${encodeURIComponent(decoded)}`).then((r) => r.data),
+    queryFn: () => getGamesByTagService(decoded),
     staleTime: 2 * 60_000,
   });
 
