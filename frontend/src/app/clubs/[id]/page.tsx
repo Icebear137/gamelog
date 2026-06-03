@@ -4,10 +4,10 @@ import { use, useState, useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Users, Tag, Heart, MessageCircle, Send, Trash2, ArrowLeft,
+  Users, Tag, Heart, MessageCircle, Send, Trash2, ArrowLeft, X,
   UserPlus, UserMinus, TrendingUp, Clock, Smile, Pin, PinOff,
   Pencil, Check, Shield, UserX, UserCheck, MoreHorizontal,
-  Crown, ChevronDown, Image as ImageIcon,
+  Crown, ChevronDown, Image as ImageIcon, Gamepad2,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -43,11 +43,12 @@ interface ClubMember {
   id: string; role: string; isBanned: boolean; joinedAt: string;
   user: { id: string; username: string; avatar?: string; _count: { gameEntries: number } };
 }
+interface GameOption { id: string; rawgId: number; name: string; coverImage?: string | null }
 interface ClubDetail {
   id: string; name: string; description?: string; genre?: string; avatar?: string | null;
-  isMember: boolean; myRole: string | null; pinnedPostId?: string | null;
+  isMember: boolean; isBanned: boolean; myRole: string | null; pinnedPostId?: string | null;
   creator: { id: string; username: string; avatar?: string };
-  game?: { rawgId: number; name: string; coverImage?: string };
+  game?: { rawgId: number; name: string; coverImage?: string } | null;
   members: ClubMember[];
   pinnedPost?: ClubPost | null;
   _count: { members: number; posts: number };
@@ -458,6 +459,75 @@ function MembersSidebar({ club, currentUserId, onUpdate, onlineSet }: {
   );
 }
 
+// ── Inline game picker for club forms ────────────────────────────────────────
+function GamePickerInline({ selected, onSelect }: {
+  selected: GameOption | null;
+  onSelect: (g: GameOption | null) => void;
+}) {
+  const [q, setQ]       = useState(selected?.name ?? "");
+  const [open, setOpen] = useState(false);
+  const [dropRect, setDropRect] = useState<{ top: number; left: number; width: number } | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { setQ(selected?.name ?? ""); }, [selected?.name]);
+
+  const { data: results = [], isFetching } = useQuery<GameOption[]>({
+    queryKey: ["game-search-club-inline", q],
+    queryFn: () => api.get(`/api/games/search?q=${encodeURIComponent(q)}`).then((r) => r.data),
+    enabled: q.trim().length >= 2 && !selected,
+    staleTime: 60_000,
+  });
+
+  function openDrop() {
+    const rect = wrapRef.current?.getBoundingClientRect();
+    if (rect) setDropRect({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+    setOpen(true);
+  }
+
+  return (
+    <div ref={wrapRef}>
+      <label className="text-xs text-gray-500 mb-1 block">Linked game</label>
+      <div className="flex items-center gap-2">
+        {selected?.coverImage && (
+          <img src={selected.coverImage} alt={selected.name} className="w-7 h-9 object-cover rounded shrink-0" />
+        )}
+        <input
+          value={q}
+          onChange={(e) => { setQ(e.target.value); onSelect(null); openDrop(); }}
+          onFocus={() => { if (q.length >= 2 && !selected) openDrop(); }}
+          placeholder="Search and link a game…"
+          className="flex-1 bg-white/5 border border-white/10 focus:border-violet-500 rounded-xl px-3 py-1.5 text-sm text-white placeholder-gray-600 outline-none transition-colors"
+        />
+        {selected && (
+          <button onClick={() => { onSelect(null); setQ(""); setOpen(false); }} className="p-1 text-gray-500 hover:text-white transition-colors shrink-0">
+            <X size={13} />
+          </button>
+        )}
+      </div>
+      {open && !selected && q.length >= 2 && dropRect && typeof window !== "undefined" && createPortal(
+        <>
+          <div className="fixed inset-0 z-200" onClick={() => setOpen(false)} />
+          <div style={{ position: "fixed", top: dropRect.top, left: dropRect.left, width: dropRect.width, zIndex: 201 }}
+            className="bg-zinc-950 border border-white/10 rounded-xl overflow-hidden shadow-2xl max-h-44 overflow-y-auto">
+            {isFetching && <p className="px-3 py-2 text-xs text-gray-500">Searching…</p>}
+            {!isFetching && results.length === 0 && <p className="px-3 py-2 text-xs text-gray-500">No games found</p>}
+            {results.map((g) => (
+              <button key={g.rawgId} onClick={() => { onSelect(g); setQ(g.name); setOpen(false); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-white/8 transition-colors text-left">
+                {g.coverImage
+                  ? <img src={g.coverImage} alt={g.name} className="w-6 h-8 object-cover rounded shrink-0" />
+                  : <Gamepad2 size={14} className="text-gray-600 shrink-0" />}
+                <Text as="span" size="1" className="text-gray-200 truncate">{g.name}</Text>
+              </button>
+            ))}
+          </div>
+        </>,
+        document.body
+      )}
+    </div>
+  );
+}
+
 // ── Club header (avatar + info + edit) ───────────────────────────────────────
 function ClubHeader({ club, isAdmin, user, onJoin, joinPending, onUpdate }: {
   club: ClubDetail;
@@ -469,10 +539,13 @@ function ClubHeader({ club, isAdmin, user, onJoin, joinPending, onUpdate }: {
 }) {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [editing, setEditing]   = useState(false);
-  const [name, setName]         = useState(club.name);
-  const [desc, setDesc]         = useState(club.description ?? "");
-  const [genre, setGenre]       = useState(club.genre ?? "");
-  const [uploading, setUploading] = useState(false);
+  const [name, setName]             = useState(club.name);
+  const [desc, setDesc]             = useState(club.description ?? "");
+  const [genre, setGenre]           = useState(club.genre ?? "");
+  const [linkedGame, setLinkedGame] = useState<GameOption | null>(
+    club.game ? { id: "", rawgId: club.game.rawgId, name: club.game.name, coverImage: club.game.coverImage } : null
+  );
+  const [uploading, setUploading]   = useState(false);
 
   // Keep form in sync if club data refreshes
   useEffect(() => {
@@ -480,18 +553,34 @@ function ClubHeader({ club, isAdmin, user, onJoin, joinPending, onUpdate }: {
       setName(club.name);
       setDesc(club.description ?? "");
       setGenre(club.genre ?? "");
+      setLinkedGame(club.game
+        ? { id: "", rawgId: club.game.rawgId, name: club.game.name, coverImage: club.game.coverImage }
+        : null
+      );
     }
-  }, [club.name, club.description, club.genre, editing]);
+  }, [club.name, club.description, club.genre, club.game, editing]);
 
   const saveMutation = useMutation({
     mutationFn: () => api.patch(`/api/clubs/${club.id}`, {
       name: name.trim() || undefined,
       description: desc.trim() || undefined,
       genre: genre.trim() || undefined,
+      rawgId: linkedGame?.rawgId || undefined, gameId: linkedGame ? undefined : null,
     }),
     onSuccess: () => { setEditing(false); onUpdate(); dispatchToast("Club updated", "success"); },
     onError: (err: any) => dispatchToast(err?.response?.data?.error ?? "Failed", "error"),
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => api.delete(`/api/clubs/${club.id}`),
+    onSuccess: () => {
+      dispatchToast("Club deleted", "success");
+      window.location.href = "/clubs";
+    },
+    onError: (err: any) => dispatchToast(err?.response?.data?.error ?? "Failed to delete", "error"),
+  });
+
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -566,6 +655,7 @@ function ClubHeader({ club, isAdmin, user, onJoin, joinPending, onUpdate }: {
                 placeholder="Genre / Topic (e.g. RPG, Action…)"
                 className="w-full bg-white/5 border border-white/10 focus:border-violet-500 rounded-xl px-3 py-1.5 text-sm text-white placeholder-gray-600 outline-none transition-colors"
               />
+              <GamePickerInline selected={linkedGame} onSelect={setLinkedGame} />
               <Flex gap="2">
                 <button
                   onClick={() => saveMutation.mutate()}
@@ -600,17 +690,48 @@ function ClubHeader({ club, isAdmin, user, onJoin, joinPending, onUpdate }: {
         </div>
 
         {!editing && user && (
-          <button
-            onClick={onJoin}
-            disabled={joinPending}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors shrink-0 ${
-              club.isMember
-                ? "bg-white/8 text-gray-400 hover:text-red-400 border border-white/10"
-                : "bg-violet-600/20 text-violet-300 border border-violet-500/30 hover:bg-violet-600/30"
-            }`}
-          >
-            {club.isMember ? <><UserMinus size={14} /> Leave</> : <><UserPlus size={14} /> Join</>}
-          </button>
+          <div className="flex flex-col gap-2 shrink-0">
+            <button
+              onClick={onJoin}
+              disabled={joinPending}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                club.isMember
+                  ? "bg-white/8 text-gray-400 hover:text-red-400 border border-white/10"
+                  : "bg-violet-600/20 text-violet-300 border border-violet-500/30 hover:bg-violet-600/30"
+              }`}
+            >
+              {club.isMember ? <><UserMinus size={14} /> Leave</> : <><UserPlus size={14} /> Join</>}
+            </button>
+            {isAdmin && !confirmDelete && (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-red-400 border border-red-500/20 hover:bg-red-500/10 transition-colors"
+              >
+                <Trash2 size={14} /> Delete club
+              </button>
+            )}
+            {isAdmin && confirmDelete && (
+              <div className="flex flex-col gap-1.5 p-3 bg-red-500/10 border border-red-500/30 rounded-xl">
+                <p className="text-xs text-red-300 font-medium">Delete this club?</p>
+                <p className="text-[10px] text-gray-500">All posts and members will be removed.</p>
+                <div className="flex gap-2 mt-1">
+                  <button
+                    onClick={() => deleteMutation.mutate()}
+                    disabled={deleteMutation.isPending}
+                    className="flex-1 py-1.5 rounded-lg text-xs bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-medium transition-colors"
+                  >
+                    {deleteMutation.isPending ? "Deleting…" : "Delete"}
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(false)}
+                    className="flex-1 py-1.5 rounded-lg text-xs bg-white/8 text-gray-400 hover:text-white transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </Flex>
     </div>
@@ -718,6 +839,30 @@ export default function ClubDetailPage({ params }: { params: Promise<{ id: strin
 
   if (isLoading) return <div className="py-16 text-center text-gray-500 text-sm">Loading…</div>;
   if (!club) return <div className="py-16 text-center text-gray-500 text-sm">Club not found</div>;
+
+  // Show ban screen — user cannot see or interact with anything
+  if (club.isBanned) return (
+    <div className="max-w-md mx-auto mt-20 text-center space-y-4">
+      <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto">
+        <Shield size={28} className="text-red-400" />
+      </div>
+      <div>
+        <Heading size="5" className="text-red-400 mb-2">You've been banned</Heading>
+        <Text as="p" size="2" color="gray">
+          You have been banned from <strong className="text-white">{club.name}</strong> and cannot access its content.
+        </Text>
+        <Text as="p" size="2" color="gray" className="mt-1">
+          If you believe this is a mistake, contact a club admin.
+        </Text>
+      </div>
+      <button
+        onClick={() => router.push("/clubs")}
+        className="flex items-center gap-2 mx-auto px-4 py-2 rounded-xl bg-white/8 text-gray-400 hover:text-white text-sm transition-colors"
+      >
+        <ArrowLeft size={14} /> Back to Clubs
+      </button>
+    </div>
+  );
 
   const isAdmin = club.myRole === "admin";
 

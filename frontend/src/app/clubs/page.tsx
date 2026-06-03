@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { Users, Plus, Search, Tag, X } from "lucide-react";
+import { Users, Plus, Search, Tag, X, Gamepad2 } from "lucide-react";
 import Link from "next/link";
 import { Heading, Text, Flex, Box } from "@radix-ui/themes";
 import { api } from "@/lib/api";
@@ -22,16 +23,96 @@ interface Club {
   _count: { members: number; posts: number };
 }
 
+interface GameOption { id: string; rawgId: number; name: string; coverImage?: string | null }
+
+function GamePicker({ selected, onSelect }: {
+  selected: GameOption | null;
+  onSelect: (g: GameOption | null) => void;
+}) {
+  const [q, setQ]       = useState("");
+  const [open, setOpen] = useState(false);
+  const [dropRect, setDropRect] = useState<{ top: number; left: number; width: number } | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  const { data: results = [], isFetching } = useQuery<GameOption[]>({
+    queryKey: ["game-search-club", q],
+    queryFn: () => api.get(`/api/games/search?q=${encodeURIComponent(q)}`).then((r) => r.data),
+    enabled: q.trim().length >= 2,
+    staleTime: 60_000,
+  });
+
+  function openDrop() {
+    const rect = wrapRef.current?.getBoundingClientRect();
+    if (rect) setDropRect({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+    setOpen(true);
+  }
+
+  function pick(g: GameOption) {
+    onSelect(g);
+    setQ(g.name);
+    setOpen(false);
+  }
+
+  return (
+    <div ref={wrapRef}>
+      <label className="text-xs text-gray-500 mb-1 block">Linked game (optional)</label>
+      <div className="flex items-center gap-2">
+        {selected?.coverImage && (
+          <img src={selected.coverImage} alt={selected.name} className="w-7 h-9 object-cover rounded shrink-0" />
+        )}
+        <input
+          value={q}
+          onChange={(e) => { setQ(e.target.value); onSelect(null); openDrop(); }}
+          onFocus={() => { if (q.length >= 2 && !selected) openDrop(); }}
+          placeholder="Search game…"
+          className="flex-1 bg-white/5 border border-white/10 focus:border-violet-500 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 outline-none transition-colors"
+        />
+        {selected && (
+          <button onClick={() => { onSelect(null); setQ(""); setOpen(false); }} className="p-1.5 text-gray-500 hover:text-white transition-colors">
+            <X size={13} />
+          </button>
+        )}
+      </div>
+      {open && !selected && q.length >= 2 && dropRect && typeof window !== "undefined" && createPortal(
+        <>
+          <div className="fixed inset-0 z-200" onClick={() => setOpen(false)} />
+          <div style={{ position: "fixed", top: dropRect.top, left: dropRect.left, width: dropRect.width, zIndex: 201 }}
+            className="bg-zinc-950 border border-white/10 rounded-xl overflow-hidden shadow-2xl max-h-52 overflow-y-auto">
+            {isFetching && <p className="px-3 py-2 text-xs text-gray-500">Searching…</p>}
+            {!isFetching && results.length === 0 && <p className="px-3 py-2 text-xs text-gray-500">No games found</p>}
+            {results.map((g) => (
+              <button key={g.rawgId} onClick={() => pick(g)}
+                className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-white/8 transition-colors text-left">
+                {g.coverImage
+                  ? <img src={g.coverImage} alt={g.name} className="w-6 h-8 object-cover rounded shrink-0" />
+                  : <Gamepad2 size={14} className="text-gray-600 shrink-0" />}
+                <Text as="span" size="1" className="text-gray-200 truncate">{g.name}</Text>
+              </button>
+            ))}
+          </div>
+        </>,
+        document.body
+      )}
+    </div>
+  );
+}
+
 function CreateClubModal({ onClose }: { onClose: () => void }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const router = useRouter();
-  const [name, setName]   = useState("");
-  const [desc, setDesc]   = useState("");
-  const [genre, setGenre] = useState("");
+  const [name, setName]         = useState("");
+  const [desc, setDesc]         = useState("");
+  const [genre, setGenre]       = useState("");
+  const [linkedGame, setLinkedGame] = useState<GameOption | null>(null);
 
   const mutation = useMutation({
-    mutationFn: () => api.post("/api/clubs", { name: name.trim(), description: desc.trim() || undefined, genre: genre.trim() || undefined }),
+    mutationFn: () => api.post("/api/clubs", {
+      name: name.trim(),
+      description: desc.trim() || undefined,
+      genre: genre.trim() || undefined,
+      rawgId: linkedGame?.rawgId || undefined,
+    }),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["clubs"] });
       router.push(`/clubs/${res.data.id}`);
@@ -57,7 +138,7 @@ function CreateClubModal({ onClose }: { onClose: () => void }) {
           </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Description</label>
-            <textarea value={desc} onChange={(e) => setDesc(e.target.value)} maxLength={500} rows={3} placeholder="What is this club about?"
+            <textarea value={desc} onChange={(e) => setDesc(e.target.value)} maxLength={500} rows={2} placeholder="What is this club about?"
               className="w-full bg-white/5 border border-white/10 focus:border-violet-500 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 outline-none resize-none transition-colors" />
           </div>
           <div>
@@ -65,6 +146,7 @@ function CreateClubModal({ onClose }: { onClose: () => void }) {
             <input value={genre} onChange={(e) => setGenre(e.target.value)} maxLength={40} placeholder="e.g. RPG, Action, Horror..."
               className="w-full bg-white/5 border border-white/10 focus:border-violet-500 rounded-xl px-3 py-2 text-sm text-white outline-none transition-colors" />
           </div>
+          <GamePicker selected={linkedGame} onSelect={setLinkedGame} />
           <button
             onClick={() => mutation.mutate()}
             disabled={!name.trim() || mutation.isPending}

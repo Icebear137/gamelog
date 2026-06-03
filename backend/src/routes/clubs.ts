@@ -47,7 +47,8 @@ const POST_SELECT = {
 const ClubSchema = z.object({
   name:        z.string().min(2).max(80),
   description: z.string().max(500).optional(),
-  gameId:      z.string().optional(),
+  gameId:      z.string().nullable().optional(), // internal DB id or null to unlink
+  rawgId:      z.number().int().optional(),      // alternative: pass rawgId, backend resolves
   genre:       z.string().max(40).optional(),
 });
 
@@ -93,9 +94,17 @@ router.post("/", requireAuth, async (req: AuthRequest, res: Response) => {
   const parsed = ClubSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
 
+  const { rawgId: rawgIdParam, ...rest } = parsed.data;
+  const createData: Record<string, unknown> = { ...rest };
+
+  if (rawgIdParam !== undefined) {
+    const game = await prisma.game.findUnique({ where: { rawgId: rawgIdParam }, select: { id: true } });
+    if (game) createData.gameId = game.id;
+  }
+
   const club = await prisma.gameClub.create({
     data: {
-      ...parsed.data,
+      ...createData as any,
       createdBy: req.userId!,
       members: { create: { userId: req.userId!, role: "admin" } },
     },
@@ -115,6 +124,7 @@ router.get("/:id", optionalAuth, async (req: AuthRequest, res: Response) => {
     : null;
 
   const isMember = !!myMember && !myMember.isBanned;
+  const isBanned = !!myMember?.isBanned;
   const myRole   = myMember?.role ?? null;
 
   const members = await prisma.gameClubMember.findMany({
@@ -132,7 +142,7 @@ router.get("/:id", optionalAuth, async (req: AuthRequest, res: Response) => {
   // Frontend queries get_presence per member — no need to embed isOnline here
   const membersWithStatus = members;
 
-  res.json({ ...club, isMember, myRole, members: membersWithStatus, pinnedPost });
+  res.json({ ...club, isMember, isBanned, myRole, members: membersWithStatus, pinnedPost });
 });
 
 router.patch("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
@@ -143,7 +153,16 @@ router.patch("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
   const parsed = ClubSchema.partial().safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
 
-  const updated = await prisma.gameClub.update({ where: { id: clubId }, data: parsed.data, select: CLUB_SELECT });
+  const { rawgId: rawgIdParam, ...rest } = parsed.data;
+  const updateData: Record<string, unknown> = { ...rest };
+
+  // Resolve rawgId → internal gameId if provided
+  if (rawgIdParam !== undefined) {
+    const game = await prisma.game.findUnique({ where: { rawgId: rawgIdParam }, select: { id: true } });
+    updateData.gameId = game?.id ?? null;
+  }
+
+  const updated = await prisma.gameClub.update({ where: { id: clubId }, data: updateData as any, select: CLUB_SELECT });
   res.json(updated);
 });
 
@@ -185,9 +204,10 @@ router.post("/:id/avatar", requireAuth, (req: AuthRequest, res: Response) => {
 });
 
 router.delete("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
-  const club = await prisma.gameClub.findUnique({ where: { id: String(req.params.id) } });
-  if (!club || club.createdBy !== req.userId) { res.status(403).json({ error: "Forbidden" }); return; }
-  await prisma.gameClub.delete({ where: { id: club.id } });
+  const clubId = String(req.params.id);
+  const admin  = await requireAdmin(clubId, req.userId!);
+  if (!admin) { res.status(403).json({ error: "Only admins can delete this club" }); return; }
+  await prisma.gameClub.delete({ where: { id: clubId } });
   res.json({ deleted: true });
 });
 
@@ -295,6 +315,19 @@ router.delete("/:id/members/:userId/ban", requireAuth, async (req: AuthRequest, 
   res.json({ banned: false });
 });
 
+/** Returns null (and sends 403) if user is banned from the club */
+async function blockIfBanned(clubId: string, userId: string, res: Response): Promise<boolean> {
+  const m = await prisma.gameClubMember.findUnique({
+    where: { clubId_userId: { clubId, userId } },
+    select: { isBanned: true },
+  });
+  if (m?.isBanned) {
+    res.status(403).json({ error: "You are banned from this club" });
+    return true;
+  }
+  return false;
+}
+
 // ── Posts ────────────────────────────────────────────────────────────────────
 
 router.get("/:id/posts", optionalAuth, async (req: AuthRequest, res: Response) => {
@@ -397,7 +430,9 @@ router.post("/:id/pin/:postId", requireAuth, async (req: AuthRequest, res: Respo
 // ── Post Likes ───────────────────────────────────────────────────────────────
 
 router.post("/:id/posts/:postId/like", requireAuth, async (req: AuthRequest, res: Response) => {
-  const postId = String(req.params.postId);
+  const clubId  = String(req.params.id);
+  const postId  = String(req.params.postId);
+  if (await blockIfBanned(clubId, req.userId!, res)) return;
   await prisma.gameClubPostLike.upsert({
     where: { postId_userId: { postId, userId: req.userId! } },
     create: { postId, userId: req.userId! },
@@ -408,7 +443,9 @@ router.post("/:id/posts/:postId/like", requireAuth, async (req: AuthRequest, res
 });
 
 router.delete("/:id/posts/:postId/like", requireAuth, async (req: AuthRequest, res: Response) => {
+  const clubId = String(req.params.id);
   const postId = String(req.params.postId);
+  if (await blockIfBanned(clubId, req.userId!, res)) return;
   await prisma.gameClubPostLike.deleteMany({ where: { postId, userId: req.userId! } });
   const count = await prisma.gameClubPostLike.count({ where: { postId } });
   res.json({ liked: false, count });
@@ -419,7 +456,9 @@ router.delete("/:id/posts/:postId/like", requireAuth, async (req: AuthRequest, r
 const ALLOWED_EMOJIS = new Set(["👍", "❤️", "😂", "😮", "😢", "🔥", "🎮", "👏"]);
 
 router.post("/:id/posts/:postId/reactions", requireAuth, async (req: AuthRequest, res: Response) => {
+  const clubId = String(req.params.id);
   const postId = String(req.params.postId);
+  if (await blockIfBanned(clubId, req.userId!, res)) return;
   const { emoji } = req.body as { emoji?: string };
   if (!emoji || !ALLOWED_EMOJIS.has(emoji)) { res.status(400).json({ error: "Invalid emoji" }); return; }
 
@@ -455,6 +494,7 @@ router.get("/:id/posts/:postId/comments", async (_req, res: Response) => {
 });
 
 router.post("/:id/posts/:postId/comments", requireAuth, async (req: AuthRequest, res: Response) => {
+  if (await blockIfBanned(String(req.params.id), req.userId!, res)) return;
   const { body } = req.body as { body?: string };
   if (!body?.trim()) { res.status(400).json({ error: "Body required" }); return; }
 

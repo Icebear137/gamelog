@@ -78,6 +78,7 @@ router.get("/search", async (req: Request, res: Response) => {
       orderBy: [{ rawgRating: "desc" }, { name: "asc" }],
     });
     res.json(games.map((g) => ({
+      id: g.id,
       rawgId: g.rawgId,
       name: g.name,
       slug: g.slug,
