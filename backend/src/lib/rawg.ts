@@ -50,6 +50,24 @@ export async function getGameById(id: number): Promise<RawgGame | null> {
   }
 }
 
+export async function getGameScreenshots(rawgId: number): Promise<{ id: number; image: string }[]> {
+  try {
+    const res = await axios.get(`${RAWG_BASE}/games/${rawgId}/screenshots`, { params: { key, page_size: 20 } });
+    return res.data.results ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getGameMovies(rawgId: number): Promise<{ id: number; name: string; preview: string; data: { max?: string; "480"?: string } }[]> {
+  try {
+    const res = await axios.get(`${RAWG_BASE}/games/${rawgId}/movies`, { params: { key } });
+    return res.data.results ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export function extractYear(released: string | null): number | null {
   if (!released) return null;
   const y = parseInt(released.split("-")[0]);

@@ -19,6 +19,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import MarkdownReview from "@/components/MarkdownReview";
 import { GameTagsSection } from "./_components/GameTagsSection";
 import { PlaythroughsSection } from "./_components/PlaythroughsSection";
+import { GameMediaGallery } from "./_components/GameMediaGallery";
 
 interface GameDetail {
   id: string;
@@ -105,12 +106,8 @@ export default function GamePage({ params }: { params: Promise<{ rawgId: string 
     <div className="max-w-2xl mx-auto space-y-6">
       {/* ── Header card ── */}
       <div className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-2xl overflow-hidden">
-        {game.coverImage && (
-          <div className="relative h-52 overflow-hidden">
-            <img src={game.coverImage} alt={game.name} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-linear-to-t from-gray-900 via-gray-900/40 to-transparent" />
-          </div>
-        )}
+        {/* Gallery replaces the static banner */}
+        <GameMediaGallery rawgId={rawgId} coverFallback={game.coverImage} />
         <div className="p-6">
           <Flex align="start" justify="between" gap="4">
             <div>

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import prisma from "../lib/prisma";
-import { searchGames, getGameById, getGamesList, extractYear } from "../lib/rawg";
+import { searchGames, getGameById, getGamesList, extractYear, getGameScreenshots, getGameMovies } from "../lib/rawg";
 import { requireAuth, optionalAuth, AuthRequest } from "../middleware/auth";
 import { ACTIVITY_SELECT } from "../lib/selects";
 
@@ -518,6 +518,27 @@ router.post("/tags/:tagId/vote", requireAuth, async (req: AuthRequest, res: Resp
 
   const votes = await prisma.gameTagVote.count({ where: { tagId } });
   res.json({ voted: !existing, votes });
+});
+
+// ── Media (screenshots + trailers) ────────────────────────────────────────
+
+router.get("/:rawgId/screenshots", async (req: Request, res: Response) => {
+  const rawgId = parseInt(String(req.params.rawgId));
+  if (isNaN(rawgId)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const screenshots = await getGameScreenshots(rawgId);
+  res.json(screenshots.map((s) => ({ id: s.id, url: s.image })));
+});
+
+router.get("/:rawgId/movies", async (req: Request, res: Response) => {
+  const rawgId = parseInt(String(req.params.rawgId));
+  if (isNaN(rawgId)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const movies = await getGameMovies(rawgId);
+  res.json(movies.map((m) => ({
+    id:      m.id,
+    name:    m.name,
+    preview: m.preview,
+    url:     m.data?.max ?? m.data?.["480"] ?? null,
+  })));
 });
 
 export default router;
