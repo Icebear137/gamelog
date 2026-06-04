@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Play, X, Maximize2 } from "lucide-react";
 import { api } from "@/lib/api";
@@ -181,32 +182,73 @@ export function GameMediaGallery({ rawgId, coverFallback }: Props) {
         </div>
       )}
 
-      {/* ── Lightbox ── */}
-      {lightbox && current?.type === "image" && (
+      {/* ── Lightbox — portal to body to escape backdrop-filter stacking context ── */}
+      {lightbox && current?.type === "image" && typeof window !== "undefined" && createPortal(
         <div
-          className="fixed inset-0 z-50 bg-black/92 flex items-center justify-center p-4 backdrop-blur-sm"
+          style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#000" }}
+          className="flex items-center justify-center"
           onClick={() => setLightbox(false)}
         >
-          <button className="absolute top-4 right-4 p-2 text-white/60 hover:text-white transition-colors">
-            <X size={22} />
+          {/* Close */}
+          <button
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+            onClick={() => setLightbox(false)}
+          >
+            <X size={20} />
           </button>
-          <button onClick={(e) => { e.stopPropagation(); go(-1); }}
-            className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
-            <ChevronLeft size={20} />
-          </button>
+
+          {/* Prev */}
+          {items.length > 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); go(-1); }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+            >
+              <ChevronLeft size={24} />
+            </button>
+          )}
+
+          {/* Image — fills screen, click outside to close */}
           <img
             src={current.url}
             alt=""
-            className="max-w-full max-h-[88vh] object-contain rounded-lg shadow-2xl"
+            style={{ maxWidth: "100vw", maxHeight: "100vh", objectFit: "contain" }}
             onClick={(e) => e.stopPropagation()}
           />
-          <button onClick={(e) => { e.stopPropagation(); go(1); }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
-            <ChevronRight size={20} />
-          </button>
-          <div className="absolute bottom-4 text-white/50 text-sm">{active + 1} / {items.length}</div>
-        </div>
+
+          {/* Next */}
+          {items.length > 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); go(1); }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+            >
+              <ChevronRight size={24} />
+            </button>
+          )}
+
+          {/* Counter + thumbnail strip at bottom */}
+          <div className="absolute bottom-4 left-0 right-0 flex flex-col items-center gap-2">
+            <div className="flex gap-1.5 overflow-x-auto max-w-2xl px-4 scrollbar-none">
+              {items.filter((it) => it.type === "image").map((item, _i) => {
+                const globalIdx = items.indexOf(item);
+                return (
+                  <button
+                    key={item.id}
+                    onClick={(e) => { e.stopPropagation(); setActive(globalIdx); }}
+                    className={`shrink-0 w-14 h-9 rounded overflow-hidden border-2 transition-all ${
+                      globalIdx === active ? "border-white opacity-100" : "border-transparent opacity-40 hover:opacity-70"
+                    }`}
+                  >
+                    <img src={item.thumb} alt="" className="w-full h-full object-cover" />
+                  </button>
+                );
+              })}
+            </div>
+            <span className="text-white/50 text-xs">{active + 1} / {items.length} · Esc to close</span>
+          </div>
+        </div>,
+        document.body
       )}
+
     </>
   );
 }
