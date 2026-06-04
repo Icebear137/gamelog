@@ -126,8 +126,10 @@ export function ClubRichEditor({ content, onChange, placeholder = "Write somethi
         headers: { "Content-Type": "multipart/form-data" },
       });
       editor.chain().focus().setImage({ src: res.data.url, alt: file.name }).run();
-    } catch {
-      // silently ignore upload failure — user can retry
+    } catch (err: any) {
+      const msg = err?.response?.data?.error ?? "Image upload failed — please try again";
+      // Import dispatchToast lazily to avoid circular deps; toast is already loaded via lib/toast
+      import("@/lib/toast").then(({ dispatchToast }) => dispatchToast(msg, "error"));
     } finally {
       setUploading(false);
     }

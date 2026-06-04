@@ -64,6 +64,7 @@ export default function GamePage({ params }: { params: Promise<{ rawgId: string 
     queryKey: ["my-entries"],
     queryFn: () => api.get("/api/entries/me").then((r) => r.data),
     enabled: !!user,
+    staleTime: 5 * 60_000, // cache 5 min — this is shared across all game pages
   });
 
   interface FriendEntry {

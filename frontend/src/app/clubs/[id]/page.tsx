@@ -307,6 +307,99 @@ function PostCard({ post, clubId, currentUserId, isAdmin, isPinned, onPin, onUpd
   );
 }
 
+// ── MemberRow — module-level to prevent remount on every MembersSidebar render ──
+interface MemberRowProps {
+  m: ClubMember;
+  isOnline: boolean;
+  isAdmin: boolean;
+  isCreator: boolean;
+  currentUserId?: string;
+  creatorId: string;
+  onKick: (userId: string) => void;
+  onBan: (userId: string, banned: boolean) => void;
+  onRole: (userId: string, role: string) => void;
+}
+
+function MemberRow({ m, isOnline, isAdmin, isCreator, currentUserId, creatorId, onKick, onBan, onRole }: MemberRowProps) {
+  const isMe = m.user.id === currentUserId;
+  const isClubCreator = m.user.id === creatorId;
+  const canManage = isCreator && !isMe && !isClubCreator;
+  const canAdminManage = isAdmin && !isMe && !isClubCreator && !isCreator;
+
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
+
+  function toggleMenu(e: React.MouseEvent<HTMLButtonElement>) {
+    if (menuPos) { setMenuPos(null); return; }
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+  }
+
+  return (
+    <div className="flex items-center gap-2 py-1.5 group">
+      <div className="relative shrink-0">
+        <Avatar src={m.user.avatar} username={m.user.username} size="sm" />
+        <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-zinc-950 ${isOnline ? "bg-green-400" : "bg-gray-600"}`} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <Text as="span" size="1" className="font-medium text-gray-200 truncate">{m.user.username}</Text>
+          {isClubCreator && <Crown size={10} className="text-yellow-400 shrink-0" />}
+          {m.role === "admin" && !isClubCreator && <Shield size={10} className="text-violet-400 shrink-0" />}
+        </div>
+        <Text as="p" size="1" color="gray" className="opacity-60">{m.user._count.gameEntries} games</Text>
+      </div>
+
+      {(canManage || canAdminManage) && !m.isBanned && (
+        <>
+          <button
+            onClick={toggleMenu}
+            className="opacity-0 group-hover:opacity-100 p-1 text-gray-600 hover:text-white transition-all rounded-lg hover:bg-white/8 shrink-0"
+          >
+            <MoreHorizontal size={13} />
+          </button>
+          {menuPos && typeof window !== "undefined" && createPortal(
+            <>
+              <div className="fixed inset-0 z-[200]" onClick={() => setMenuPos(null)} />
+              <div
+                style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 201 }}
+                className="bg-zinc-950 border border-white/10 rounded-xl overflow-hidden shadow-2xl min-w-36"
+              >
+                {canManage && (
+                  <button
+                    onClick={() => { onRole(m.user.id, m.role === "admin" ? "member" : "admin"); setMenuPos(null); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/8 transition-colors"
+                  >
+                    {m.role === "admin" ? <><UserCheck size={12} /> Remove admin</> : <><Shield size={12} /> Make admin</>}
+                  </button>
+                )}
+                <button
+                  onClick={() => { onKick(m.user.id); setMenuPos(null); }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-orange-400 hover:bg-orange-500/10 transition-colors"
+                >
+                  <UserX size={12} /> Kick
+                </button>
+                <button
+                  onClick={() => { onBan(m.user.id, false); setMenuPos(null); }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                >
+                  <UserX size={12} /> Ban
+                </button>
+              </div>
+            </>,
+            document.body
+          )}
+        </>
+      )}
+      {m.isBanned && isAdmin && (
+        <button onClick={() => onBan(m.user.id, true)}
+          className="text-[10px] text-gray-500 hover:text-green-400 transition-colors px-1.5 py-0.5 rounded-md border border-white/10 hover:border-green-500/30">
+          Unban
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ── Members sidebar ───────────────────────────────────────────────────────────
 function MembersSidebar({ club, currentUserId, onUpdate, onlineSet }: {
   club: ClubDetail;
@@ -345,86 +438,12 @@ function MembersSidebar({ club, currentUserId, onUpdate, onlineSet }: {
   const offline = club.members.filter((m) => !isOnline(m) && !m.isBanned);
   const banned  = isAdmin ? club.members.filter((m) => m.isBanned) : [];
 
-  function MemberRow({ m }: { m: ClubMember }) {
-    const isMe = m.user.id === currentUserId;
-    const isClubCreator = m.user.id === club.creator.id;
-    const canManage = isCreator && !isMe && !isClubCreator;
-    const canAdminManage = isAdmin && !isMe && !isClubCreator && !isCreator;
-
-    const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
-
-    function toggleMenu(e: React.MouseEvent<HTMLButtonElement>) {
-      if (menuPos) { setMenuPos(null); return; }
-      const rect = e.currentTarget.getBoundingClientRect();
-      setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
-    }
-
-    return (
-      <div className="flex items-center gap-2 py-1.5 group">
-        <div className="relative shrink-0">
-          <Avatar src={m.user.avatar} username={m.user.username} size="sm" />
-          <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-zinc-950 ${isOnline(m) ? "bg-green-400" : "bg-gray-600"}`} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <Text as="span" size="1" className="font-medium text-gray-200 truncate">{m.user.username}</Text>
-            {isClubCreator && <Crown size={10} className="text-yellow-400 shrink-0" />}
-            {m.role === "admin" && !isClubCreator && <Shield size={10} className="text-violet-400 shrink-0" />}
-          </div>
-          <Text as="p" size="1" color="gray" className="opacity-60">{m.user._count.gameEntries} games</Text>
-        </div>
-
-        {/* Admin actions — portal renders outside backdrop-filter stacking context */}
-        {(canManage || canAdminManage) && !m.isBanned && (
-          <>
-            <button
-              onClick={toggleMenu}
-              className="opacity-0 group-hover:opacity-100 p-1 text-gray-600 hover:text-white transition-all rounded-lg hover:bg-white/8 shrink-0"
-            >
-              <MoreHorizontal size={13} />
-            </button>
-            {menuPos && typeof window !== "undefined" && createPortal(
-              <>
-                <div className="fixed inset-0 z-[200]" onClick={() => setMenuPos(null)} />
-                <div
-                  style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 201 }}
-                  className="bg-zinc-950 border border-white/10 rounded-xl overflow-hidden shadow-2xl min-w-36"
-                >
-                  {canManage && (
-                    <button
-                      onClick={() => { roleMutation.mutate({ userId: m.user.id, role: m.role === "admin" ? "member" : "admin" }); setMenuPos(null); }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/8 transition-colors"
-                    >
-                      {m.role === "admin" ? <><UserCheck size={12} /> Remove admin</> : <><Shield size={12} /> Make admin</>}
-                    </button>
-                  )}
-                  <button
-                    onClick={() => { kickMutation.mutate(m.user.id); setMenuPos(null); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-orange-400 hover:bg-orange-500/10 transition-colors"
-                  >
-                    <UserX size={12} /> Kick
-                  </button>
-                  <button
-                    onClick={() => { banMutation.mutate({ userId: m.user.id, banned: false }); setMenuPos(null); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
-                  >
-                    <UserX size={12} /> Ban
-                  </button>
-                </div>
-              </>,
-              document.body
-            )}
-          </>
-        )}
-        {m.isBanned && isAdmin && (
-          <button onClick={() => banMutation.mutate({ userId: m.user.id, banned: true })}
-            className="text-[10px] text-gray-500 hover:text-green-400 transition-colors px-1.5 py-0.5 rounded-md border border-white/10 hover:border-green-500/30">
-            Unban
-          </button>
-        )}
-      </div>
-    );
-  }
+  const rowProps = {
+    isAdmin, isCreator, currentUserId, creatorId: club.creator.id,
+    onKick: (userId: string) => kickMutation.mutate(userId),
+    onBan:  (userId: string, banned: boolean) => banMutation.mutate({ userId, banned }),
+    onRole: (userId: string, role: string) => roleMutation.mutate({ userId, role }),
+  };
 
   function Group({ title, members, count }: { title: string; members: ClubMember[]; count?: number }) {
     const [open, setOpen] = useState(true);
@@ -435,7 +454,9 @@ function MembersSidebar({ club, currentUserId, onUpdate, onlineSet }: {
           <span>{title} {count != null ? `— ${count}` : ""}</span>
           <ChevronDown size={11} className={`transition-transform ${open ? "" : "-rotate-90"}`} />
         </button>
-        {open && members.map((m) => <MemberRow key={m.user.id} m={m} />)}
+        {open && members.map((m) => (
+          <MemberRow key={m.user.id} m={m} isOnline={isOnline(m)} {...rowProps} />
+        ))}
       </div>
     );
   }
@@ -800,10 +821,13 @@ export default function ClubDetailPage({ params }: { params: Promise<{ id: strin
     queryFn: () => api.get(`/api/clubs/${id}/posts?sort=${sort}`).then((r) => r.data),
     staleTime: 30_000,
     enabled: !!club,
-    onSuccess: (data: ClubPost[]) => setPosts(data),
-  } as any);
+  });
 
-  // sync posts when query refreshes
+  // Sync fetched posts into local state (replaces removed onSuccess in TanStack Query v5)
+  useEffect(() => {
+    if (fetchedPosts.length > 0) setPosts(fetchedPosts);
+  }, [fetchedPosts]);
+
   const allPosts = posts.length > 0 ? posts : fetchedPosts;
 
   const joinMutation = useMutation({

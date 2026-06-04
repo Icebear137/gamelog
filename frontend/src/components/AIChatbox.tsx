@@ -100,7 +100,8 @@ export default function AIChatbox() {
               });
             }
           } catch (e: any) {
-            if (e?.message !== "SyntaxError") throw e;
+            // Swallow only JSON parse errors (partial SSE chunks) — check .name, not .message
+            if (e?.name !== "SyntaxError") throw e;
           }
         }
       }

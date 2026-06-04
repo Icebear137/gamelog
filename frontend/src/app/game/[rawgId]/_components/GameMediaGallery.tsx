@@ -54,10 +54,21 @@ export function GameMediaGallery({ rawgId, coverFallback }: Props) {
 
   const current = items[active] ?? null;
 
-  const go = useCallback((dir: 1 | -1) => {
+  const go = useCallback((dir: 1 | -1, imageOnly = false) => {
     setPlaying(false);
-    setActive((prev) => (prev + dir + items.length) % items.length);
-  }, [items.length]);
+    setActive((prev) => {
+      let next = (prev + dir + items.length) % items.length;
+      // When inside the lightbox (imageOnly=true) skip video items
+      if (imageOnly) {
+        let attempts = 0;
+        while (items[next]?.type !== "image" && attempts < items.length) {
+          next = (next + dir + items.length) % items.length;
+          attempts++;
+        }
+      }
+      return next;
+    });
+  }, [items]);
 
   // Scroll active thumbnail into view
   useEffect(() => {
@@ -69,8 +80,8 @@ export function GameMediaGallery({ rawgId, coverFallback }: Props) {
   useEffect(() => {
     if (!lightbox) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowLeft")  go(-1);
-      if (e.key === "ArrowRight") go(1);
+      if (e.key === "ArrowLeft")  go(-1, true);
+      if (e.key === "ArrowRight") go(1, true);
       if (e.key === "Escape")     setLightbox(false);
     };
     document.addEventListener("keydown", onKey);
@@ -200,7 +211,7 @@ export function GameMediaGallery({ rawgId, coverFallback }: Props) {
           {/* Prev */}
           {items.length > 1 && (
             <button
-              onClick={(e) => { e.stopPropagation(); go(-1); }}
+              onClick={(e) => { e.stopPropagation(); go(-1, true); }}
               className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
             >
               <ChevronLeft size={24} />

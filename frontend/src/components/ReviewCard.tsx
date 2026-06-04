@@ -35,12 +35,14 @@ export const ReviewCard = memo(function ReviewCard({ review: r, showGame = false
   const mutation = useMutation({
     mutationFn: () => api.post(`/api/entries/${r.id}/helpful`),
     onSuccess: (res) => {
-      qc.setQueryData(queryKey, (old: GameReview[] | undefined) =>
-        old?.map((rev) => rev.id === r.id
-          ? { ...rev, helpfulByMe: res.data.helpful, helpfulCount: res.data.count }
-          : rev
-        )
-      );
+      qc.setQueryData(queryKey, (old: unknown) => {
+        if (!Array.isArray(old)) return old; // guard against mismatched cache shape
+        return (old as GameReview[]).map((rev) =>
+          rev.id === r.id
+            ? { ...rev, helpfulByMe: res.data.helpful, helpfulCount: res.data.count }
+            : rev
+        );
+      });
     },
     onError: (err: any) => dispatchToast(err?.response?.data?.error ?? "Failed", "error"),
   });
