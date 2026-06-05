@@ -4,6 +4,31 @@ import multer from "multer";
 import prisma from "../lib/prisma";
 import { requireAuth, optionalAuth, AuthRequest } from "../middleware/auth";
 import { uploadToCloudinary, deleteFromCloudinary, extractPublicId } from "../lib/cloudinary";
+import { getGameById, extractYear } from "../lib/rawg";
+
+/** Resolve rawgId → internal game.id, fetching from RAWG and upserting if not in DB */
+async function resolveGameId(rawgId: number): Promise<string | null> {
+  let game = await prisma.game.findUnique({ where: { rawgId }, select: { id: true } });
+  if (!game) {
+    const rawgGame = await getGameById(rawgId);
+    if (!rawgGame) return null;
+    game = await prisma.game.upsert({
+      where: { rawgId: rawgGame.id },
+      create: {
+        rawgId:      rawgGame.id,
+        name:        rawgGame.name,
+        slug:        rawgGame.slug,
+        coverImage:  rawgGame.background_image ?? null,
+        genres:      JSON.stringify(rawgGame.genres.map((g) => g.name)),
+        releaseYear: extractYear(rawgGame.released),
+        rawgRating:  rawgGame.rating ?? null,
+      },
+      update: { name: rawgGame.name, coverImage: rawgGame.background_image ?? null },
+      select: { id: true },
+    });
+  }
+  return game.id;
+}
 
 const uploadAvatar = multer({
   storage: multer.memoryStorage(),
@@ -98,8 +123,8 @@ router.post("/", requireAuth, async (req: AuthRequest, res: Response) => {
   const createData: Record<string, unknown> = { ...rest };
 
   if (rawgIdParam !== undefined) {
-    const game = await prisma.game.findUnique({ where: { rawgId: rawgIdParam }, select: { id: true } });
-    if (game) createData.gameId = game.id;
+    const gameId = await resolveGameId(rawgIdParam);
+    if (gameId) createData.gameId = gameId;
   }
 
   const club = await prisma.gameClub.create({
@@ -156,10 +181,9 @@ router.patch("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
   const { rawgId: rawgIdParam, ...rest } = parsed.data;
   const updateData: Record<string, unknown> = { ...rest };
 
-  // Resolve rawgId → internal gameId if provided
+  // Resolve rawgId → internal gameId (fetch from RAWG and upsert if not in DB)
   if (rawgIdParam !== undefined) {
-    const game = await prisma.game.findUnique({ where: { rawgId: rawgIdParam }, select: { id: true } });
-    updateData.gameId = game?.id ?? null;
+    updateData.gameId = rawgIdParam ? await resolveGameId(rawgIdParam) : null;
   }
 
   const updated = await prisma.gameClub.update({ where: { id: clubId }, data: updateData as any, select: CLUB_SELECT });

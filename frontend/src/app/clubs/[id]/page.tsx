@@ -629,8 +629,12 @@ function ClubHeader({ club, isAdmin, user, onJoin, joinPending, onUpdate }: {
         <div className="flex items-start gap-3 flex-1 min-w-0">
           {/* Avatar */}
           <div className="relative shrink-0 group">
-            {club.avatar ? (
-              <img src={club.avatar} alt={club.name} className="w-14 h-14 rounded-xl object-cover border border-white/10" />
+            {club.avatar || club.game?.coverImage ? (
+              <img
+                src={club.avatar ?? club.game!.coverImage!}
+                alt={club.name}
+                className="w-14 h-14 rounded-xl object-cover border border-white/10"
+              />
             ) : (
               <div className="w-14 h-14 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center">
                 <Users size={24} className="text-violet-400" />
