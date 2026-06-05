@@ -1,6 +1,21 @@
 /* Radix Themes CSS is imported directly in layout.tsx for correct bundling */
 @import "tailwindcss";
 
+/* ── Tiptap editor prose styles ────────────────────────────────────── */
+.ProseMirror h1 { font-size: 1.5rem; font-weight: 700; margin: 0.75rem 0 0.4rem; color: #f9fafb; }
+.ProseMirror h2 { font-size: 1.25rem; font-weight: 600; margin: 0.65rem 0 0.35rem; color: #f3f4f6; }
+.ProseMirror h3 { font-size: 1.1rem;  font-weight: 600; margin: 0.55rem 0 0.3rem;  color: #e5e7eb; }
+.ProseMirror blockquote {
+  border-left: 3px solid rgba(139,92,246,0.5);
+  padding-left: 0.75rem;
+  margin: 0.5rem 0;
+  color: #9ca3af;
+  font-style: italic;
+}
+.ProseMirror [style*="text-align: center"] { text-align: center; }
+.ProseMirror [style*="text-align: right"]  { text-align: right; }
+.ProseMirror [style*="text-align: justify"] { text-align: justify; }
+
 /* ── Tiptap editor placeholder ─────────────────────────────────────── */
 .tiptap p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
