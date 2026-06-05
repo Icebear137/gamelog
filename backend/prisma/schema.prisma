@@ -21,6 +21,7 @@ model User {
   updatedAt  DateTime @updatedAt
 
   emailNotifications     Boolean             @default(true)
+  isAdmin                Boolean             @default(false)
   notifFollow            Boolean             @default(true)
   notifLike              Boolean             @default(true)
   notifComment           Boolean             @default(true)
@@ -41,6 +42,7 @@ model User {
   gameListComments       GameListComment[]
   reviewLikes            ReviewLike[]
   gameTagVotes           GameTagVote[]
+  reports                Report[]
   playthroughs           GamePlaythrough[]
   clubsCreated           GameClub[]          @relation("ClubCreator")
   clubMemberships        GameClubMember[]
@@ -344,13 +346,16 @@ model GameListComment {
 }
 
 model Notification {
-  id         String   @id @default(cuid())
-  userId     String
-  actorId    String
-  type       String
-  activityId String?
-  read       Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  id          String   @id @default(cuid())
+  userId      String
+  actorId     String
+  type        String   // FOLLOW | LIKE | COMMENT | MENTION | CLUB_POST
+  activityId  String?
+  clubPostId  String?
+  clubId      String?
+  clubName    String?  // denormalized for display without extra join
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
 
   user     User      @relation("NotifRecipient", fields: [userId], references: [id], onDelete: Cascade)
   actor    User      @relation("NotifActor", fields: [actorId], references: [id], onDelete: Cascade)
@@ -539,4 +544,22 @@ model PollVote {
   user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([pollId, optionId, userId])
+}
+
+// ── Report / Moderation ───────────────────────────────────────────────────────
+
+model Report {
+  id          String   @id @default(cuid())
+  reporterId  String
+  type        String   // REVIEW | ACTIVITY_COMMENT | LIST_COMMENT | CLUB_POST | CLUB_COMMENT
+  targetId    String   // ID of the reported content
+  reason      String   // SPAM | INAPPROPRIATE | HARASSMENT | MISINFORMATION | OTHER
+  description String?  // optional details from reporter
+  status      String   @default("PENDING") // PENDING | REVIEWED | DISMISSED
+  createdAt   DateTime @default(now())
+
+  reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@unique([reporterId, type, targetId]) // one report per user per content item
+  @@index([status, createdAt])
 }

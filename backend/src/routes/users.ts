@@ -163,7 +163,7 @@ router.patch("/me", requireAuth, async (req: AuthRequest, res: Response) => {
   const user = await prisma.user.update({
     where: { id: req.userId },
     data: parsed.data,
-    select: { id: true, username: true, bio: true, avatar: true, steamId: true, discordTag: true, isPrivate: true, emailNotifications: true, notifFollow: true, notifLike: true, notifComment: true, notifMention: true },
+    select: { id: true, username: true, bio: true, avatar: true, steamId: true, discordTag: true, isPrivate: true, isAdmin: true, emailNotifications: true, notifFollow: true, notifLike: true, notifComment: true, notifMention: true },
   });
   res.json(user);
 });
@@ -189,7 +189,7 @@ router.post("/me/avatar", requireAuth, (req: AuthRequest, res: Response) => {
       const user = await prisma.user.update({
         where: { id: req.userId },
         data: { avatar: avatarUrl },
-        select: { id: true, username: true, bio: true, avatar: true, steamId: true, discordTag: true, isPrivate: true, emailNotifications: true, notifFollow: true, notifLike: true, notifComment: true, notifMention: true },
+        select: { id: true, username: true, bio: true, avatar: true, steamId: true, discordTag: true, isPrivate: true, isAdmin: true, emailNotifications: true, notifFollow: true, notifLike: true, notifComment: true, notifMention: true },
       });
       res.json(user);
     } catch (e: any) {

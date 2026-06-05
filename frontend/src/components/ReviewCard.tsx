@@ -1,8 +1,9 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Star, ThumbsUp, Monitor } from "lucide-react";
+import { Star, ThumbsUp, Monitor, Flag } from "lucide-react";
+import { ReportModal } from "./ReportModal";
 import Link from "next/link";
 import { Text, Flex } from "@radix-ui/themes";
 import { api } from "@/lib/api";
@@ -25,6 +26,7 @@ export const ReviewCard = memo(function ReviewCard({ review: r, showGame = false
   const { user } = useAuth();
   const qc = useQueryClient();
   const isOwn = user?.id === r.user.id;
+  const [reporting, setReporting] = useState(false);
 
   // Derive directly from the cache-updated prop — no local mirror needed.
   // The mutation's onSuccess patches the cache, which triggers a re-render
@@ -101,8 +103,10 @@ export const ReviewCard = memo(function ReviewCard({ review: r, showGame = false
       {/* Review text */}
       <MarkdownReview text={r.review} className="text-gray-300 text-sm leading-relaxed" />
 
-      {/* Helpful button */}
-      <div className="flex items-center justify-end pt-1 border-t border-white/6">
+      {reporting && <ReportModal type="REVIEW" targetId={r.id} onClose={() => setReporting(false)} />}
+
+      {/* Helpful + Report */}
+      <div className="flex items-center justify-between pt-1 border-t border-white/6">
         {user && !isOwn ? (
           <button
             onClick={() => mutation.mutate()}
@@ -122,6 +126,17 @@ export const ReviewCard = memo(function ReviewCard({ review: r, showGame = false
             {count} found this helpful
           </span>
         ) : null}
+
+        {/* Report button — only for other users' reviews */}
+        {user && !isOwn && (
+          <button
+            onClick={() => setReporting(true)}
+            className="flex items-center gap-1 text-xs text-gray-600 hover:text-orange-400 transition-colors ml-auto"
+            title="Report this review"
+          >
+            <Flag size={12} /> Report
+          </button>
+        )}
       </div>
     </div>
   );

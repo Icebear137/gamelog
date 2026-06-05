@@ -14,13 +14,16 @@ router.get("/", requireAuth, async (req: AuthRequest, res: Response) => {
       type: true,
       read: true,
       createdAt: true,
-      actor: { select: { id: true, username: true, avatar: true } },
+      actor:      { select: { id: true, username: true, avatar: true } },
       activity: {
         select: {
           id: true,
           gameEntry: { select: { game: { select: { name: true, rawgId: true } } } },
         },
       },
+      clubPostId: true,
+      clubId:     true,
+      clubName:   true,
     },
   });
   res.json(notifications);

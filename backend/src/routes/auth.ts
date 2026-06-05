@@ -115,6 +115,7 @@ router.get("/me", requireAuth, async (req: AuthRequest, res: Response) => {
       steamId: true,
       discordTag: true,
       isPrivate: true,
+      isAdmin: true,
       emailNotifications: true,
       createdAt: true,
       _count: { select: { gameEntries: true, followers: true, following: true } },

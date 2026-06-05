@@ -7,7 +7,7 @@ import {
   Users, Tag, Heart, MessageCircle, Send, Trash2, ArrowLeft, X,
   UserPlus, UserMinus, TrendingUp, Clock, Smile, Pin, PinOff,
   Pencil, Check, Shield, UserX, UserCheck, MoreHorizontal,
-  Crown, ChevronDown, Image as ImageIcon, Gamepad2,
+  Crown, ChevronDown, Image as ImageIcon, Gamepad2, Flag,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -20,6 +20,7 @@ import { formatDistanceToNow } from "@/lib/utils";
 import Avatar from "@/components/Avatar";
 import { ClubRichEditor } from "@/components/ClubRichEditor";
 import { getSocket } from "@/lib/socket-client";
+import { ReportModal } from "@/components/ReportModal";
 
 type Sort = "newest" | "popular" | "trending";
 
@@ -122,6 +123,23 @@ function ReactionBar({ post, clubId, currentUserId, onUpdate }: {
   );
 }
 
+// Small inline report button for comments
+function ReportComment({ commentId }: { commentId: string; currentUserId: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      {open && <ReportModal type="CLUB_COMMENT" targetId={commentId} onClose={() => setOpen(false)} />}
+      <button
+        onClick={() => setOpen(true)}
+        className="opacity-0 group-hover:opacity-100 p-1 text-gray-600 hover:text-orange-400 transition-all shrink-0 self-start mt-1"
+        title="Report comment"
+      >
+        <Flag size={12} />
+      </button>
+    </>
+  );
+}
+
 // ── Post card ─────────────────────────────────────────────────────────────────
 function PostCard({ post, clubId, currentUserId, isAdmin, isPinned, onPin, onUpdate, onDelete }: {
   post: ClubPost; clubId: string; currentUserId?: string;
@@ -141,6 +159,7 @@ function PostCard({ post, clubId, currentUserId, isAdmin, isPinned, onPin, onUpd
   const [editHtml, setEditHtml]         = useState(post.body);
   const [editKey, setEditKey]           = useState(0);
   const [showMenu, setShowMenu]         = useState(false);
+  const [reporting, setReporting]       = useState(false);
 
   const { data: comments = [] } = useQuery({
     queryKey: ["club-post-comments", post.id],
@@ -199,40 +218,54 @@ function PostCard({ post, clubId, currentUserId, isAdmin, isPinned, onPin, onUpd
         </Link>
 
         {/* Post menu */}
-        {(canEdit || canDelete || canPin) && (
-          <div className="relative">
-            <button onClick={() => setShowMenu((v) => !v)}
-              className="p-1.5 text-gray-600 hover:text-white hover:bg-white/8 rounded-lg transition-colors">
-              <MoreHorizontal size={15} />
+        <div className="flex items-center gap-1">
+          {/* Report — shown for other users' posts */}
+          {currentUserId && !isOwn && (
+            <button onClick={() => setReporting(true)}
+              className="p-1.5 text-gray-600 hover:text-orange-400 hover:bg-white/5 rounded-lg transition-colors"
+              title="Report this post">
+              <Flag size={14} />
             </button>
-            {showMenu && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
-                <div className="absolute right-0 top-full mt-1 z-20 bg-zinc-950 border border-white/10 rounded-xl overflow-hidden shadow-xl min-w-32">
-                  {canEdit && (
-                    <button onClick={() => { setEditKey(k => k+1); setEditHtml(post.body); setEditing(true); setShowMenu(false); }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/8 transition-colors">
-                      <Pencil size={13} /> Edit
-                    </button>
-                  )}
-                  {canPin && (
-                    <button onClick={() => { onPin(); setShowMenu(false); }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/8 transition-colors">
-                      {isPinned ? <><PinOff size={13} /> Unpin</> : <><Pin size={13} /> Pin post</>}
-                    </button>
-                  )}
-                  {canDelete && (
-                    <button onClick={() => { setConfirmDelete(true); setShowMenu(false); }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
-                      <Trash2 size={13} /> Delete
-                    </button>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        )}
+          )}
+
+          {/* Owner / admin menu */}
+          {(canEdit || canDelete || canPin) && (
+            <div className="relative">
+              <button onClick={() => setShowMenu((v) => !v)}
+                className="p-1.5 text-gray-600 hover:text-white hover:bg-white/8 rounded-lg transition-colors">
+                <MoreHorizontal size={15} />
+              </button>
+              {showMenu && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
+                  <div className="absolute right-0 top-full mt-1 z-20 bg-zinc-950 border border-white/10 rounded-xl overflow-hidden shadow-xl min-w-32">
+                    {canEdit && (
+                      <button onClick={() => { setEditKey(k => k+1); setEditHtml(post.body); setEditing(true); setShowMenu(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/8 transition-colors">
+                        <Pencil size={13} /> Edit
+                      </button>
+                    )}
+                    {canPin && (
+                      <button onClick={() => { onPin(); setShowMenu(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/8 transition-colors">
+                        {isPinned ? <><PinOff size={13} /> Unpin</> : <><Pin size={13} /> Pin post</>}
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button onClick={() => { setConfirmDelete(true); setShowMenu(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
+                        <Trash2 size={13} /> Delete
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </Flex>
+
+      {reporting && <ReportModal type="CLUB_POST" targetId={post.id} onClose={() => setReporting(false)} />}
 
       {/* Confirm delete */}
       {confirmDelete && (
@@ -281,12 +314,15 @@ function PostCard({ post, clubId, currentUserId, isAdmin, isPinned, onPin, onUpd
       {showComments && (
         <div className="space-y-2 pt-1 border-t border-white/6">
           {(comments as any[]).map((c: any) => (
-            <div key={c.id} className="flex gap-2.5">
+            <div key={c.id} className="flex gap-2.5 group">
               <Avatar src={c.user.avatar} username={c.user.username} size="sm" />
               <div className="flex-1 bg-white/5 rounded-xl px-3 py-2">
                 <Text as="p" size="1" className="font-semibold text-violet-300 mb-0.5">{c.user.username}</Text>
                 <Text as="p" size="1" color="gray">{c.body}</Text>
               </div>
+              {currentUserId && c.user.id !== currentUserId && (
+                <ReportComment commentId={c.id} currentUserId={currentUserId} />
+              )}
             </div>
           ))}
           {currentUserId && (
@@ -602,6 +638,7 @@ function ClubHeader({ club, isAdmin, user, onJoin, joinPending, onUpdate }: {
   });
 
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [reportingClub, setReportingClub] = useState(false);
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -727,6 +764,17 @@ function ClubHeader({ club, isAdmin, user, onJoin, joinPending, onUpdate }: {
             >
               {club.isMember ? <><UserMinus size={14} /> Leave</> : <><UserPlus size={14} /> Join</>}
             </button>
+            {/* Report club — shown for non-admin members */}
+            {user && !isAdmin && club.isMember && (
+              <button
+                onClick={() => setReportingClub(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm text-gray-500 hover:text-orange-400 border border-white/8 hover:border-orange-500/30 transition-colors"
+                title="Report this club"
+              >
+                <Flag size={13} /> Report
+              </button>
+            )}
+            {reportingClub && <ReportModal type="CLUB" targetId={club.id} onClose={() => setReportingClub(false)} />}
             {isAdmin && !confirmDelete && (
               <button
                 onClick={() => setConfirmDelete(true)}
@@ -974,9 +1022,93 @@ export default function ClubDetailPage({ params }: { params: Promise<{ id: strin
           </div>
         </div>
 
-        {/* ── Members sidebar ── */}
-        <MembersSidebar club={club} currentUserId={user?.id} onUpdate={() => refetchClub()} onlineSet={onlineSet} />
+        {/* ── Right column ── */}
+        <div className="w-56 shrink-0 hidden lg:flex flex-col gap-4">
+          <MembersSidebar club={club} currentUserId={user?.id} onUpdate={() => refetchClub()} onlineSet={onlineSet} />
+          {isAdmin && <ClubReportsPanel clubId={id} />}
+        </div>
       </div>
+    </div>
+  );
+}
+
+// ── Club admin reports panel ──────────────────────────────────────────────────
+function ClubReportsPanel({ clubId }: { clubId: string }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+
+  interface ClubReport {
+    id: string; type: string; reason: string; status: string; createdAt: string;
+    reporter: { id: string; username: string; avatar?: string };
+    preview: { text?: string; author?: { id: string; username: string; avatar?: string } } | null;
+  }
+
+  const { data: reports = [] } = useQuery<ClubReport[]>({
+    queryKey: ["club-reports", clubId],
+    queryFn: () => api.get(`/api/reports/club/${clubId}?status=PENDING`).then((r) => r.data),
+    enabled: open,
+    staleTime: 30_000,
+  });
+
+  const resolveMutation = useMutation({
+    mutationFn: ({ id, deleteContent }: { id: string; deleteContent?: boolean }) =>
+      api.patch(`/api/reports/${id}`, { status: deleteContent ? "REVIEWED" : "DISMISSED", deleteContent }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["club-reports", clubId] });
+      qc.invalidateQueries({ queryKey: ["club-posts", clubId] });
+      dispatchToast("Report resolved", "success");
+    },
+    onError: (err: any) => dispatchToast(err?.response?.data?.error ?? "Failed", "error"),
+  });
+
+  return (
+    <div className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-2xl p-4">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between text-sm"
+      >
+        <Flex align="center" gap="2">
+          <Flag size={13} className="text-orange-400" />
+          <Text size="1" className="font-semibold text-gray-300">Reports</Text>
+        </Flex>
+        <ChevronDown size={11} className={`text-gray-500 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="mt-3 space-y-2">
+          {reports.length === 0 && (
+            <Text as="p" size="1" color="gray" className="text-center py-2">No pending reports</Text>
+          )}
+          {reports.map((r) => (
+            <div key={r.id} className="bg-black/20 rounded-xl p-2.5 space-y-1.5">
+              <Flex align="center" gap="1.5">
+                <Avatar src={r.reporter.avatar} username={r.reporter.username} size="sm" />
+                <Text as="span" size="1" className="text-gray-300 truncate">{r.reporter.username}</Text>
+              </Flex>
+              <Text as="p" size="1" color="gray" className="text-[10px]">{r.reason} · {r.type.replace("CLUB_", "")}</Text>
+              {r.preview?.text && (
+                <Text as="p" size="1" color="gray" className="text-[10px] line-clamp-2 italic">"{r.preview.text}"</Text>
+              )}
+              <Flex gap="1.5">
+                <button
+                  onClick={() => resolveMutation.mutate({ id: r.id })}
+                  className="flex-1 py-1 rounded-lg text-[10px] bg-white/8 text-gray-400 hover:text-white transition-colors"
+                >
+                  Dismiss
+                </button>
+                {r.preview?.text !== undefined && (
+                  <button
+                    onClick={() => resolveMutation.mutate({ id: r.id, deleteContent: true })}
+                    className="flex-1 py-1 rounded-lg text-[10px] bg-red-500/15 text-red-400 hover:bg-red-500/25 transition-colors"
+                  >
+                    Delete
+                  </button>
+                )}
+              </Flex>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { z } from "zod";
 import multer from "multer";
 import prisma from "../lib/prisma";
 import { requireAuth, optionalAuth, AuthRequest } from "../middleware/auth";
+import { emitToUser } from "../lib/socket";
 import { uploadToCloudinary, deleteFromCloudinary, extractPublicId } from "../lib/cloudinary";
 import { getGameById, extractYear } from "../lib/rawg";
 
@@ -401,6 +402,28 @@ router.post("/:id/posts", requireAuth, async (req: AuthRequest, res: Response) =
     data: { clubId, userId: req.userId!, body: parsed.data.body },
     select: POST_SELECT,
   });
+
+  // Notify all other non-banned members (fire-and-forget)
+  prisma.gameClub.findUnique({ where: { id: clubId }, select: { name: true } }).then(async (club) => {
+    if (!club) return;
+    const others = await prisma.gameClubMember.findMany({
+      where: { clubId, userId: { not: req.userId! }, isBanned: false },
+      select: { userId: true },
+    });
+    // Check per-member notifFollow preference is not relevant here; use a flat check
+    const NOTIF_SELECT = {
+      id: true, type: true, read: true, createdAt: true, clubPostId: true, clubId: true, clubName: true,
+      actor: { select: { id: true, username: true, avatar: true } },
+    };
+    for (const { userId } of others) {
+      const notif = await prisma.notification.create({
+        data: { userId, actorId: req.userId!, type: "CLUB_POST", clubPostId: post.id, clubId, clubName: club.name },
+        select: NOTIF_SELECT,
+      });
+      emitToUser(userId, "notification", notif);
+    }
+  }).catch(() => {});
+
   res.status(201).json({ ...post, likedByMe: false });
 });
 

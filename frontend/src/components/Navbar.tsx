@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Gamepad2, Search, LogOut, User, Settings, Bell, List, MessageCircle } from "lucide-react";
+import { Gamepad2, Search, LogOut, User, Settings, Bell, List, MessageCircle, Shield } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useQuery } from "@tanstack/react-query";
 import { Flex } from "@radix-ui/themes";
@@ -121,6 +121,17 @@ export default function Navbar() {
                         Settings
                       </Link>
                     </DropdownMenu.Item>
+                    {(user as any).isAdmin && (
+                      <>
+                        <DropdownMenu.Separator className="my-1 border-t border-white/15" />
+                        <DropdownMenu.Item asChild>
+                          <Link href="/admin" className="flex items-center gap-2 px-3 py-2 text-sm text-violet-400 hover:bg-violet-500/10 rounded-lg outline-none cursor-pointer font-medium">
+                            <Shield size={15} />
+                            Admin Panel
+                          </Link>
+                        </DropdownMenu.Item>
+                      </>
+                    )}
                     <DropdownMenu.Separator className="my-1 border-t border-white/15" />
                     <DropdownMenu.Item
                       onSelect={handleLogout}

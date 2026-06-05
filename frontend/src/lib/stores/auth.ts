@@ -11,6 +11,7 @@ export interface AuthUser {
   steamId?: string;
   discordTag?: string;
   isPrivate?: boolean;
+  isAdmin?: boolean;
   emailNotifications?: boolean;
   notifFollow?: boolean;
   notifLike?: boolean;

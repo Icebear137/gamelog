@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Bell, Heart, MessageCircle, UserPlus, AtSign } from "lucide-react";
+import { Bell, Heart, MessageCircle, UserPlus, AtSign, Users } from "lucide-react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -13,26 +13,33 @@ import { Text, Heading, Flex, Box } from "@radix-ui/themes";
 
 interface Notification {
   id: string;
-  type: "LIKE" | "COMMENT" | "FOLLOW" | "MENTION";
+  type: "LIKE" | "COMMENT" | "FOLLOW" | "MENTION" | "CLUB_POST";
   read: boolean;
   createdAt: string;
   actor: { id: string; username: string; avatar?: string };
-  activity?: {
-    id: string;
-    gameEntry: { game: { name: string; rawgId: number } };
-  };
+  activity?: { id: string; gameEntry: { game: { name: string; rawgId: number } } };
+  clubPostId?: string | null;
+  clubId?: string | null;
+  clubName?: string | null;
 }
 
 const typeIcon: Record<Notification["type"], React.ReactNode> = {
-  LIKE: <Heart size={14} className="text-red-400" fill="currentColor" />,
-  COMMENT: <MessageCircle size={14} className="text-violet-400" />,
-  FOLLOW: <UserPlus size={14} className="text-green-400" />,
-  MENTION: <AtSign size={14} className="text-sky-400" />,
+  LIKE:      <Heart         size={14} className="text-red-400"    fill="currentColor" />,
+  COMMENT:   <MessageCircle size={14} className="text-violet-400" />,
+  FOLLOW:    <UserPlus      size={14} className="text-green-400"  />,
+  MENTION:   <AtSign        size={14} className="text-sky-400"    />,
+  CLUB_POST: <Users         size={14} className="text-violet-400" />,
 };
 
 function notifText(n: Notification): { text: string; href: string } {
   if (n.type === "FOLLOW") {
     return { text: "started following you", href: `/user/${n.actor.username}` };
+  }
+  if (n.type === "CLUB_POST") {
+    return {
+      text: `posted in ${n.clubName ?? "a club"}`,
+      href: n.clubId ? `/clubs/${n.clubId}` : "/clubs",
+    };
   }
   const game = n.activity?.gameEntry.game;
   if (n.type === "LIKE") {
