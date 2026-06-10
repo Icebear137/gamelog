@@ -36,7 +36,9 @@ export async function getGamesList(params: Record<string, unknown>): Promise<Raw
   try {
     const res = await axios.get(`${RAWG_BASE}/games`, { params: { key, ...params } });
     return res.data.results ?? [];
-  } catch {
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[RAWG getGamesList] error:", msg, "| params:", JSON.stringify(params));
     return [];
   }
 }

@@ -201,7 +201,7 @@ router.get("/new-releases", async (_req: Request, res: Response) => {
   if (cached) { res.json(cached); return; }
   const games = await getGamesList({
     ordering: "-released",
-    dates: `${isoDate(-30 * 24 * 60 * 60 * 1000)},${isoDate()}`,
+    dates: `${isoDate(-90 * 24 * 60 * 60 * 1000)},${isoDate()}`,
     page_size: 20,
   });
   const result = games.map(mapPreview);
