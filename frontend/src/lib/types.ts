@@ -199,6 +199,7 @@ export interface PollData {
   anonymous: boolean;
   endsAt?: string | null;
   closedAt?: string | null;
+  createdAt?: string;
   options: PollOptionData[];
 }
 

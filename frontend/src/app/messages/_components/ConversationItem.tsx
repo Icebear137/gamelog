@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Users } from "lucide-react";
+import { Users, BellOff } from "lucide-react";
 import { Conversation } from "@/lib/types";
 import { formatDistanceToNow } from "@/lib/utils";
 import Avatar from "@/components/Avatar";
@@ -38,6 +38,7 @@ function buildPreview(conv: Conversation, currentUserId: string): React.ReactNod
 export function ConversationItem({ conv, isActive, isOnline, currentUserId }: Props) {
   const router = useRouter();
   const hasUnread = conv.unreadCount > 0;
+  const isMuted = !!conv.mutedUntil && new Date(conv.mutedUntil) > new Date();
   const displayName = conv.isGroup ? (conv.name ?? "Group") : (conv.otherUser?.username ?? "Unknown");
   const preview = buildPreview(conv, currentUserId);
 
@@ -78,9 +79,12 @@ export function ConversationItem({ conv, isActive, isOnline, currentUserId }: Pr
               {displayName}
             </span>
           </div>
-          {conv.lastMessage && (
-            <span className="text-[10px] text-gray-600 shrink-0">{formatDistanceToNow(conv.lastMessage.createdAt)}</span>
-          )}
+          <div className="flex items-center gap-1 shrink-0">
+            {isMuted && <BellOff size={10} className="text-gray-500" />}
+            {conv.lastMessage && (
+              <span className="text-[10px] text-gray-600">{formatDistanceToNow(conv.lastMessage.createdAt)}</span>
+            )}
+          </div>
         </div>
         <p className={`text-xs truncate mt-0.5 ${hasUnread ? "text-gray-400 font-medium" : "text-gray-600"}`}>
           {preview}

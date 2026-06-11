@@ -258,7 +258,7 @@ export default function ChatInput({
 
       {pollCreatorOpen && onSubmitPoll && (
         <PollCreator
-          onSubmit={(q, opts, multi) => { onSubmitPoll(q, opts, multi); setPollCreatorOpen(false); }}
+          onSubmit={(q, opts, multi, endsAt, anon) => { onSubmitPoll(q, opts, multi, endsAt, anon); setPollCreatorOpen(false); }}
           onClose={() => setPollCreatorOpen(false)}
           disabled={disabled}
         />

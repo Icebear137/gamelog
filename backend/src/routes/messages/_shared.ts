@@ -76,6 +76,7 @@ export const MESSAGE_SELECT = {
       anonymous: true,
       endsAt: true,
       closedAt: true,
+      createdAt: true,
       options: {
         select: {
           id: true,

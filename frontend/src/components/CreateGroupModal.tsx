@@ -114,9 +114,7 @@ export default function CreateGroupModal({ onClose, onCreated }: Props) {
                 onClick={() => toggleUser(u)}
                 className="flex items-center gap-1.5 bg-violet-600/30 border border-violet-500/30 rounded-full pl-1.5 pr-2 py-0.5 text-xs text-violet-300 hover:bg-violet-600/50 transition-colors"
               >
-                <span className="w-4 h-4 rounded-full overflow-hidden shrink-0">
-                  <Avatar src={u.avatar ?? undefined} username={u.username} size="sm" />
-                </span>
+                <Avatar src={u.avatar ?? undefined} username={u.username} size="xs" />
                 {u.username}
                 <X size={10} className="ml-0.5 opacity-70" />
               </button>

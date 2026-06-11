@@ -13,6 +13,7 @@ const POLL_SELECT = {
   anonymous: true,
   endsAt: true,
   closedAt: true,
+  createdAt: true,
   messageId: true,
   conversationId: true,
   options: {
