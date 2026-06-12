@@ -3,9 +3,6 @@
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Slot } from "@radix-ui/react-slot";
-import * as Separator from "@radix-ui/react-separator";
-import { Text, Heading, Flex, Box } from "@radix-ui/themes";
 import { ArrowLeft, Send } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { getActivityService, getActivityCommentsService, addActivityCommentService } from "@/services/activity.service";
@@ -51,86 +48,78 @@ export default function ActivityDetailPage({ params }: { params: Promise<{ id: s
     },
   });
 
-  if (isLoading) return <Text as="p" color="gray" className="py-16 text-center">Loading...</Text>;
-  if (!activity) return <Text as="p" color="gray" className="py-16 text-center">Activity not found</Text>;
+  if (isLoading) return (
+    <div className="gx-av-page">
+      <div style={{ height: 120, background: "var(--gx-surface)", borderRadius: 14 }} />
+    </div>
+  );
+  if (!activity) return (
+    <p style={{ padding: "64px 0", textAlign: "center", color: "var(--gx-text-2)", fontSize: 14 }}>
+      Activity not found
+    </p>
+  );
 
   return (
-    <div className="max-w-2xl mx-auto space-y-4">
-      <Slot
-        role="link"
-        tabIndex={0}
-        className="inline-flex items-center gap-1.5 text-gray-400 hover:text-white text-sm transition-colors cursor-pointer outline-none"
-        onClick={() => router.back()}
-        onKeyDown={(e: React.KeyboardEvent) => {
-          if (e.key === "Enter" || e.key === " ") router.back();
-        }}
-      >
-        <div className="inline-flex items-center gap-1.5">
-          <ArrowLeft size={16} />
-          Back to feed
-        </div>
-      </Slot>
+    <div className="gx-av-page">
 
+      {/* Back */}
+      <button className="gx-back-btn" onClick={() => router.back()}>
+        <ArrowLeft size={14} /> Back to feed
+      </button>
+
+      {/* Activity card */}
       <ActivityCard activity={activity} />
 
-      <div className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-xl p-4 space-y-4">
-        <Heading size="2" as="h2" color="gray" className="font-semibold">
+      {/* Comments */}
+      <div className="gx-comments-card">
+        <p className="gx-comments-title">
           {comments.length} {comments.length === 1 ? "Comment" : "Comments"}
-        </Heading>
+        </p>
 
-        {comments.map((c) => (
-          <Flex key={c.id} gap="3">
-            <Slot
-              role="link"
-              tabIndex={0}
-              className="cursor-pointer outline-none shrink-0"
-              onClick={() => router.push(`/user/${c.user.username}`)}
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if (e.key === "Enter" || e.key === " ") router.push(`/user/${c.user.username}`);
-              }}
-            >
-              <div>
+        {/* Comment list */}
+        {comments.length === 0 ? (
+          <p style={{ fontSize: 13, color: "var(--gx-text-3)", textAlign: "center", padding: "12px 0 16px" }}>
+            No comments yet. Be the first!
+          </p>
+        ) : (
+          comments.map((c) => (
+            <div key={c.id} className="gx-comment-row">
+              <div
+                style={{ flexShrink: 0, cursor: "pointer" }}
+                role="link"
+                tabIndex={0}
+                onClick={() => router.push(`/user/${c.user.username}`)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") router.push(`/user/${c.user.username}`); }}
+              >
                 <Avatar src={c.user.avatar} username={c.user.username} size="sm" />
               </div>
-            </Slot>
-            <Box flexGrow="1" minWidth="0">
-              <Flex align="baseline" gap="2">
-                <Slot
-                  role="link"
-                  tabIndex={0}
-                  className="cursor-pointer outline-none"
-                  onClick={() => router.push(`/user/${c.user.username}`)}
-                  onKeyDown={(e: React.KeyboardEvent) => {
-                    if (e.key === "Enter" || e.key === " ") router.push(`/user/${c.user.username}`);
-                  }}
-                >
-                  <Text as="span" size="2" className="font-semibold hover:text-violet-400 transition-colors">
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 0 }}>
+                  <button
+                    className="gx-comment-username"
+                    onClick={() => router.push(`/user/${c.user.username}`)}
+                  >
                     {c.user.username}
-                  </Text>
-                </Slot>
-                <Text as="span" size="1" color="gray">{formatDistanceToNow(c.createdAt)}</Text>
-              </Flex>
-              <CommentBody body={c.body} className="text-gray-300 text-sm mt-0.5" />
-            </Box>
-          </Flex>
-        ))}
-
-        {comments.length === 0 && (
-          <Text as="p" size="2" color="gray" className="text-center py-2">No comments yet. Be the first!</Text>
+                  </button>
+                  <span className="gx-comment-time">{formatDistanceToNow(c.createdAt)}</span>
+                </div>
+                <CommentBody body={c.body} className="gx-comment-body" />
+              </div>
+            </div>
+          ))
         )}
 
-        <Separator.Root className="h-px bg-white/8" />
-
+        {/* Input */}
         {user ? (
           <form
+            className="gx-comment-input-row"
             onSubmit={(e) => {
               e.preventDefault();
               if (body.trim()) commentMutation.mutate();
             }}
-            className="flex gap-2 pt-1"
           >
             <Avatar src={user.avatar} username={user.username} size="sm" />
-            <Flex flexGrow="1" gap="2">
+            <div style={{ flex: 1 }}>
               <MentionInput
                 value={body}
                 onChange={setBody}
@@ -138,30 +127,30 @@ export default function ActivityDetailPage({ params }: { params: Promise<{ id: s
                 maxLength={500}
                 disabled={commentMutation.isPending}
               />
-              <button
-                type="submit"
-                disabled={!body.trim() || commentMutation.isPending}
-                className="shrink-0 bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white px-3 py-2 rounded-lg transition-colors"
-              >
-                <Send size={15} />
-              </button>
-            </Flex>
+            </div>
+            <button
+              type="submit"
+              disabled={!body.trim() || commentMutation.isPending}
+              className="gx-comment-send"
+            >
+              <Send size={14} />
+            </button>
           </form>
         ) : (
-          <Text as="p" size="2" color="gray" className="text-center pt-1">
-            <Slot
-              role="link"
-              tabIndex={0}
-              className="text-violet-400 hover:text-violet-300 cursor-pointer outline-none"
-              onClick={() => router.push("/login")}
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if (e.key === "Enter" || e.key === " ") router.push("/login");
-              }}
-            >
-              <span>Sign in</span>
-            </Slot>{" "}
-            to leave a comment
-          </Text>
+          <div className="gx-comment-input-row" style={{ justifyContent: "center" }}>
+            <p style={{ fontSize: 13, color: "var(--gx-text-2)" }}>
+              <span
+                role="link"
+                tabIndex={0}
+                style={{ color: "var(--gx-amber)", cursor: "pointer" }}
+                onClick={() => router.push("/login")}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") router.push("/login"); }}
+              >
+                Sign in
+              </span>{" "}
+              to leave a comment
+            </p>
+          </div>
         )}
       </div>
     </div>

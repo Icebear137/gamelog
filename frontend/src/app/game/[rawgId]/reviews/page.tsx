@@ -5,13 +5,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { MessageSquare, ArrowLeft, Clock, ThumbsUp } from "lucide-react";
 import Link from "next/link";
-import { Heading, Flex } from "@radix-ui/themes";
 import { GameReview } from "@/lib/types";
 import { getGameService, getGameReviewsService } from "@/services/game.service";
 import { ReviewCard } from "@/components/ReviewCard";
 
 type Sort = "recent" | "helpful";
-
 interface GameBasic { name: string; rawgId: number }
 
 export default function GameReviewsPage({ params }: { params: Promise<{ rawgId: string }> }) {
@@ -32,57 +30,65 @@ export default function GameReviewsPage({ params }: { params: Promise<{ rawgId: 
   });
 
   return (
-    <div className="max-w-2xl mx-auto space-y-5">
+    <div className="gx-rv-page">
       {/* Header */}
-      <Flex align="center" gap="3">
-        <button onClick={() => router.back()} className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/8 transition-colors">
-          <ArrowLeft size={18} />
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <button className="gx-back-btn" onClick={() => router.back()}>
+          <ArrowLeft size={14} />
         </button>
-        <div className="flex-1 min-w-0">
-          <Heading size="5" className="flex items-center gap-2">
-            <MessageSquare size={20} className="text-violet-400" />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h1 className="gx-section-label" style={{ fontSize: 22, display: "flex", alignItems: "center", gap: 8 }}>
+            <MessageSquare size={17} style={{ color: "var(--gx-amber)" }} />
             Reviews
-            {reviews.length > 0 && <span className="text-gray-500 font-normal text-base">({reviews.length})</span>}
-          </Heading>
+            {reviews.length > 0 && (
+              <span style={{ fontFamily: "inherit", fontSize: 13, color: "var(--gx-text-3)", fontWeight: 400, marginLeft: 4 }}>
+                ({reviews.length})
+              </span>
+            )}
+          </h1>
           {game && (
-            <Link href={`/game/${rawgId}`} className="text-sm text-gray-400 hover:text-violet-400 transition-colors">
+            <Link
+              href={`/game/${rawgId}`}
+              style={{ fontSize: 12, color: "var(--gx-text-3)", textDecoration: "none", transition: "color 0.15s" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--gx-amber)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--gx-text-3)")}
+            >
               {game.name}
             </Link>
           )}
         </div>
 
-        {/* Sort tabs */}
-        <div className="flex gap-1 shrink-0">
+        {/* Sort */}
+        <div className="gx-rv-sort-bar" style={{ flexShrink: 0 }}>
           {([
-            { key: "recent",  label: "Recent",  icon: <Clock size={12} /> },
-            { key: "helpful", label: "Helpful", icon: <ThumbsUp size={12} /> },
-          ] as { key: Sort; label: string; icon: React.ReactNode }[]).map((o) => (
-            <button
-              key={o.key}
-              onClick={() => setSort(o.key)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                sort === o.key ? "bg-violet-600 text-white" : "text-gray-500 hover:text-gray-300 hover:bg-white/8"
-              }`}
-            >
+            { key: "recent"  as Sort, label: "Recent",  icon: <Clock size={11} /> },
+            { key: "helpful" as Sort, label: "Helpful", icon: <ThumbsUp size={11} /> },
+          ]).map((o) => (
+            <button key={o.key} onClick={() => setSort(o.key)} className="gx-rv-sort-btn"
+              data-active={sort === o.key} style={{ padding: "5px 12px", fontSize: 11 }}>
               {o.icon} {o.label}
             </button>
           ))}
         </div>
-      </Flex>
+      </div>
 
+      {/* Loading */}
       {isLoading && (
-        <div className="py-8 text-center text-sm text-gray-500">Loading reviews…</div>
-      )}
-
-      {!isLoading && reviews.length === 0 && (
-        <div className="text-center py-20 bg-white/5 backdrop-blur-sm border border-white/8 rounded-2xl">
-          <MessageSquare size={40} className="mx-auto mb-3 opacity-30 text-gray-500" />
-          <p className="text-sm text-gray-500 font-medium">No reviews yet</p>
-          <p className="text-xs text-gray-600 mt-1">Be the first to review this game.</p>
+        <div style={{ textAlign: "center", padding: "32px 0", fontSize: 13, color: "var(--gx-text-3)" }}>
+          Loading…
         </div>
       )}
 
-      <div className="space-y-4">
+      {/* Empty */}
+      {!isLoading && reviews.length === 0 && (
+        <div style={{ textAlign: "center", padding: "56px 24px", background: "var(--gx-surface)", border: "1px solid var(--gx-border)", borderRadius: 14 }}>
+          <MessageSquare size={32} style={{ margin: "0 auto 10px", opacity: 0.18, color: "var(--gx-text-3)", display: "block" }} />
+          <p style={{ fontSize: 13, color: "var(--gx-text-3)" }}>No reviews yet. Be the first to review this game.</p>
+        </div>
+      )}
+
+      {/* Review list */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {reviews.map((r) => (
           <ReviewCard key={r.id} review={r} queryKey={queryKey} />
         ))}

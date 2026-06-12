@@ -1,10 +1,8 @@
-﻿"use client";
+"use client";
 
 import { memo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Slot } from "@radix-ui/react-slot";
-import { Heart, MessageCircle, Star, Clock } from "lucide-react";
-import { Text, Flex, Box } from "@radix-ui/themes";
+import { Heart, MessageCircle, Star, Clock, Gamepad2 } from "lucide-react";
 import { Activity, ActivityType } from "@/lib/types";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -13,16 +11,27 @@ import StatusBadge from "./StatusBadge";
 import MarkdownReview from "./MarkdownReview";
 import { formatDistanceToNow } from "@/lib/utils";
 
-const activityLabel: Record<ActivityType, string> = {
-  STARTED: "started playing",
-  COMPLETED: "completed",
-  DROPPED: "dropped",
-  RATED: "rated",
-  ADDED_TO_WISHLIST: "added to wishlist",
+const VERB: Record<ActivityType, string> = {
+  STARTED:           "started playing",
+  COMPLETED:         "completed",
+  DROPPED:           "dropped",
+  RATED:             "rated",
+  ADDED_TO_WISHLIST: "wishlisted",
 };
 
 interface Props {
   activity: Activity;
+}
+
+function arePropsEqual(prev: Props, next: Props) {
+  const a = prev.activity;
+  const b = next.activity;
+  return (
+    a.id === b.id &&
+    a._count.likes === b._count.likes &&
+    a._count.comments === b._count.comments &&
+    a.likedByMe === b.likedByMe
+  );
 }
 
 export default memo(function ActivityCard({ activity }: Props) {
@@ -46,6 +55,7 @@ export default memo(function ActivityCard({ activity }: Props) {
         setLikeCount(res.data.count);
       }
     } catch {
+      // silently ignore
     } finally {
       pending.current = false;
     }
@@ -55,123 +65,101 @@ export default memo(function ActivityCard({ activity }: Props) {
   const game = gameEntry.game;
 
   return (
-    <article className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-xl p-4 hover:border-white/15 transition-colors min-h-44">
-      <Flex gap="3">
-        <Slot
-          role="link"
-          tabIndex={0}
-          className="cursor-pointer outline-none shrink-0"
-          onClick={() => router.push(`/user/${activity.user.username}`)}
-          onKeyDown={(e: React.KeyboardEvent) => {
-            if (e.key === "Enter" || e.key === " ") router.push(`/user/${activity.user.username}`);
-          }}
+    <article className="hm-activity-card">
+      {/* ── Cover panel ── */}
+      <div
+        className="hm-activity-cover cursor-pointer"
+        role="link"
+        tabIndex={0}
+        onClick={() => router.push(`/game/${game.rawgId}`)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") router.push(`/game/${game.rawgId}`);
+        }}
+      >
+        {game.coverImage ? (
+          <>
+            <img src={game.coverImage} alt={game.name} loading="lazy" decoding="async" />
+            <div className="hm-activity-cover-shade" />
+          </>
+        ) : (
+          <div className="hm-activity-cover-empty">
+            <Gamepad2 size={22} color="rgba(255,255,255,0.15)" />
+          </div>
+        )}
+      </div>
+
+      {/* ── Content ── */}
+      <div className="hm-activity-body">
+        {/* Row 1: avatar + user + verb + time */}
+        <div className="hm-activity-header">
+          <button
+            className="shrink-0"
+            onClick={() => router.push(`/user/${activity.user.username}`)}
+            aria-label={`View ${activity.user.username}'s profile`}
+          >
+            <Avatar src={activity.user.avatar} username={activity.user.username} size="xs" />
+          </button>
+          <button
+            className="hm-activity-user"
+            onClick={() => router.push(`/user/${activity.user.username}`)}
+          >
+            {activity.user.username}
+          </button>
+          <span className="hm-activity-verb">{VERB[activity.type]}</span>
+          <span className="hm-activity-time">{formatDistanceToNow(activity.createdAt)}</span>
+        </div>
+
+        {/* Row 2: game name */}
+        <button
+          className="hm-activity-game"
+          onClick={() => router.push(`/game/${game.rawgId}`)}
         >
-          <div>
-            <Avatar src={activity.user.avatar} username={activity.user.username} />
-          </div>
-        </Slot>
+          {game.name}
+        </button>
 
-        <Box flexGrow="1" minWidth="0">
-          <div className="flex items-center gap-1.5 text-sm min-w-0">
-            <Slot
-              role="link"
-              tabIndex={0}
-              className="cursor-pointer outline-none shrink-0"
-              onClick={() => router.push(`/user/${activity.user.username}`)}
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if (e.key === "Enter" || e.key === " ") router.push(`/user/${activity.user.username}`);
-              }}
-            >
-              <span className="font-semibold text-white hover:text-violet-400 transition-colors">
-                {activity.user.username}
-              </span>
-            </Slot>
-            <Text as="span" size="2" color="gray" className="shrink-0">{activityLabel[activity.type]}</Text>
-            <Slot
-              role="link"
-              tabIndex={0}
-              className="cursor-pointer outline-none min-w-0"
-              onClick={() => router.push(`/game/${game.rawgId}`)}
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if (e.key === "Enter" || e.key === " ") router.push(`/game/${game.rawgId}`);
-              }}
-            >
-              <span className="font-semibold text-violet-400 hover:text-violet-300 transition-colors truncate block">
-                {game.name}
-              </span>
-            </Slot>
-          </div>
-          <Text as="p" size="1" color="gray" className="mt-0.5">{formatDistanceToNow(activity.createdAt)}</Text>
+        {/* Row 3: status + rating + playtime */}
+        <div className="hm-activity-stats">
+          <StatusBadge status={gameEntry.status} />
+          {gameEntry.rating && (
+            <span className="hm-activity-rating">
+              <Star size={11} fill="currentColor" />
+              {gameEntry.rating}
+              <span className="hm-activity-rating-denom">/10</span>
+            </span>
+          )}
+          {gameEntry.playtime && (
+            <span className="hm-activity-playtime">
+              <Clock size={11} />
+              {gameEntry.playtime}h
+            </span>
+          )}
+        </div>
 
-          <Flex gap="3" className="mt-3">
-            {game.coverImage && (
-              <Slot
-                role="link"
-                tabIndex={0}
-                className="cursor-pointer outline-none shrink-0"
-                onClick={() => router.push(`/game/${game.rawgId}`)}
-                onKeyDown={(e: React.KeyboardEvent) => {
-                  if (e.key === "Enter" || e.key === " ") router.push(`/game/${game.rawgId}`);
-                }}
-              >
-                <div>
-                  <img
-                    src={game.coverImage}
-                    alt={game.name}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-16 h-20 object-cover rounded-lg"
-                  />
-                </div>
-              </Slot>
-            )}
-            <Flex direction="column" gap="2" align="start">
-              <StatusBadge status={gameEntry.status} />
-              {gameEntry.rating && (
-                <div className="flex items-center gap-1 text-yellow-400 text-sm">
-                  <Star size={14} fill="currentColor" />
-                  <span className="font-bold">{gameEntry.rating}</span>
-                  <span className="text-gray-500">/10</span>
-                </div>
-              )}
-              {gameEntry.playtime && (
-                <div className="flex items-center gap-1 text-gray-400 text-xs">
-                  <Clock size={12} />
-                  <span>{gameEntry.playtime}h played</span>
-                </div>
-              )}
-              {gameEntry.review && (
-                <MarkdownReview text={gameEntry.review} className="text-gray-300 text-sm line-clamp-3" />
-              )}
-            </Flex>
-          </Flex>
+        {/* Row 4: review snippet */}
+        {gameEntry.review && (
+          <MarkdownReview text={gameEntry.review} className="hm-activity-review" />
+        )}
 
-          <Flex align="center" gap="4" className="mt-3">
-            <button
-              onClick={toggleLike}
-              className={`flex items-center gap-1.5 text-sm transition-colors ${liked ? "text-red-400" : "text-gray-500 hover:text-red-400"}`}
-            >
-              <Heart size={16} fill={liked ? "currentColor" : "none"} />
-              <span>{likeCount}</span>
-            </button>
-            <Slot
-              role="link"
-              tabIndex={0}
-              className="cursor-pointer outline-none"
-              onClick={() => router.push(`/activity/${activity.id}`)}
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if (e.key === "Enter" || e.key === " ") router.push(`/activity/${activity.id}`);
-              }}
-            >
-              <div className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-violet-400 transition-colors">
-                <MessageCircle size={16} />
-                <span>{activity._count.comments}</span>
-              </div>
-            </Slot>
-          </Flex>
-        </Box>
-      </Flex>
+        {/* Row 5: footer actions */}
+        <div className="hm-activity-footer">
+          <button
+            onClick={toggleLike}
+            className={`hm-like-btn${liked ? " liked" : ""}`}
+            aria-label={liked ? "Unlike" : "Like"}
+          >
+            <Heart size={13} fill={liked ? "currentColor" : "none"} />
+            {likeCount}
+          </button>
+          <button
+            className="hm-comment-btn"
+            onClick={() => router.push(`/activity/${activity.id}`)}
+            aria-label="View comments"
+          >
+            <MessageCircle size={13} />
+            {activity._count.comments}
+          </button>
+        </div>
+      </div>
     </article>
   );
-});
-
+}, arePropsEqual);

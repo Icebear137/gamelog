@@ -1,9 +1,8 @@
-﻿"use client";
+"use client";
 
 import { memo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { Text, Box } from "@radix-ui/themes";
 import { api } from "@/lib/api";
 import { dispatchToast } from "@/lib/toast";
 import Avatar from "@/components/Avatar";
@@ -29,30 +28,27 @@ export default memo(function SuggestedUserCard({ user: su }: { user: SuggestedUs
   });
 
   return (
-    <div className="flex items-center gap-3 bg-white/5 backdrop-blur-sm border border-white/8 rounded-xl p-4">
-      <Link href={`/user/${su.username}`} className="shrink-0">
+    <div className="gx-person-card">
+      <Link href={`/user/${su.username}`} style={{ flexShrink: 0 }}>
         <Avatar src={su.avatar} username={su.username} />
       </Link>
-      <Box flexGrow="1" minWidth="0">
-        <Link
-          href={`/user/${su.username}`}
-          className="text-white font-semibold text-sm hover:text-violet-300 transition-colors"
-        >
-          {su.username}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <Link href={`/user/${su.username}`} style={{ textDecoration: "none" }}>
+          <p className="gx-person-name">{su.username}</p>
         </Link>
-        {su.bio && <Text as="p" size="1" color="gray" className="truncate">{su.bio}</Text>}
-        <Text as="p" size="1" color="violet" className="mt-0.5">
+        {su.bio && <p className="gx-person-bio">{su.bio}</p>}
+        <p className="gx-person-common">
           {su.commonGames} game{su.commonGames !== 1 ? "s" : ""} in common
-        </Text>
-      </Box>
+        </p>
+      </div>
       <button
         onClick={() => followMutation.mutate()}
         disabled={followMutation.isPending}
-        className="shrink-0 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+        className="gx-btn-primary"
+        style={{ fontSize: 11, padding: "6px 14px", flexShrink: 0 }}
       >
-        {followMutation.isPending ? "..." : "Follow"}
+        {followMutation.isPending ? "…" : "Follow"}
       </button>
     </div>
   );
 });
-
