@@ -24,7 +24,7 @@ function GameTile({ game, upcoming }: { game: GamePreview; upcoming?: boolean })
   const router = useRouter();
   return (
     <div
-      className="hm-game-tile"
+      className="shrink-0 w-[148px] cursor-pointer outline-none transition-transform hover:-translate-y-[3px] group"
       role="link"
       tabIndex={0}
       onClick={() => router.push(`/game/${game.rawgId}`)}
@@ -32,28 +32,33 @@ function GameTile({ game, upcoming }: { game: GamePreview; upcoming?: boolean })
         if (e.key === "Enter" || e.key === " ") router.push(`/game/${game.rawgId}`);
       }}
     >
-      <div className="hm-game-tile-img">
+      <div className="relative w-full h-[100px] rounded-[9px] overflow-hidden bg-[#080910] border border-gl-border">
         {game.coverImage ? (
           <>
-            <img src={game.coverImage} alt={game.name} loading="lazy" />
-            <div className="hm-game-tile-shade" />
+            <img
+              src={game.coverImage}
+              alt={game.name}
+              loading="lazy"
+              className="w-full h-full object-cover block transition-transform duration-[350ms] ease-in group-hover:scale-[1.07]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[rgba(0,0,0,0.5)] pointer-events-none" />
           </>
         ) : (
-          <div className="hm-game-tile-empty">
+          <div className="w-full h-full flex items-center justify-center">
             <Gamepad2 size={22} color="rgba(255,255,255,0.12)" />
           </div>
         )}
         {!upcoming && game.rawgRating > 0 && (
-          <div className="hm-game-tile-rating">
+          <div className="absolute top-[5px] right-[5px] bg-[rgba(0,0,0,0.72)] border border-[rgba(245,158,11,0.28)] rounded-[5px] px-[5px] py-[2px] flex items-center gap-[3px] font-outfit text-[10px] font-bold text-gl-amber backdrop-blur-sm">
             <Star size={9} fill="currentColor" />
             {game.rawgRating.toFixed(1)}
           </div>
         )}
       </div>
-      <div className="hm-game-tile-info">
-        <p className="hm-game-tile-name">{game.name}</p>
+      <div className="px-0.5 pt-2">
+        <p className="font-outfit text-[12px] font-semibold text-gl-text leading-[1.35] line-clamp-2 overflow-hidden transition-colors group-hover:text-gx-amber">{game.name}</p>
         {game.released && (
-          <p className="hm-game-tile-sub">{formatDate(game.released)}</p>
+          <p className="font-outfit text-[10px] text-gl-muted mt-[3px]">{formatDate(game.released)}</p>
         )}
       </div>
     </div>
@@ -62,10 +67,10 @@ function GameTile({ game, upcoming }: { game: GamePreview; upcoming?: boolean })
 
 function SkeletonTile() {
   return (
-    <div className="hm-game-tile" style={{ pointerEvents: "none" }}>
-      <div className="hm-skel-img" />
-      <div className="hm-skel-line" />
-      <div className="hm-skel-line-sm" />
+    <div className="shrink-0 w-[148px]" style={{ pointerEvents: "none" }}>
+      <div className="w-full h-[100px] rounded-[9px] bg-white/[0.05] animate-hm-shimmer" />
+      <div className="h-[11px] rounded-[4px] mt-2 bg-white/[0.05] animate-hm-shimmer" />
+      <div className="h-[9px] w-[55%] rounded-[4px] mt-[5px] bg-white/[0.05] animate-hm-shimmer" />
     </div>
   );
 }
@@ -133,15 +138,15 @@ function GameRow({
       onMouseEnter={() => { hoveredRef.current = true; }}
       onMouseLeave={() => { hoveredRef.current = false; }}
     >
-      <div className="hm-strip-head">
-        <h3 className="hm-section-label" style={{ fontSize: 17 }}>
+      <div className="flex items-center justify-between mb-3.5">
+        <h3 className="font-bebas text-[20px] tracking-[0.07em] text-gx-text-1 flex items-center gap-[9px] m-0" style={{ fontSize: 17 }}>
           {icon}
           {title}
         </h3>
         {!isLoading && (
-          <div className="hm-strip-arrows">
+          <div className="flex gap-[5px]">
             <button
-              className="hm-strip-arrow"
+              className="w-7 h-7 rounded-[7px] bg-white/[0.04] border border-gl-border text-gl-muted cursor-pointer flex items-center justify-center transition-all disabled:opacity-[0.22] disabled:cursor-not-allowed hover:not-disabled:bg-gl-violet/[0.18] hover:not-disabled:border-gl-violet/35 hover:not-disabled:text-gl-text"
               onClick={() => slide(-1)}
               disabled={!canLeft}
               aria-label="Scroll left"
@@ -149,7 +154,7 @@ function GameRow({
               <ChevronLeft size={14} />
             </button>
             <button
-              className="hm-strip-arrow"
+              className="w-7 h-7 rounded-[7px] bg-white/[0.04] border border-gl-border text-gl-muted cursor-pointer flex items-center justify-center transition-all disabled:opacity-[0.22] disabled:cursor-not-allowed hover:not-disabled:bg-gl-violet/[0.18] hover:not-disabled:border-gl-violet/35 hover:not-disabled:text-gl-text"
               onClick={() => slide(1)}
               disabled={!canRight}
               aria-label="Scroll right"
@@ -160,10 +165,10 @@ function GameRow({
         )}
       </div>
 
-      <div className="hm-strip-scroll-wrap">
-        {canLeft  && <div className="hm-strip-fade-l" />}
-        {canRight && <div className="hm-strip-fade-r" />}
-        <div ref={scrollRef} className="hm-strip-scroll">
+      <div className="relative">
+        {canLeft  && <div className="absolute top-0 bottom-1 left-0 w-10 pointer-events-none z-[2] bg-gradient-to-r from-gl-surface to-transparent" />}
+        {canRight && <div className="absolute top-0 bottom-1 right-0 w-10 pointer-events-none z-[2] bg-gradient-to-l from-gl-surface to-transparent" />}
+        <div ref={scrollRef} className="flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {isLoading
             ? Array.from({ length: 7 }).map((_, i) => <SkeletonTile key={i} />)
             : games.map((g) => <GameTile key={g.rawgId} game={g} upcoming={upcoming} />)}
@@ -189,14 +194,14 @@ export default function NewAndUpcoming() {
   });
 
   return (
-    <div className="hm-strip-wrap">
+    <div className="bg-gl-surface border border-gl-border rounded-[16px] px-5 py-5 pb-[18px]">
       <GameRow
         title="New Releases"
         icon={<Flame size={15} color="#fb923c" />}
         games={newReleases}
         isLoading={loadingNew}
       />
-      <div className="hm-strip-divider" />
+      <div className="h-px bg-gl-border my-[18px]" />
       <GameRow
         title="Coming Soon"
         icon={<CalendarDays size={15} color="#60a5fa" />}

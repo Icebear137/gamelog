@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Clock, Trophy, BarChart3, Download, Gamepad2 } from "lucide-react";
+import clsx from "clsx";
+import { gx } from "@/lib/gx-styles";
 import { EnvConstant } from "@/constant";
 import { getMyEntriesService } from "@/services/entry.service";
 import { useAuth } from "@/lib/auth-context";
@@ -96,11 +98,11 @@ export default function LibraryPage() {
   ];
 
   return (
-    <div className="gx-lib-page">
+    <div className="flex flex-col gap-5">
 
       {/* ── HEADER ── */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <h1 className="gx-section-label" style={{ fontSize: 24 }}>My Library</h1>
+        <h1 className={gx.sectionLabel} style={{ fontSize: 24 }}>My Library</h1>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <ExportButton />
           <AddGameModal />
@@ -109,12 +111,12 @@ export default function LibraryPage() {
 
       {/* ── STATS ── */}
       {entries.length > 0 && (
-        <div className="gx-lib-stats">
+        <div className="grid grid-cols-4 gap-2.5 max-[480px]:grid-cols-2">
           {STATS.map(({ icon, value, label, color }) => (
-            <div key={label} className="gx-lib-stat">
-              <div className="gx-lib-stat-icon">{icon}</div>
-              <p className="gx-lib-stat-val" style={{ color }}>{value}</p>
-              <p className="gx-lib-stat-lbl">{label}</p>
+            <div key={label} className="bg-gx-surface border border-gx-border rounded-xl px-4 py-3.5 text-center">
+              <div className="mb-1">{icon}</div>
+              <p className="font-bebas text-[28px] leading-none text-gx-text-1" style={{ color }}>{value}</p>
+              <p className="text-[9px] font-bold tracking-widest uppercase text-gx-text-3 mt-1">{label}</p>
             </div>
           ))}
         </div>
@@ -123,9 +125,18 @@ export default function LibraryPage() {
       {/* ── TABS + FILTERS ── */}
       <Tabs.Root defaultValue="all">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 16 }}>
-          <Tabs.List className="gx-lib-tabs">
+          <Tabs.List className="flex gap-1 bg-gx-surface border border-gx-border rounded-xl p-1 w-fit">
             {TABS.map((t) => (
-              <Tabs.Trigger key={t.value} value={t.value} className="gx-lib-tab">
+              <Tabs.Trigger
+                key={t.value}
+                value={t.value}
+                className={clsx(
+                  "px-3.5 py-[7px] rounded-[9px] text-xs font-semibold text-gx-text-2",
+                  "cursor-pointer bg-transparent border-none whitespace-nowrap transition-colors",
+                  "data-[state=active]:bg-gx-amber data-[state=active]:text-gx-ink",
+                  "data-[state=inactive]:hover:text-gx-text-1",
+                )}
+              >
                 {t.label}
               </Tabs.Trigger>
             ))}
@@ -190,7 +201,7 @@ function ExportButton() {
     <div style={{ position: "relative" }}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="gx-btn-ghost"
+        className={gx.btnGhost}
         style={{ fontSize: 12, padding: "7px 12px" }}
       >
         <Download size={13} /> Export

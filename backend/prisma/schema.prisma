@@ -59,6 +59,9 @@ model User {
   gameNightsCreated      GameNight[]           @relation("GameNightCreator")
   conversationNicknames  ConversationNickname[]
   pollVotes              PollVote[]
+  posts                  Post[]
+  postLikes              PostLike[]
+  postComments           PostComment[]
 }
 
 model Game {
@@ -562,4 +565,53 @@ model Report {
 
   @@unique([reporterId, type, targetId]) // one report per user per content item
   @@index([status, createdAt])
+}
+
+// ── Social Posts ──────────────────────────────────────────────────────────────
+
+model Post {
+  id          String        @id @default(cuid())
+  authorId    String
+  textContent String?
+  images      String        @default("[]")
+  visibility  String        @default("public")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+
+  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  likes    PostLike[]
+  comments PostComment[]
+
+  @@index([authorId, createdAt])
+  @@index([createdAt])
+}
+
+model PostLike {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+}
+
+model PostComment {
+  id        String      @id @default(cuid())
+  postId    String
+  userId    String
+  body      String
+  parentId  String?
+  createdAt DateTime    @default(now())
+  deletedAt DateTime?
+
+  post    Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent  PostComment? @relation("PostReplies", fields: [parentId], references: [id], onDelete: SetNull)
+  replies PostComment[] @relation("PostReplies")
+
+  @@index([postId, createdAt])
 }

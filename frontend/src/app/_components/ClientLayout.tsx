@@ -10,13 +10,17 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
 
   // Landing page: navbar + full-width children (no max-w container)
-  const isLanding = pathname === "/" && !user;
+  const isLanding  = pathname === "/" && !user;
+  const isAuthHome = pathname === "/" && !!user;
+  const isClubs    = pathname === "/clubs" || pathname.startsWith("/clubs/");
 
   return (
     <>
       <Navbar />
       {isLanding ? (
         <>{children}</>
+      ) : isAuthHome || isClubs ? (
+        <main style={{ width: "100%", display: "block" }}>{children}</main>
       ) : (
         <main className="max-w-5xl mx-auto px-4 py-6">{children}</main>
       )}

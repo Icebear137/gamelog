@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { MessageSquare, ArrowLeft, Clock, ThumbsUp } from "lucide-react";
 import Link from "next/link";
+import { gx } from "@/lib/gx-styles";
 import { GameReview } from "@/lib/types";
 import { getGameService, getGameReviewsService } from "@/services/game.service";
 import { ReviewCard } from "@/components/ReviewCard";
@@ -30,10 +31,10 @@ export default function GameReviewsPage({ params }: { params: Promise<{ rawgId: 
   });
 
   return (
-    <div className="gx-rv-page">
+    <div className="flex flex-col gap-5 max-w-170 mx-auto">
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <button className="gx-back-btn" onClick={() => router.back()}>
+        <button className={gx.backBtn} onClick={() => router.back()}>
           <ArrowLeft size={14} />
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -59,13 +60,18 @@ export default function GameReviewsPage({ params }: { params: Promise<{ rawgId: 
         </div>
 
         {/* Sort */}
-        <div className="gx-rv-sort-bar" style={{ flexShrink: 0 }}>
+        <div className="flex gap-1 bg-gx-surface border border-gx-border rounded-xl p-1 w-fit" style={{ flexShrink: 0 }}>
           {([
             { key: "recent"  as Sort, label: "Recent",  icon: <Clock size={11} /> },
             { key: "helpful" as Sort, label: "Helpful", icon: <ThumbsUp size={11} /> },
           ]).map((o) => (
-            <button key={o.key} onClick={() => setSort(o.key)} className="gx-rv-sort-btn"
-              data-active={sort === o.key} style={{ padding: "5px 12px", fontSize: 11 }}>
+            <button
+              key={o.key}
+              onClick={() => setSort(o.key)}
+              data-active={sort === o.key}
+              style={{ padding: "5px 12px", fontSize: 11 }}
+              className="inline-flex items-center gap-1.5 rounded-lg font-semibold bg-transparent border-none text-gx-text-2 cursor-pointer transition-[background,color] whitespace-nowrap data-[active=true]:bg-gx-amber data-[active=true]:text-gx-ink not-data-[active=true]:hover:text-gx-text-1 not-data-[active=true]:hover:bg-white/4"
+            >
               {o.icon} {o.label}
             </button>
           ))}

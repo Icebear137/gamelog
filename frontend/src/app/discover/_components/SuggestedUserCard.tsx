@@ -28,16 +28,16 @@ export default memo(function SuggestedUserCard({ user: su }: { user: SuggestedUs
   });
 
   return (
-    <div className="gx-person-card">
+    <div className="group flex items-center gap-3 rounded-xl border border-gx-border bg-gx-surface px-3.5 py-3 transition-colors hover:border-gx-border-md">
       <Link href={`/user/${su.username}`} style={{ flexShrink: 0 }}>
         <Avatar src={su.avatar} username={su.username} />
       </Link>
       <div style={{ flex: 1, minWidth: 0 }}>
         <Link href={`/user/${su.username}`} style={{ textDecoration: "none" }}>
-          <p className="gx-person-name">{su.username}</p>
+          <p className="text-[13px] font-bold text-gx-text-1 transition-colors group-hover:text-gx-amber">{su.username}</p>
         </Link>
-        {su.bio && <p className="gx-person-bio">{su.bio}</p>}
-        <p className="gx-person-common">
+        {su.bio && <p className="truncate text-[11px] text-gx-text-2">{su.bio}</p>}
+        <p className="mt-0.5 text-[10px] font-semibold text-gx-teal">
           {su.commonGames} game{su.commonGames !== 1 ? "s" : ""} in common
         </p>
       </div>

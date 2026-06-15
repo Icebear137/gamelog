@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import clsx from "clsx";
 import DOMPurify from "dompurify";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -20,6 +21,7 @@ import Avatar from "@/components/Avatar";
 import { ClubRichEditor } from "@/components/ClubRichEditor";
 import { getSocket } from "@/lib/socket-client";
 import { ReportModal } from "@/components/ReportModal";
+import { gx } from "@/lib/gx-styles";
 
 type Sort = "newest" | "popular" | "trending";
 
@@ -94,13 +96,16 @@ function ReactionBar({ post, clubId, currentUserId, onUpdate }: {
     <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", position: "relative" }}>
       {Object.entries(grouped).map(([emoji, { count, mine }]) => (
         <button key={emoji} onClick={() => currentUserId && mutation.mutate(emoji)}
-          className={`gx-club-reaction ${mine ? "gx-club-reaction-mine" : ""}`}>
+          className={clsx(
+            "inline-flex items-center gap-1 px-2.25 py-0.75 rounded-[20px] text-[11px] border border-gx-border bg-white/3 text-gx-text-2 cursor-pointer transition-all hover:border-gx-border-md",
+            mine && "bg-gx-amber/13! border-gx-amber/30! text-gx-amber!"
+          )}>
           {emoji} <span>{count}</span>
         </button>
       ))}
       {currentUserId && (
         <div style={{ position: "relative" }}>
-          <button onClick={() => setShowPicker((v) => !v)} className="gx-club-emoji-btn">
+          <button onClick={() => setShowPicker((v) => !v)} className="p-1.25 rounded-lg text-gx-text-3 bg-none border-none cursor-pointer transition-[color,background] hover:text-gx-amber hover:bg-gx-amber/13">
             <Smile size={14} />
           </button>
           {showPicker && (
@@ -199,9 +204,12 @@ function PostCard({ post, clubId, currentUserId, isAdmin, isPinned, onPin, onUpd
   const canPin    = isAdmin;
 
   return (
-    <div className={`gx-club-post ${isPinned ? "gx-club-post-pinned" : ""}`}>
+    <div className={clsx(
+      "bg-gx-surface border border-gx-border rounded-[14px] px-5 py-4.5 transition-colors",
+      isPinned && "border-gx-amber/30 bg-linear-to-br from-gx-amber/4 to-transparent"
+    )}>
       {isPinned && (
-        <div className="gx-club-pin-label">
+        <div className="flex items-center gap-1.25 text-[10px] text-gx-amber font-bold tracking-[0.08em] uppercase mb-3">
           <Pin size={10} /> Pinned post
         </div>
       )}
@@ -289,7 +297,7 @@ function PostCard({ post, clubId, currentUserId, isAdmin, isPinned, onPin, onUpd
               Cancel
             </button>
             <button onClick={() => editMutation.mutate()} disabled={!editHtml.trim() || editMutation.isPending}
-              className="gx-btn-primary" style={{ padding: "6px 16px" }}>
+              className={gx.btnPrimary} style={{ padding: "6px 16px" }}>
               <Check size={13} /> Save
             </button>
           </div>
@@ -304,13 +312,16 @@ function PostCard({ post, clubId, currentUserId, isAdmin, isPinned, onPin, onUpd
       {/* Actions */}
       <div style={{ display: "flex", alignItems: "center", gap: 4, paddingTop: 10, borderTop: "1px solid var(--gx-border)", marginTop: 4 }}>
         <button onClick={() => currentUserId && likeMutation.mutate()}
-          className={`gx-club-action-btn ${liked ? "gx-club-action-liked" : ""}`}>
+          className={clsx(
+            "inline-flex items-center gap-1.5 text-[12px] text-gx-text-3 bg-none border-none cursor-pointer transition-colors px-2 py-1.25 rounded-md hover:text-gx-text-2 hover:bg-white/4",
+            liked && "text-gx-red!"
+          )}>
           <Heart size={13} fill={liked ? "currentColor" : "none"} />
           {likeCount > 0 && <span>{likeCount}</span>}
           Like
         </button>
         <button onClick={() => setShowComments((v) => !v)}
-          className="gx-club-action-btn gx-club-action-comment">
+          className="inline-flex items-center gap-1.5 text-[12px] text-gx-text-3 bg-none border-none cursor-pointer transition-colors px-2 py-1.25 rounded-md hover:text-gx-amber hover:bg-gx-amber/13">
           <MessageCircle size={13} />
           {post._count.comments > 0 ? post._count.comments : ""} Comment
         </button>
@@ -322,8 +333,8 @@ function PostCard({ post, clubId, currentUserId, isAdmin, isPinned, onPin, onUpd
           {(comments as any[]).map((c: any) => (
             <div key={c.id} className="group" style={{ display: "flex", gap: 10 }}>
               <Avatar src={c.user.avatar} username={c.user.username} size="sm" />
-              <div className="gx-club-comment-bubble">
-                <p className="gx-club-comment-author">{c.user.username}</p>
+              <div className="flex-1 bg-gx-surface-2 rounded-[10px] px-3 py-2">
+                <p className="text-[11px] font-bold text-gx-amber mb-0.5">{c.user.username}</p>
                 <p style={{ fontSize: 12, color: "var(--gx-text-2)", margin: 0, lineHeight: 1.5 }}>{c.body}</p>
               </div>
               {currentUserId && c.user.id !== currentUserId && (
@@ -336,11 +347,11 @@ function PostCard({ post, clubId, currentUserId, isAdmin, isPinned, onPin, onUpd
               <input value={commentBody} onChange={(e) => setCommentBody(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && commentBody.trim()) { e.preventDefault(); commentMutation.mutate(); } }}
                 placeholder="Write a comment…"
-                className="gx-club-input"
+                className="w-full bg-gx-surface-2 border border-gx-border rounded-[10px] px-3 py-2.25 text-[13px] text-gx-text-1 outline-none transition-colors focus:border-gx-amber/30 placeholder:text-gx-text-3"
                 style={{ flex: 1 }}
               />
               <button onClick={() => commentMutation.mutate()} disabled={!commentBody.trim() || commentMutation.isPending}
-                className="gx-comment-send">
+                className="inline-flex items-center gap-1.75 px-5 py-2 bg-gx-amber border-none rounded-[9px] text-gx-ink text-[13px] font-bold cursor-pointer transition-colors hover:bg-[#f5a33a] disabled:opacity-40 disabled:cursor-not-allowed">
                 <Send size={13} />
               </button>
             </div>
@@ -375,10 +386,13 @@ function MemberRow({ m, isOnline, isAdmin, isCreator, currentUserId, creatorId, 
   }
 
   return (
-    <div className="gx-club-member-row group">
+    <div className="flex items-center gap-2 py-1.25 relative group">
       <div style={{ position: "relative", flexShrink: 0 }}>
         <Avatar src={m.user.avatar} username={m.user.username} size="sm" />
-        <span className={`gx-club-online-dot ${isOnline ? "gx-club-online-yes" : "gx-club-online-no"}`} />
+        <span className={clsx(
+          "absolute bottom-0.75 right-0.75 w-2.25 h-2.25 rounded-full border-[1.5px] border-gx-surface",
+          isOnline ? "bg-gx-green" : "bg-gx-text-3"
+        )} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
@@ -485,7 +499,7 @@ function MembersSidebar({ club, currentUserId, onUpdate, onlineSet }: {
     const [open, setOpen] = useState(true);
     return (
       <div style={{ marginBottom: 8 }}>
-        <button onClick={() => setOpen((v) => !v)} className="gx-club-group-header">
+        <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between text-[10px] font-semibold tracking-widest uppercase text-gx-text-3 py-1 bg-none border-none cursor-pointer transition-colors hover:text-gx-text-2">
           <span>{title}{count != null ? ` — ${count}` : ""}</span>
           <ChevronDown size={11} style={{ transition: "transform 0.15s", transform: open ? "none" : "rotate(-90deg)" }} />
         </button>
@@ -497,18 +511,16 @@ function MembersSidebar({ club, currentUserId, onUpdate, onlineSet }: {
   }
 
   return (
-    <div style={{ width: 220, flexShrink: 0 }} className="hidden lg:block">
-      <div className="gx-club-sidebar-card">
-        <div className="gx-club-sidebar-title">
-          <Users size={12} style={{ color: "var(--gx-amber)" }} />
-          Members
-          <span className="gx-club-sidebar-count">{club._count.members}</span>
-        </div>
-        <div style={{ maxHeight: "60vh", overflowY: "auto" }}>
-          {online.length > 0  && <Group title="Online"  members={online}  count={online.length} />}
-          {offline.length > 0 && <Group title="Offline" members={offline} />}
-          {banned.length > 0  && <Group title="Banned"  members={banned}  count={banned.length} />}
-        </div>
+    <div className="bg-gx-surface border border-gx-border rounded-[14px] p-3.5">
+      <div className="text-[10px] font-bold tracking-[0.12em] uppercase text-gx-text-3 mb-3 flex items-center gap-1.5">
+        <Users size={12} style={{ color: "var(--gx-amber)" }} />
+        Members
+        <span className="ml-auto">{club._count.members}</span>
+      </div>
+      <div style={{ maxHeight: "60vh", overflowY: "auto" }}>
+        {online.length > 0  && <Group title="Online"  members={online}  count={online.length} />}
+        {offline.length > 0 && <Group title="Offline" members={offline} />}
+        {banned.length > 0  && <Group title="Banned"  members={banned}  count={banned.length} />}
       </div>
     </div>
   );
@@ -541,7 +553,7 @@ function GamePickerInline({ selected, onSelect }: {
 
   return (
     <div ref={wrapRef}>
-      <label className="gx-club-label">Linked game</label>
+      <label className="text-[10px] font-bold tracking-widest uppercase text-gx-text-3 mb-1.25 block">Linked game</label>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {selected?.coverImage && (
           <img src={selected.coverImage} alt={selected.name} style={{ width: 24, height: 32, objectFit: "cover", borderRadius: 4, flexShrink: 0 }} />
@@ -550,7 +562,7 @@ function GamePickerInline({ selected, onSelect }: {
           onChange={(e) => { setQ(e.target.value); onSelect(null); openDrop(); }}
           onFocus={() => { if (q.length >= 2 && !selected) openDrop(); }}
           placeholder="Search and link a game…"
-          className="gx-club-input" style={{ flex: 1 }}
+          className="w-full bg-gx-surface-2 border border-gx-border rounded-[10px] px-3 py-2.25 text-[13px] text-gx-text-1 outline-none transition-colors focus:border-gx-amber/30 placeholder:text-gx-text-3" style={{ flex: 1 }}
         />
         {selected && (
           <button onClick={() => { onSelect(null); setQ(""); setOpen(false); }}
@@ -584,14 +596,15 @@ function GamePickerInline({ selected, onSelect }: {
   );
 }
 
-// ── Club header ───────────────────────────────────────────────────────────────
-function ClubHeader({ club, isAdmin, user, onJoin, joinPending, onUpdate }: {
+// ── Club info panel (left sidebar) ────────────────────────────────────────────
+function ClubInfoPanel({ club, isAdmin, user, onJoin, joinPending, onUpdate, onBack }: {
   club: ClubDetail;
   isAdmin: boolean;
   user: { id: string; username: string; avatar?: string } | null;
   onJoin: () => void;
   joinPending: boolean;
   onUpdate: () => void;
+  onBack: () => void;
 }) {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [editing, setEditing]       = useState(false);
@@ -602,6 +615,8 @@ function ClubHeader({ club, isAdmin, user, onJoin, joinPending, onUpdate }: {
     club.game ? { id: "", rawgId: club.game.rawgId, name: club.game.name, coverImage: club.game.coverImage } : null
   );
   const [uploading, setUploading]   = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [reportingClub, setReportingClub] = useState(false);
 
   useEffect(() => {
     if (!editing) {
@@ -632,9 +647,6 @@ function ClubHeader({ club, isAdmin, user, onJoin, joinPending, onUpdate }: {
     onError: (err: any) => dispatchToast(err?.response?.data?.error ?? "Failed to delete", "error"),
   });
 
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [reportingClub, setReportingClub] = useState(false);
-
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -653,129 +665,244 @@ function ClubHeader({ club, isAdmin, user, onJoin, joinPending, onUpdate }: {
     }
   }
 
-  const coverImage = club.game?.coverImage;
+  const coverImage = club.game?.coverImage ?? club.avatar ?? null;
 
   return (
-    <div className="gx-club-header">
+    <aside className="flex flex-col gap-3 sticky top-18">
       <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
 
-      {/* Ghosted cover bg */}
-      {coverImage && (
-        <div className="gx-club-header-bg">
-          <img src={coverImage} alt="" />
-        </div>
-      )}
+      {/* Back button */}
+      <button onClick={onBack} className={gx.backBtn}>
+        <ArrowLeft size={14} /> All Clubs
+      </button>
 
-      <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14 }}>
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 14, flex: 1, minWidth: 0 }}>
-          {/* Avatar */}
-          <div className="gx-club-avatar-wrap">
+      {/* Club identity card */}
+      <div className="bg-gx-surface border border-gx-border rounded-[14px]">
+        {/* Banner */}
+        <div className="relative h-22 bg-gx-surface-2 overflow-hidden rounded-t-[13px]">
+          {coverImage ? (
+            <>
+              <img src={coverImage} alt="" className="absolute inset-0 w-full h-full object-cover scale-110 opacity-[0.35] blur-sm" />
+              <div className="absolute inset-0 bg-linear-to-b from-transparent to-gx-surface/85" />
+            </>
+          ) : (
+            <div className="absolute inset-0 bg-linear-to-br from-gx-amber/8 to-transparent" />
+          )}
+        </div>
+
+        {/* Avatar — outside banner so overflow-hidden doesn't clip it */}
+        <div className="px-4 -mt-5.5 mb-1">
+          <div className="relative w-11 h-11">
             {club.avatar || club.game?.coverImage ? (
-              <img src={club.avatar ?? club.game!.coverImage!} alt={club.name} className="gx-club-avatar" />
+              <img
+                src={club.avatar ?? club.game!.coverImage!}
+                alt={club.name}
+                className="w-11 h-11 rounded-xl object-cover border-2 border-gx-surface block"
+              />
             ) : (
-              <div className="gx-club-avatar-placeholder">
-                <Users size={22} style={{ color: "var(--gx-amber)" }} />
+              <div className="w-11 h-11 rounded-xl bg-gx-amber/13 border-2 border-gx-surface flex items-center justify-center">
+                <Users size={18} style={{ color: "var(--gx-amber)" }} />
               </div>
             )}
             {isAdmin && (
-              <button onClick={() => avatarInputRef.current?.click()} disabled={uploading} className="gx-club-avatar-overlay" title="Change avatar">
+              <button
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={uploading}
+                className="absolute inset-0 rounded-xl bg-[rgba(0,0,0,0.55)] opacity-0 flex items-center justify-center transition-opacity hover:opacity-100"
+                title="Change avatar"
+              >
                 {uploading
-                  ? <span style={{ width: 16, height: 16, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", animation: "spin 0.6s linear infinite", display: "block" }} />
-                  : <ImageIcon size={16} style={{ color: "#fff" }} />}
+                  ? <span style={{ width: 12, height: 12, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", animation: "spin 0.6s linear infinite", display: "block" }} />
+                  : <ImageIcon size={12} style={{ color: "#fff" }} />}
               </button>
             )}
           </div>
+        </div>
 
-          {/* Info / edit form */}
+        {/* Card body */}
+        <div className="px-4 pb-4 flex flex-col gap-3">
           {editing ? (
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
-              <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder="Club name" className="gx-club-input" style={{ fontWeight: 700 }} />
-              <textarea value={desc} onChange={(e) => setDesc(e.target.value)} maxLength={500} rows={2} placeholder="Description (optional)" className="gx-club-input" style={{ resize: "none" }} />
-              <input value={genre} onChange={(e) => setGenre(e.target.value)} maxLength={40} placeholder="Genre / Topic (e.g. RPG, Action…)" className="gx-club-input" />
+            <div className="flex flex-col gap-2.5">
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                maxLength={80}
+                placeholder="Club name"
+                className="w-full bg-gx-surface-2 border border-gx-border rounded-[10px] px-3 py-2.25 text-[13px] text-gx-text-1 outline-none transition-colors focus:border-gx-amber/30 placeholder:text-gx-text-3"
+                style={{ fontWeight: 700 }}
+              />
+              <textarea
+                value={desc}
+                onChange={(e) => setDesc(e.target.value)}
+                maxLength={500}
+                rows={3}
+                placeholder="Description (optional)"
+                className="w-full bg-gx-surface-2 border border-gx-border rounded-[10px] px-3 py-2.25 text-[13px] text-gx-text-1 outline-none transition-colors focus:border-gx-amber/30 placeholder:text-gx-text-3"
+                style={{ resize: "none" }}
+              />
+              <input
+                value={genre}
+                onChange={(e) => setGenre(e.target.value)}
+                maxLength={40}
+                placeholder="Genre / Topic (e.g. RPG, Action…)"
+                className="w-full bg-gx-surface-2 border border-gx-border rounded-[10px] px-3 py-2.25 text-[13px] text-gx-text-1 outline-none transition-colors focus:border-gx-amber/30 placeholder:text-gx-text-3"
+              />
               <GamePickerInline selected={linkedGame} onSelect={setLinkedGame} />
-              <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={() => saveMutation.mutate()} disabled={!name.trim() || saveMutation.isPending}
-                  className="gx-btn-primary" style={{ padding: "6px 16px" }}>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => saveMutation.mutate()}
+                  disabled={!name.trim() || saveMutation.isPending}
+                  className={gx.btnPrimary}
+                  style={{ padding: "6px 16px", flex: 1, justifyContent: "center" }}
+                >
                   <Check size={13} /> Save
                 </button>
-                <button onClick={() => setEditing(false)}
-                  style={{ padding: "6px 14px", borderRadius: 8, fontSize: 13, color: "var(--gx-text-2)", background: "none", border: "none", cursor: "pointer" }}>
+                <button
+                  onClick={() => setEditing(false)}
+                  style={{ padding: "6px 14px", borderRadius: 8, fontSize: 13, color: "var(--gx-text-2)", background: "none", border: "none", cursor: "pointer" }}
+                >
                   Cancel
                 </button>
               </div>
             </div>
           ) : (
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <h1 className="gx-club-name-bebas">{club.name}</h1>
+            <>
+              <div className="flex items-start justify-between gap-2">
+                <h1 className="font-bebas text-[22px] tracking-[0.04em] text-gx-text-1 leading-[1.15] m-0">{club.name}</h1>
                 {isAdmin && (
-                  <button onClick={() => setEditing(true)}
-                    style={{ padding: 4, color: "var(--gx-text-3)", background: "none", border: "none", cursor: "pointer", flexShrink: 0, transition: "color 0.15s" }}
+                  <button
+                    onClick={() => setEditing(true)}
+                    style={{ padding: 4, color: "var(--gx-text-3)", background: "none", border: "none", cursor: "pointer", flexShrink: 0, transition: "color 0.15s", marginTop: 2 }}
                     title="Edit club info"
                     onMouseEnter={(e) => (e.currentTarget.style.color = "var(--gx-amber)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = "var(--gx-text-3)")}>
-                    <Pencil size={13} />
+                    onMouseLeave={(e) => (e.currentTarget.style.color = "var(--gx-text-3)")}
+                  >
+                    <Pencil size={12} />
                   </button>
                 )}
               </div>
+
               {club.description && (
-                <p className="gx-club-desc-text" style={{ marginTop: 4, marginBottom: 0 }}>{club.description}</p>
+                <p className="text-[12px] text-gx-text-2 leading-[1.6] m-0">{club.description}</p>
               )}
-              <div className="gx-club-meta-row" style={{ marginTop: 8 }}>
-                {club.genre && <span className="gx-club-meta-item"><Tag size={10} /> {club.genre}</span>}
-                <span className="gx-club-meta-item"><Users size={10} /> {club._count.members} members</span>
-                {isAdmin && <span className="gx-club-meta-item gx-club-meta-admin"><Shield size={10} /> Admin</span>}
+
+              <div className="flex flex-col gap-1.5">
+                {club.genre && (
+                  <span className="flex items-center gap-1.5 text-[11px] text-gx-text-3">
+                    <Tag size={10} /> {club.genre}
+                  </span>
+                )}
+                <span className="flex items-center gap-1.5 text-[11px] text-gx-text-3">
+                  <Users size={10} /> {club._count.members} members
+                </span>
+                <span className="flex items-center gap-1.5 text-[11px] text-gx-text-3">
+                  <MessageCircle size={10} /> {club._count.posts} posts
+                </span>
+                {isAdmin && (
+                  <span className="flex items-center gap-1.5 text-[11px] text-gx-amber">
+                    <Shield size={10} /> Admin
+                  </span>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Join / Leave */}
+          {!editing && user && (
+            <button
+              onClick={onJoin}
+              disabled={joinPending}
+              className={clsx(
+                "w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[13px] font-bold cursor-pointer transition-all border",
+                club.isMember
+                  ? "bg-gx-surface-2 text-gx-text-2 border-gx-border-md hover:border-gx-red/30 hover:text-gx-red"
+                  : "bg-gx-amber/13 text-gx-amber border-gx-amber/30 hover:bg-gx-amber/25"
+              )}
+            >
+              {club.isMember ? <><UserMinus size={14} /> Leave Club</> : <><UserPlus size={14} /> Join Club</>}
+            </button>
+          )}
+
+          {/* Report */}
+          {!editing && user && !isAdmin && club.isMember && (
+            <button
+              onClick={() => setReportingClub(true)}
+              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] text-gx-text-3 border border-gx-border bg-transparent cursor-pointer transition-all hover:text-gx-amber hover:border-gx-amber/30"
+            >
+              <Flag size={12} /> Report Club
+            </button>
+          )}
+          {reportingClub && <ReportModal type="CLUB" targetId={club.id} onClose={() => setReportingClub(false)} />}
+
+          {/* Delete */}
+          {!editing && isAdmin && !confirmDelete && (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] text-gx-red border border-gx-red/20 bg-transparent cursor-pointer transition-all hover:bg-gx-red/8"
+            >
+              <Trash2 size={12} /> Delete Club
+            </button>
+          )}
+          {!editing && isAdmin && confirmDelete && (
+            <div style={{ padding: 12, background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+              <p style={{ fontSize: 12, color: "var(--gx-red)", fontWeight: 600, margin: 0 }}>Delete this club?</p>
+              <p style={{ fontSize: 10, color: "var(--gx-text-3)", margin: 0 }}>All posts and members will be removed.</p>
+              <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
+                <button
+                  onClick={() => deleteMutation.mutate()}
+                  disabled={deleteMutation.isPending}
+                  style={{ flex: 1, padding: "5px 0", borderRadius: 7, fontSize: 11, background: "#DC2626", color: "#fff", border: "none", cursor: "pointer", fontWeight: 600, opacity: deleteMutation.isPending ? 0.5 : 1 }}
+                >
+                  {deleteMutation.isPending ? "Deleting…" : "Delete"}
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  style={{ flex: 1, padding: "5px 0", borderRadius: 7, fontSize: 11, background: "var(--gx-surface-2)", color: "var(--gx-text-2)", border: "none", cursor: "pointer" }}
+                >
+                  Cancel
+                </button>
               </div>
             </div>
           )}
         </div>
-
-        {/* Join/leave + actions */}
-        {!editing && user && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }}>
-            <button onClick={onJoin} disabled={joinPending}
-              className={`gx-club-join-btn ${club.isMember ? "gx-club-join-member" : "gx-club-join-idle"}`}>
-              {club.isMember ? <><UserMinus size={14} /> Leave</> : <><UserPlus size={14} /> Join</>}
-            </button>
-
-            {user && !isAdmin && club.isMember && (
-              <button onClick={() => setReportingClub(true)}
-                style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 8, fontSize: 12, color: "var(--gx-text-3)", border: "1px solid var(--gx-border)", background: "none", cursor: "pointer", transition: "color 0.15s, border-color 0.15s" }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = "var(--gx-amber)"; e.currentTarget.style.borderColor = "var(--gx-amber-glow)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = "var(--gx-text-3)"; e.currentTarget.style.borderColor = "var(--gx-border)"; }}>
-                <Flag size={13} /> Report
-              </button>
-            )}
-            {reportingClub && <ReportModal type="CLUB" targetId={club.id} onClose={() => setReportingClub(false)} />}
-
-            {isAdmin && !confirmDelete && (
-              <button onClick={() => setConfirmDelete(true)}
-                style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 8, fontSize: 12, color: "var(--gx-red)", border: "1px solid rgba(239,68,68,0.2)", background: "none", cursor: "pointer", transition: "background 0.15s" }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(239,68,68,0.08)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "none")}>
-                <Trash2 size={14} /> Delete club
-              </button>
-            )}
-            {isAdmin && confirmDelete && (
-              <div style={{ padding: 12, background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 10, display: "flex", flexDirection: "column", gap: 6 }}>
-                <p style={{ fontSize: 12, color: "var(--gx-red)", fontWeight: 600, margin: 0 }}>Delete this club?</p>
-                <p style={{ fontSize: 10, color: "var(--gx-text-3)", margin: 0 }}>All posts and members will be removed.</p>
-                <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
-                  <button onClick={() => deleteMutation.mutate()} disabled={deleteMutation.isPending}
-                    style={{ flex: 1, padding: "5px 0", borderRadius: 7, fontSize: 11, background: "#DC2626", color: "#fff", border: "none", cursor: "pointer", fontWeight: 600, opacity: deleteMutation.isPending ? 0.5 : 1 }}>
-                    {deleteMutation.isPending ? "Deleting…" : "Delete"}
-                  </button>
-                  <button onClick={() => setConfirmDelete(false)}
-                    style={{ flex: 1, padding: "5px 0", borderRadius: 7, fontSize: 11, background: "var(--gx-surface-2)", color: "var(--gx-text-2)", border: "none", cursor: "pointer" }}>
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
-    </div>
+
+      {/* Linked game card */}
+      {club.game && !editing && (
+        <div className={gx.sectionCard}>
+          <p className={gx.sectionCardTitle}>Linked Game</p>
+          <Link
+            href={`/game/${club.game.rawgId}`}
+            className="flex items-center gap-2.5 no-underline group"
+          >
+            {club.game.coverImage && (
+              <img
+                src={club.game.coverImage}
+                alt={club.game.name}
+                className="w-7.5 h-10 rounded-[5px] object-cover shrink-0"
+              />
+            )}
+            <span className="text-[12px] font-semibold text-gx-text-2 transition-colors group-hover:text-gx-amber leading-[1.4]">
+              {club.game.name}
+            </span>
+          </Link>
+        </div>
+      )}
+
+      {/* Creator card */}
+      <div className={gx.sectionCard}>
+        <p className={gx.sectionCardTitle}>Created By</p>
+        <Link
+          href={`/user/${club.creator.username}`}
+          className="flex items-center gap-2 no-underline group"
+        >
+          <Avatar src={club.creator.avatar} username={club.creator.username} size="sm" />
+          <span className="text-[13px] font-semibold text-gx-text-2 transition-colors group-hover:text-gx-amber">
+            {club.creator.username}
+          </span>
+        </Link>
+      </div>
+    </aside>
   );
 }
 
@@ -887,7 +1014,7 @@ export default function ClubDetailPage({ params }: { params: Promise<{ id: strin
           If you believe this is a mistake, contact a club admin.
         </p>
       </div>
-      <button onClick={() => router.push("/clubs")} className="gx-btn-ghost" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <button onClick={() => router.push("/clubs")} className={gx.btnGhost} style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <ArrowLeft size={14} /> Back to Clubs
       </button>
     </div>
@@ -896,89 +1023,92 @@ export default function ClubDetailPage({ params }: { params: Promise<{ id: strin
   const isAdmin = club.myRole === "admin";
 
   return (
-    <div style={{ maxWidth: 1040, margin: "0 auto" }}>
-      <button onClick={() => router.push("/clubs")} className="gx-back-btn" style={{ marginBottom: 20 }}>
-        <ArrowLeft size={14} /> All Clubs
-      </button>
+    <div className="grid grid-cols-[260px_1fr_220px] gap-5 items-start px-4 py-6">
+      {/* Left: club info panel */}
+      <ClubInfoPanel
+        club={club}
+        isAdmin={isAdmin}
+        user={user}
+        onJoin={() => joinMutation.mutate()}
+        joinPending={joinMutation.isPending}
+        onUpdate={() => refetchClub()}
+        onBack={() => router.push("/clubs")}
+      />
 
-      <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
-        {/* Main column */}
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 16 }}>
-          <ClubHeader club={club} isAdmin={isAdmin} user={user} onJoin={() => joinMutation.mutate()} joinPending={joinMutation.isPending} onUpdate={() => refetchClub()} />
+      {/* Center: posts feed */}
+      <div className="flex flex-col gap-4 min-w-0">
+        {/* Pinned post */}
+        {club.pinnedPost && (
+          <PostCard
+            post={club.pinnedPost as ClubPost}
+            clubId={id}
+            currentUserId={user?.id}
+            isAdmin={isAdmin}
+            isPinned
+            onPin={() => pinMutation.mutate(club.pinnedPost!.id)}
+            onUpdate={handleUpdatePost}
+            onDelete={() => handleDeletePost(club.pinnedPost!.id)}
+          />
+        )}
 
-          {/* Pinned post */}
-          {club.pinnedPost && (
-            <PostCard
-              post={club.pinnedPost as ClubPost}
-              clubId={id}
-              currentUserId={user?.id}
-              isAdmin={isAdmin}
-              isPinned
-              onPin={() => pinMutation.mutate(club.pinnedPost!.id)}
-              onUpdate={handleUpdatePost}
-              onDelete={() => handleDeletePost(club.pinnedPost!.id)}
-            />
-          )}
-
-          {/* Post composer */}
-          {user && club.isMember && (
-            <div className="gx-club-compose">
-              <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
-                <Avatar src={user.avatar} username={user.username} size="sm" />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <ClubRichEditor key={editorKey} content="" onChange={handleEditorChange} placeholder="Share something with the club…" minHeight={100} />
-                </div>
-              </div>
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button onClick={() => postMutation.mutate()} disabled={!postHtml.trim() || postMutation.isPending}
-                  className="gx-club-compose-send">
-                  <Send size={13} /> Post
-                </button>
+        {/* Post composer */}
+        {user && club.isMember && (
+          <div className="bg-gx-surface border border-gx-border rounded-[14px] p-4">
+            <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
+              <Avatar src={user.avatar} username={user.username} size="sm" />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <ClubRichEditor key={editorKey} content="" onChange={handleEditorChange} placeholder="Share something with the club…" minHeight={100} />
               </div>
             </div>
-          )}
-
-          {/* Sort tabs */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ display: "flex", gap: 6 }}>
-              {SORT_OPTIONS.map(({ key, label, icon }) => (
-                <button key={key} onClick={() => setSort(key)} className="gx-club-sort-pill" data-active={sort === key}>
-                  {icon} {label}
-                </button>
-              ))}
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <button onClick={() => postMutation.mutate()} disabled={!postHtml.trim() || postMutation.isPending}
+                className="inline-flex items-center gap-1.75 px-5 py-2 bg-gx-amber border-none rounded-[9px] text-gx-ink text-[13px] font-bold cursor-pointer transition-colors hover:bg-[#f5a33a] disabled:opacity-40 disabled:cursor-not-allowed">
+                <Send size={13} /> Post
+              </button>
             </div>
-            <span style={{ fontSize: 12, color: "var(--gx-text-3)" }}>
-              {allPosts.length} post{allPosts.length !== 1 ? "s" : ""}
-            </span>
           </div>
+        )}
 
-          {/* Posts */}
-          {allPosts.length === 0 && (
-            <div style={{ textAlign: "center", padding: "48px 24px", background: "var(--gx-surface)", border: "1px solid var(--gx-border)", borderRadius: 14 }}>
-              <p style={{ fontSize: 13, color: "var(--gx-text-3)" }}>
-                {club.isMember ? "No posts yet — start the discussion!" : "Join the club to see and post discussions."}
-              </p>
-            </div>
-          )}
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {allPosts.filter((p) => p.id !== club.pinnedPostId).map((p) => (
-              <PostCard key={p.id} post={p} clubId={id} currentUserId={user?.id}
-                isAdmin={isAdmin} isPinned={false}
-                onPin={() => pinMutation.mutate(p.id)}
-                onUpdate={handleUpdatePost}
-                onDelete={() => handleDeletePost(p.id)}
-              />
+        {/* Sort tabs */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", gap: 6 }}>
+            {SORT_OPTIONS.map(({ key, label, icon }) => (
+              <button key={key} onClick={() => setSort(key)} className="inline-flex items-center gap-1.5 px-3.5 py-1.75 rounded-[10px] text-[12px] font-semibold bg-gx-surface border border-gx-border text-gx-text-2 cursor-pointer transition-all data-[active=true]:bg-gx-amber data-[active=true]:border-gx-amber data-[active=true]:text-gx-ink" data-active={sort === key}>
+                {icon} {label}
+              </button>
             ))}
           </div>
+          <span style={{ fontSize: 12, color: "var(--gx-text-3)" }}>
+            {allPosts.length} post{allPosts.length !== 1 ? "s" : ""}
+          </span>
         </div>
 
-        {/* Right column */}
-        <div style={{ width: 220, flexShrink: 0 }} className="hidden lg:flex flex-col gap-4">
-          <MembersSidebar club={club} currentUserId={user?.id} onUpdate={() => refetchClub()} onlineSet={onlineSet} />
-          {isAdmin && <ClubReportsPanel clubId={id} />}
+        {/* Posts */}
+        {allPosts.length === 0 && (
+          <div style={{ textAlign: "center", padding: "48px 24px", background: "var(--gx-surface)", border: "1px solid var(--gx-border)", borderRadius: 14 }}>
+            <p style={{ fontSize: 13, color: "var(--gx-text-3)" }}>
+              {club.isMember ? "No posts yet — start the discussion!" : "Join the club to see and post discussions."}
+            </p>
+          </div>
+        )}
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {allPosts.filter((p) => p.id !== club.pinnedPostId).map((p) => (
+            <PostCard key={p.id} post={p} clubId={id} currentUserId={user?.id}
+              isAdmin={isAdmin} isPinned={false}
+              onPin={() => pinMutation.mutate(p.id)}
+              onUpdate={handleUpdatePost}
+              onDelete={() => handleDeletePost(p.id)}
+            />
+          ))}
         </div>
       </div>
+
+      {/* Right: members + reports */}
+      <aside className="flex flex-col gap-3 sticky top-18">
+        <MembersSidebar club={club} currentUserId={user?.id} onUpdate={() => refetchClub()} onlineSet={onlineSet} />
+        {isAdmin && <ClubReportsPanel clubId={id} />}
+      </aside>
     </div>
   );
 }

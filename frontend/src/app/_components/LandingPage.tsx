@@ -24,7 +24,7 @@ const GAME_CARDS = [
     coverGrad: "linear-gradient(145deg,#1a0533 0%,#3b1260 60%,#5b1fa0 100%)",
     avatarBg: "#6D28D9",
     top: "0px", right: "32px",
-    floatClass: "gl-card-float-a",
+    floatClass: "animate-float-a",
     zIndex: 30,
   },
   {
@@ -41,7 +41,7 @@ const GAME_CARDS = [
     coverGrad: "linear-gradient(145deg,#0c1a33 0%,#0e2a52 60%,#1a4080 100%)",
     avatarBg: "#0E7490",
     top: "190px", right: "218px",
-    floatClass: "gl-card-float-b",
+    floatClass: "animate-[gl-float-b_9s_ease-in-out_infinite_1.2s]",
     zIndex: 20,
   },
   {
@@ -58,7 +58,7 @@ const GAME_CARDS = [
     coverGrad: "linear-gradient(145deg,#0c1f12 0%,#133a1c 60%,#1e5a2a 100%)",
     avatarBg: "#065F46",
     top: "346px", right: "14px",
-    floatClass: "gl-card-float-c",
+    floatClass: "animate-[gl-float-c_6s_ease-in-out_infinite_0.6s]",
     zIndex: 10,
   },
 ];
@@ -144,11 +144,11 @@ const FOOTER_LINKS = [
 function GameCard({ card }: { card: typeof GAME_CARDS[number] }) {
   return (
     <div
-      className={`gl-game-card ${card.floatClass}`}
+      className={`absolute w-[218px] bg-[rgba(13,13,26,0.92)] border border-white/10 rounded-[16px] overflow-hidden shadow-[0_28px_64px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.05)] backdrop-blur-[16px] ${card.floatClass}`}
       style={{ top: card.top, right: card.right, zIndex: card.zIndex, position: "absolute" }}
     >
-      <div className="gl-card-cover" style={{ background: card.coverGrad }}>
-        <div className="gl-card-cover-shade" />
+      <div className="h-24 relative flex items-end p-[10px_12px]" style={{ background: card.coverGrad }}>
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[rgba(13,13,26,0.75)]" />
         <div style={{ position: "relative", zIndex: 1 }}>
           <div style={{
             width: 30, height: 30, borderRadius: 7,
@@ -163,11 +163,11 @@ function GameCard({ card }: { card: typeof GAME_CARDS[number] }) {
         </div>
       </div>
 
-      <div className="gl-card-body">
-        <p className="gl-card-title">{card.title}</p>
-        <p className="gl-card-studio">{card.studio}</p>
-        <div className="gl-card-meta">
-          <span className="gl-status-pill" style={{
+      <div className="p-[10px_12px_14px]">
+        <p className="font-outfit text-[13px] font-bold text-gl-text m-0 mb-0.5 truncate">{card.title}</p>
+        <p className="font-outfit text-[10px] text-gl-muted m-0 mb-2.5">{card.studio}</p>
+        <div className="flex items-center justify-between">
+          <span className="font-outfit text-[9px] font-bold tracking-[0.1em] uppercase px-2 py-[3px] rounded-[5px] border" style={{
             color: card.statusColor,
             background: card.statusBg,
             borderColor: card.statusBorder,
@@ -175,14 +175,14 @@ function GameCard({ card }: { card: typeof GAME_CARDS[number] }) {
             {card.status}
           </span>
           {card.rating && (
-            <span className="gl-card-rating">
+            <span className="font-outfit text-[12px] font-bold text-gl-amber flex items-center gap-[3px]">
               <Star size={10} fill="#F59E0B" color="#F59E0B" />
               {card.rating}
             </span>
           )}
         </div>
-        <p className="gl-card-quote">{card.quote}</p>
-        <p className="gl-card-user">— @{card.user}</p>
+        <p className="font-outfit text-[10px] italic text-gl-muted leading-[1.5] mt-[9px] pt-[9px] border-t border-white/[0.07] truncate">{card.quote}</p>
+        <p className="font-outfit text-[10px] font-semibold text-[rgba(139,92,246,0.9)] mt-[5px]">— @{card.user}</p>
       </div>
     </div>
   );
@@ -191,35 +191,35 @@ function GameCard({ card }: { card: typeof GAME_CARDS[number] }) {
 function FeatureCard({ feat }: { feat: typeof FEATURES[number] }) {
   const Icon = feat.icon;
   return (
-    <div className="gl-feat-card">
-      <div className="gl-feat-icon" style={{ background: feat.bg }}>
+    <div className="bg-gl-surface border border-gl-border rounded-[16px] p-[30px] transition-[transform,border-color,box-shadow] duration-[240ms] cursor-default hover:-translate-y-[5px] hover:border-gl-violet/30 hover:shadow-[0_20px_48px_rgba(0,0,0,0.35)]">
+      <div className="w-[46px] h-[46px] rounded-[12px] flex items-center justify-center mb-[18px]" style={{ background: feat.bg }}>
         <Icon size={21} color={feat.color} />
       </div>
-      <h3 className="gl-feat-title">{feat.title}</h3>
-      <p className="gl-feat-desc">{feat.desc}</p>
+      <h3 className="font-outfit text-[16px] font-bold text-gl-text m-0 mb-2">{feat.title}</h3>
+      <p className="font-outfit text-[14px] text-gl-subtext leading-[1.65] m-0">{feat.desc}</p>
     </div>
   );
 }
 
 function ActivityCard({ item }: { item: typeof ACTIVITY[number] }) {
   return (
-    <div className="gl-activity-card">
-      <div className="gl-activity-avatar" style={{ background: item.bg }}>
+    <div className="bg-[rgba(6,6,14,0.85)] border border-gl-border rounded-[12px] p-[13px_16px] flex items-center gap-[14px] transition-colors hover:border-gl-violet/[0.22]">
+      <div className="w-[34px] h-[34px] rounded-full flex items-center justify-center font-outfit text-[12px] font-bold text-white flex-shrink-0" style={{ background: item.bg }}>
         {item.avatar}
       </div>
-      <div className="gl-activity-body">
-        <p className="gl-activity-text">
-          <span className="gl-activity-acc">@{item.user}</span>
+      <div className="flex-1 min-w-0">
+        <p className="font-outfit text-[13px] text-gl-subtext truncate leading-none">
+          <span className="text-gl-violet-light font-semibold">@{item.user}</span>
           {" "}
           <span>{item.action}</span>
           {" "}
-          <span className="gl-activity-game">{item.game}</span>
+          <span className="text-gl-text font-semibold">{item.game}</span>
           {item.rating && (
-            <span className="gl-activity-rating"> ★ {item.rating}</span>
+            <span className="text-gl-amber font-semibold"> ★ {item.rating}</span>
           )}
         </p>
       </div>
-      <span className="gl-activity-time">{item.time}</span>
+      <span className="font-outfit text-[10px] text-gl-muted flex-shrink-0">{item.time}</span>
     </div>
   );
 }
@@ -230,58 +230,58 @@ export default memo(function LandingPage() {
   const router = useRouter();
 
   return (
-    <div className="gl-root">
+    <div className="min-h-screen bg-gl-bg text-gl-text font-outfit">
 
         {/* ════════════════ HERO ════════════════ */}
-        <section className="gl-hero">
+        <section className="relative overflow-hidden min-h-[calc(100vh-64px)] flex items-center">
           {/* Background layers */}
-          <div className="gl-hero-bg">
-            <div className="gl-orb gl-orb-1" />
-            <div className="gl-orb gl-orb-2" />
-            <div className="gl-orb gl-orb-3" />
-            <div className="gl-grid-bg" />
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute rounded-full blur-[90px] pointer-events-none w-[700px] h-[700px] bg-[radial-gradient(circle,rgba(124,58,237,0.38)_0%,transparent_65%)] -top-[280px] -left-[160px] animate-orb-pulse" />
+            <div className="absolute rounded-full blur-[90px] pointer-events-none w-[500px] h-[500px] bg-[radial-gradient(circle,rgba(6,182,212,0.2)_0%,transparent_65%)] -bottom-[120px] right-[5%] animate-[gl-orb-pulse_7s_ease-in-out_infinite_2.5s]" />
+            <div className="absolute rounded-full blur-[90px] pointer-events-none w-[300px] h-[300px] bg-[radial-gradient(circle,rgba(124,58,237,0.15)_0%,transparent_65%)] top-[40%] right-[30%] animate-[gl-orb-pulse_11s_ease-in-out_infinite_1s]" />
+            <div className="absolute inset-0 [background-image:linear-gradient(rgba(255,255,255,0.022)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.022)_1px,transparent_1px)] [background-size:64px_64px] [mask-image:radial-gradient(ellipse_85%_80%_at_50%_40%,black_20%,transparent_100%)]" />
           </div>
 
-          <div className="gl-hero-inner">
+          <div className="max-w-[1280px] mx-auto px-7 py-[72px] pb-[80px] grid grid-cols-2 gap-16 items-center relative z-[2] w-full max-[1024px]:grid-cols-1 max-[1024px]:gap-12">
             {/* ── Left column ── */}
-            <div className="gl-hero-left">
-              <span className="gl-eyebrow">
+            <div className="flex flex-col gap-7">
+              <span className="font-outfit text-[10px] font-bold tracking-[0.18em] uppercase text-gl-violet-light inline-flex items-center gap-2.5 before:content-[''] before:inline-block before:w-5 before:h-px before:bg-gl-violet">
                 <Zap size={10} />
                 The social gaming journal
               </span>
 
-              <h1 className="gl-headline">
-                <span className="gl-headline-line">Your Games.</span>
-                <span className="gl-headline-line">Your</span>
-                <span className="gl-headline-line gl-headline-accent">Story.</span>
+              <h1 className="font-bebas text-[clamp(70px,9.5vw,128px)] leading-[0.88] text-gl-text m-0 tracking-[0.01em]">
+                <span className="block">Your Games.</span>
+                <span className="block">Your</span>
+                <span className="block text-transparent [-webkit-text-stroke:2px_rgba(139,92,246,0.7)]">Story.</span>
               </h1>
 
-              <p className="gl-hero-sub">
+              <p className="font-outfit text-[17px] leading-[1.72] text-gl-subtext max-w-[450px] m-0">
                 Log every game you play, rate what you love, write reviews, and discover
                 what friends are playing — all in one beautifully obsessive journal.
               </p>
 
-              <div className="gl-cta-group">
-                <button className="gl-btn-cta" onClick={() => router.push("/register")}>
+              <div className="flex items-center gap-3 flex-wrap">
+                <button className="font-outfit text-[15px] font-semibold text-white bg-gradient-to-br from-gl-violet to-[#5B21B6] border-none cursor-pointer px-7 py-[14px] rounded-[10px] inline-flex items-center gap-2 transition-all shadow-[0_0_32px_rgba(124,58,237,0.35),0_4px_16px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 hover:shadow-[0_0_52px_rgba(124,58,237,0.55),0_8px_24px_rgba(0,0,0,0.35)]" onClick={() => router.push("/register")}>
                   Start tracking free <ChevronRight size={16} />
                 </button>
-                <button className="gl-btn-outline" onClick={() => router.push("/discover")}>
+                <button className="font-outfit text-[15px] font-medium text-gl-subtext bg-none border border-gl-border cursor-pointer px-7 py-[13px] rounded-[10px] transition-[color,border-color,transform] hover:text-gl-text hover:border-white/[0.22] hover:-translate-y-px" onClick={() => router.push("/discover")}>
                   Browse games
                 </button>
               </div>
 
-              <div className="gl-stats">
+              <div className="flex gap-0 pt-5 border-t border-gl-border">
                 {STATS.map((s) => (
-                  <div key={s.label} className="gl-stat-item">
-                    <span className="gl-stat-val">{s.value}</span>
-                    <span className="gl-stat-lbl">{s.label}</span>
+                  <div key={s.label} className="flex flex-col gap-[3px] pr-7 [&+&]:pl-7 [&+&]:border-l [&+&]:border-gl-border">
+                    <span className="font-outfit text-[22px] font-bold text-gl-text tracking-[-0.03em]">{s.value}</span>
+                    <span className="font-outfit text-[11px] text-gl-muted tracking-[0.04em]">{s.label}</span>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* ── Right column: floating game cards ── */}
-            <div className="gl-hero-right">
+            <div className="relative h-[540px] max-[1024px]:hidden">
               {GAME_CARDS.map((card) => (
                 <GameCard key={card.id} card={card} />
               ))}
@@ -290,28 +290,28 @@ export default memo(function LandingPage() {
         </section>
 
         {/* ════════════════ MARQUEE ════════════════ */}
-        <div className="gl-marquee-wrap">
-          <div className="gl-marquee-track">
+        <div className="border-t border-gl-border border-b bg-[rgba(13,13,26,0.55)] py-[13px] overflow-hidden">
+          <div className="flex w-max animate-marquee">
             {[...MARQUEE_GAMES, ...MARQUEE_GAMES].map((g, i) => (
-              <span key={i} className="gl-marquee-item">
+              <span key={i} className="font-outfit text-[12px] font-medium text-gl-muted px-5 flex items-center gap-2 whitespace-nowrap transition-colors hover:text-gl-subtext">
                 {g}
-                <span className="gl-marquee-sep">★</span>
+                <span className="text-gl-violet/50 text-[7px]">★</span>
               </span>
             ))}
           </div>
         </div>
 
         {/* ════════════════ FEATURES ════════════════ */}
-        <section className="gl-features-section">
-          <div className="gl-section-inner">
-            <div className="gl-section-header">
-              <span className="gl-eyebrow">Everything you need</span>
-              <h2 className="gl-section-title">Built for serious players</h2>
-              <p className="gl-section-sub">
+        <section className="py-[108px]">
+          <div className="max-w-[1280px] mx-auto px-7">
+            <div className="text-center mb-[60px] flex flex-col items-center gap-[18px]">
+              <span className="font-outfit text-[10px] font-bold tracking-[0.18em] uppercase text-gl-violet-light inline-flex items-center gap-2.5 before:content-[''] before:inline-block before:w-5 before:h-px before:bg-gl-violet">Everything you need</span>
+              <h2 className="font-bebas text-[clamp(40px,5.5vw,68px)] text-gl-text m-0 leading-[0.95] tracking-[0.01em]">Built for serious players</h2>
+              <p className="font-outfit text-[16px] text-gl-subtext max-w-[480px] text-center leading-[1.65] m-0">
                 Not just a tracker. A full social platform for gaming culture.
               </p>
             </div>
-            <div className="gl-features-grid">
+            <div className="grid grid-cols-3 gap-[18px] max-[1024px]:grid-cols-2 max-[640px]:grid-cols-1">
               {FEATURES.map((f) => (
                 <FeatureCard key={f.title} feat={f} />
               ))}
@@ -320,25 +320,25 @@ export default memo(function LandingPage() {
         </section>
 
         {/* ════════════════ ACTIVITY PREVIEW ════════════════ */}
-        <section className="gl-activity-section">
-          <div className="gl-section-inner">
-            <div className="gl-activity-layout">
-              <div className="gl-activity-left">
-                <span className="gl-eyebrow">Live activity</span>
+        <section className="py-[108px] bg-[rgba(13,13,26,0.4)] border-t border-gl-border border-b">
+          <div className="max-w-[1280px] mx-auto px-7">
+            <div className="grid grid-cols-[1fr_1.1fr] gap-[80px] items-center max-[1024px]:grid-cols-1 max-[1024px]:gap-12">
+              <div className="flex flex-col gap-0">
+                <span className="font-outfit text-[10px] font-bold tracking-[0.18em] uppercase text-gl-violet-light inline-flex items-center gap-2.5 before:content-[''] before:inline-block before:w-5 before:h-px before:bg-gl-violet">Live activity</span>
                 <h2
-                  className="gl-section-title"
+                  className="font-bebas text-[clamp(40px,5.5vw,68px)] text-gl-text m-0 leading-[0.95] tracking-[0.01em]"
                   style={{ textAlign: "left", marginTop: 16 }}
                 >
                   What's being<br />logged right now
                 </h2>
                 <p
-                  className="gl-section-sub"
+                  className="font-outfit text-[16px] text-gl-subtext max-w-[480px] text-center leading-[1.65] m-0"
                   style={{ textAlign: "left", marginTop: 18 }}
                 >
                   Join thousands of players documenting their gaming journeys in real time.
                 </p>
                 <button
-                  className="gl-btn-cta"
+                  className="font-outfit text-[15px] font-semibold text-white bg-gradient-to-br from-gl-violet to-[#5B21B6] border-none cursor-pointer px-7 py-[14px] rounded-[10px] inline-flex items-center gap-2 transition-all shadow-[0_0_32px_rgba(124,58,237,0.35),0_4px_16px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 hover:shadow-[0_0_52px_rgba(124,58,237,0.55),0_8px_24px_rgba(0,0,0,0.35)]"
                   style={{ marginTop: 36, alignSelf: "flex-start" }}
                   onClick={() => router.push("/register")}
                 >
@@ -346,7 +346,7 @@ export default memo(function LandingPage() {
                 </button>
               </div>
 
-              <div className="gl-activity-feed">
+              <div className="flex flex-col gap-2.5">
                 {ACTIVITY.map((item, i) => (
                   <ActivityCard key={i} item={item} />
                 ))}
@@ -356,18 +356,18 @@ export default memo(function LandingPage() {
         </section>
 
         {/* ════════════════ CTA ════════════════ */}
-        <section className="gl-cta-section">
-          <div className="gl-cta-glow" />
-          <div className="gl-cta-inner">
-            <span className="gl-eyebrow">Ready to start?</span>
-            <h2 className="gl-cta-title">
+        <section className="py-[128px] px-7 text-center relative overflow-hidden">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-[radial-gradient(ellipse,rgba(124,58,237,0.22)_0%,transparent_68%)] pointer-events-none" />
+          <div className="relative z-[2] flex flex-col items-center gap-[22px]">
+            <span className="font-outfit text-[10px] font-bold tracking-[0.18em] uppercase text-gl-violet-light inline-flex items-center gap-2.5 before:content-[''] before:inline-block before:w-5 before:h-px before:bg-gl-violet">Ready to start?</span>
+            <h2 className="font-bebas text-[clamp(52px,8vw,100px)] text-gl-text m-0 leading-[0.9]">
               Start your<br />GameLog today.
             </h2>
-            <p className="gl-cta-sub">
+            <p className="font-outfit text-[16px] text-gl-subtext m-0">
               Free forever. No credit card. Just you and your games.
             </p>
             <button
-              className="gl-btn-cta"
+              className="font-outfit text-[15px] font-semibold text-white bg-gradient-to-br from-gl-violet to-[#5B21B6] border-none cursor-pointer px-7 py-[14px] rounded-[10px] inline-flex items-center gap-2 transition-all shadow-[0_0_32px_rgba(124,58,237,0.35),0_4px_16px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 hover:shadow-[0_0_52px_rgba(124,58,237,0.55),0_8px_24px_rgba(0,0,0,0.35)]"
               style={{ fontSize: 16, padding: "16px 36px" }}
               onClick={() => router.push("/register")}
             >
@@ -377,22 +377,22 @@ export default memo(function LandingPage() {
         </section>
 
         {/* ════════════════ FOOTER ════════════════ */}
-        <footer className="gl-footer">
-          <div className="gl-footer-inner">
-            <div className="gl-logo">
-              <div className="gl-logo-icon" style={{ width: 28, height: 28, borderRadius: 7 }}>
+        <footer className="border-t border-gl-border py-9 px-7">
+          <div className="max-w-[1280px] mx-auto flex items-center justify-between flex-wrap gap-5">
+            <div className="flex items-center gap-2.5 no-underline flex-shrink-0">
+              <div className="w-8 h-8 rounded-[9px] bg-gradient-to-br from-gl-violet to-[#5B21B6] flex items-center justify-center flex-shrink-0" style={{ width: 28, height: 28, borderRadius: 7 }}>
                 <Gamepad2 size={14} color="#fff" />
               </div>
-              <span className="gl-logo-text" style={{ fontSize: 15 }}>GameLog</span>
+              <span className="font-outfit font-bold text-lg text-gl-text tracking-[-0.025em]" style={{ fontSize: 15 }}>GameLog</span>
             </div>
 
-            <div className="gl-footer-links">
+            <div className="flex gap-7 flex-wrap">
               {FOOTER_LINKS.map(([label, href]) => (
-                <a key={label} href={href} className="gl-footer-link">{label}</a>
+                <a key={label} href={href} className="font-outfit text-[13px] text-gl-muted no-underline transition-colors hover:text-gl-subtext">{label}</a>
               ))}
             </div>
 
-            <p className="gl-footer-copy">© 2025 GameLog · Track the journey.</p>
+            <p className="font-outfit text-[12px] text-gl-muted m-0">© 2025 GameLog · Track the journey.</p>
           </div>
         </footer>
 

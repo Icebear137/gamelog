@@ -2,12 +2,17 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Star, Gamepad2, Pencil, Trash2 } from "lucide-react";
+import clsx from "clsx";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { dispatchToast } from "@/lib/toast";
 import { GameEntry, GameStatus } from "@/lib/types";
 import StatusBadge from "@/components/StatusBadge";
 import AddGameModal from "@/components/AddGameModal";
+
+const cardBtn =
+  "w-[26px] h-[26px] bg-black/70 backdrop-blur-[4px] border-none rounded-[7px] " +
+  "text-gx-text-1 flex items-center justify-center cursor-pointer transition-[background-color]";
 
 export function GameCard({ entry }: { entry: GameEntry }) {
   const qc = useQueryClient();
@@ -24,16 +29,27 @@ export function GameCard({ entry }: { entry: GameEntry }) {
   });
 
   return (
-    <div className="gx-lib-card">
+    <div
+      className={clsx(
+        "group relative rounded-[10px] overflow-hidden bg-gx-surface-2 border border-gx-border",
+        "cursor-pointer contain-[layout_style] transition-colors hover:border-gx-amber/30",
+      )}
+    >
       <Link href={`/game/${entry.game.rawgId}`} style={{ display: "block" }}>
         {entry.game.coverImage ? (
-          <img src={entry.game.coverImage} alt={entry.game.name} loading="lazy" decoding="async" />
+          <img
+            src={entry.game.coverImage}
+            alt={entry.game.name}
+            loading="lazy"
+            decoding="async"
+            className="w-full aspect-3/4 object-cover block"
+          />
         ) : (
-          <div className="gx-lib-card-empty">
+          <div className="w-full aspect-3/4 flex items-center justify-center bg-gx-surface-2">
             <Gamepad2 size={28} color="var(--gx-text-3)" />
           </div>
         )}
-        <div className="gx-lib-card-foot">
+        <div className="absolute bottom-0 left-0 right-0 bg-[linear-gradient(to_top,rgba(0,0,0,0.9)_0%,transparent_100%)] pt-5.5 px-1.5 pb-1.5">
           <StatusBadge status={entry.status as GameStatus} />
           {entry.rating != null && (
             <div style={{ display: "flex", alignItems: "center", gap: 3, marginTop: 4 }}>
@@ -44,10 +60,12 @@ export function GameCard({ entry }: { entry: GameEntry }) {
         </div>
       </Link>
 
-      <p className="gx-lib-card-name">{entry.game.name}</p>
+      <p className="text-[10px] font-semibold text-gx-text-2 truncate mt-1.5 px-1 transition-colors group-hover:text-gx-text-1">
+        {entry.game.name}
+      </p>
 
       {/* Hover actions */}
-      <div className="gx-lib-card-actions">
+      <div className="absolute top-1.5 right-1.5 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 z-5">
         <AddGameModal
           preselectedGame={entry.game}
           initialValues={{
@@ -57,7 +75,7 @@ export function GameCard({ entry }: { entry: GameEntry }) {
             playtime: entry.playtime,
           }}
           trigger={
-            <button className="gx-lib-card-btn" title="Edit">
+            <button className={clsx(cardBtn, "hover:bg-gx-amber/13 hover:text-gx-amber")} title="Edit">
               <Pencil size={11} />
             </button>
           }
@@ -65,7 +83,7 @@ export function GameCard({ entry }: { entry: GameEntry }) {
         <button
           onClick={() => deleteMutation.mutate()}
           disabled={deleteMutation.isPending}
-          className="gx-lib-card-btn gx-lib-card-btn-danger"
+          className={clsx(cardBtn, "hover:bg-gx-red/13 hover:text-gx-red")}
           title="Remove"
         >
           <Trash2 size={11} />

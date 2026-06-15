@@ -4,6 +4,8 @@ import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Send } from "lucide-react";
+import clsx from "clsx";
+import { gx } from "@/lib/gx-styles";
 import { useAuth } from "@/lib/auth-context";
 import { getActivityService, getActivityCommentsService, addActivityCommentService } from "@/services/activity.service";
 import { Activity, Comment } from "@/lib/types";
@@ -49,7 +51,7 @@ export default function ActivityDetailPage({ params }: { params: Promise<{ id: s
   });
 
   if (isLoading) return (
-    <div className="gx-av-page">
+    <div className="flex flex-col gap-4 max-w-160 mx-auto">
       <div style={{ height: 120, background: "var(--gx-surface)", borderRadius: 14 }} />
     </div>
   );
@@ -60,10 +62,10 @@ export default function ActivityDetailPage({ params }: { params: Promise<{ id: s
   );
 
   return (
-    <div className="gx-av-page">
+    <div className="flex flex-col gap-4 max-w-160 mx-auto">
 
       {/* Back */}
-      <button className="gx-back-btn" onClick={() => router.back()}>
+      <button className={gx.backBtn} onClick={() => router.back()}>
         <ArrowLeft size={14} /> Back to feed
       </button>
 
@@ -71,8 +73,8 @@ export default function ActivityDetailPage({ params }: { params: Promise<{ id: s
       <ActivityCard activity={activity} />
 
       {/* Comments */}
-      <div className="gx-comments-card">
-        <p className="gx-comments-title">
+      <div className={gx.sectionCard}>
+        <p className="text-[10px] font-bold tracking-[0.13em] uppercase text-gx-text-3 mb-4">
           {comments.length} {comments.length === 1 ? "Comment" : "Comments"}
         </p>
 
@@ -83,7 +85,7 @@ export default function ActivityDetailPage({ params }: { params: Promise<{ id: s
           </p>
         ) : (
           comments.map((c) => (
-            <div key={c.id} className="gx-comment-row">
+            <div key={c.id} className="flex gap-3 py-3 border-b border-gx-border last-of-type:border-b-0">
               <div
                 style={{ flexShrink: 0, cursor: "pointer" }}
                 role="link"
@@ -96,14 +98,14 @@ export default function ActivityDetailPage({ params }: { params: Promise<{ id: s
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 0 }}>
                   <button
-                    className="gx-comment-username"
+                    className="text-xs font-bold text-gx-text-1 transition-colors cursor-pointer bg-transparent border-none p-0 hover:text-gx-amber"
                     onClick={() => router.push(`/user/${c.user.username}`)}
                   >
                     {c.user.username}
                   </button>
-                  <span className="gx-comment-time">{formatDistanceToNow(c.createdAt)}</span>
+                  <span className="text-[10px] text-gx-text-3 ml-2">{formatDistanceToNow(c.createdAt)}</span>
                 </div>
-                <CommentBody body={c.body} className="gx-comment-body" />
+                <CommentBody body={c.body} className="text-[13px] text-gx-text-2 mt-1 leading-[1.55]" />
               </div>
             </div>
           ))
@@ -112,7 +114,7 @@ export default function ActivityDetailPage({ params }: { params: Promise<{ id: s
         {/* Input */}
         {user ? (
           <form
-            className="gx-comment-input-row"
+            className="flex gap-2.5 items-start pt-3.5 border-t border-gx-border"
             onSubmit={(e) => {
               e.preventDefault();
               if (body.trim()) commentMutation.mutate();
@@ -131,13 +133,18 @@ export default function ActivityDetailPage({ params }: { params: Promise<{ id: s
             <button
               type="submit"
               disabled={!body.trim() || commentMutation.isPending}
-              className="gx-comment-send"
+              className={clsx(
+                "flex shrink-0 w-9 h-9 items-center justify-center self-end",
+                "bg-gx-amber border-none rounded-lg text-gx-ink cursor-pointer",
+                "transition-[background-color] hover:bg-[#f5a33a]",
+                "disabled:opacity-40 disabled:cursor-not-allowed",
+              )}
             >
               <Send size={14} />
             </button>
           </form>
         ) : (
-          <div className="gx-comment-input-row" style={{ justifyContent: "center" }}>
+          <div className="flex gap-2.5 items-start pt-3.5 border-t border-gx-border" style={{ justifyContent: "center" }}>
             <p style={{ fontSize: 13, color: "var(--gx-text-2)" }}>
               <span
                 role="link"

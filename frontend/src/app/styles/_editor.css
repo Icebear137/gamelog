@@ -1,0 +1,66 @@
+/* ── Tiptap editor prose styles ────────────────────────────────────── */
+.ProseMirror h1 { font-size: 1.5rem; font-weight: 700; margin: 0.75rem 0 0.4rem; color: #f9fafb; }
+.ProseMirror h2 { font-size: 1.25rem; font-weight: 600; margin: 0.65rem 0 0.35rem; color: #f3f4f6; }
+.ProseMirror h3 { font-size: 1.1rem;  font-weight: 600; margin: 0.55rem 0 0.3rem;  color: #e5e7eb; }
+.ProseMirror blockquote {
+  border-left: 3px solid rgba(139,92,246,0.5);
+  padding-left: 0.75rem;
+  margin: 0.5rem 0;
+  color: #9ca3af;
+  font-style: italic;
+}
+.ProseMirror [style*="text-align: center"] { text-align: center; }
+.ProseMirror [style*="text-align: right"]  { text-align: right; }
+.ProseMirror [style*="text-align: justify"] { text-align: justify; }
+
+/* ── Tiptap editor placeholder ─────────────────────────────────────── */
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: #6b7280;
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* ── Tiptap prose styles for club posts ───────────────────────────── */
+.club-post-content p {
+  margin: 0.4rem 0;
+}
+.club-post-content ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+  margin: 0.4rem 0;
+}
+.club-post-content ol {
+  list-style: decimal;
+  padding-left: 1.25rem;
+  margin: 0.4rem 0;
+}
+.club-post-content li {
+  margin: 0.15rem 0;
+}
+.club-post-content strong {
+  color: #fff;
+  font-weight: 600;
+}
+.club-post-content em {
+  color: #d1d5db;
+}
+.club-post-content s {
+  color: #9ca3af;
+}
+.club-post-content code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.85em;
+  color: #c4b5fd;
+}
+.club-post-content a {
+  color: #a78bfa;
+  text-decoration: underline;
+}
+.club-post-content hr {
+  border-color: rgba(255, 255, 255, 0.08);
+  margin: 0.75rem 0;
+}

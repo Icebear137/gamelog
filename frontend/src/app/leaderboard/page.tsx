@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import clsx from "clsx";
 import { Trophy, Gamepad2, MessageSquare, Heart } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -34,11 +35,11 @@ function PodiumAvatar({
 }: { src?: string; username: string; size: number; ringClass: string }) {
   const initials = username.slice(0, 2).toUpperCase();
   return (
-    <div className={`gx-lb-avatar-ring ${ringClass}`}>
+    <div className={`relative rounded-full p-0.75 inline-block ${ringClass}`}>
       {src ? (
-        <img src={src} alt={username} className="gx-lb-avatar-img" style={{ width: size, height: size }} />
+        <img src={src} alt={username} className="rounded-full block object-cover bg-gx-surface-2" style={{ width: size, height: size }} />
       ) : (
-        <div className="gx-lb-avatar-fallback" style={{ width: size, height: size, fontSize: size * 0.3 }}>
+        <div className="rounded-full flex items-center justify-center font-bold text-gx-text-1 uppercase bg-gx-surface-2" style={{ width: size, height: size, fontSize: size * 0.3 }}>
           {initials}
         </div>
       )}
@@ -72,7 +73,7 @@ export default function LeaderboardPage() {
   const [rank1, rank2, rank3, ...rest] = entries;
 
   return (
-    <div className="gx-lb-page">
+    <div className="flex flex-col gap-0 max-w-195 mx-auto">
 
       {/* Page header */}
       <div style={{ marginBottom: 20 }}>
@@ -83,24 +84,34 @@ export default function LeaderboardPage() {
       </div>
 
       {/* Controls: categories LEFT | periods RIGHT */}
-      <div className="gx-lb-controls">
-        <div className="gx-lb-cat-bar">
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
+        <div className="flex gap-1.5 flex-wrap">
           {CATEGORIES.map((c) => (
-            <button key={c.key} onClick={() => setCategory(c.key)} className="gx-lb-cat-btn" data-active={category === c.key}>
+            <button
+              key={c.key}
+              onClick={() => setCategory(c.key)}
+              data-active={category === c.key}
+              className="inline-flex items-center gap-1.75 px-4 py-2 rounded-[30px] text-[12px] font-semibold bg-gx-surface border border-gx-border text-gx-text-2 cursor-pointer transition-all data-[active=true]:bg-gx-amber data-[active=true]:border-gx-amber data-[active=true]:text-gx-ink not-data-[active=true]:hover:text-gx-text-1 not-data-[active=true]:hover:border-gx-border-md"
+            >
               {c.icon} {c.label}
             </button>
           ))}
         </div>
-        <div className="gx-lb-period-bar">
+        <div className="flex gap-0.5">
           {PERIODS.map((p) => (
-            <button key={p.key} onClick={() => setPeriod(p.key)} className="gx-lb-period-btn" data-active={period === p.key}>
+            <button
+              key={p.key}
+              onClick={() => setPeriod(p.key)}
+              data-active={period === p.key}
+              className="px-4 py-1.75 rounded-[30px] text-[12px] font-semibold bg-transparent border-none text-gx-text-2 cursor-pointer transition-[background,color] whitespace-nowrap data-[active=true]:bg-gx-amber data-[active=true]:text-gx-ink not-data-[active=true]:hover:text-gx-text-1"
+            >
               {p.label}
             </button>
           ))}
         </div>
       </div>
 
-      <p className="gx-lb-description">{currentCat.description}</p>
+      <p className="text-[12px] text-gx-text-3 mb-7">{currentCat.description}</p>
 
       {/* Loading */}
       {isLoading && (
@@ -121,49 +132,49 @@ export default function LeaderboardPage() {
       {!isLoading && entries.length > 0 && (
         <>
           {/* ── Podium: order = rank2 | rank1 | rank3 ── */}
-          <div className="gx-lb-podium-stage">
+          <div className="flex items-start justify-center gap-12 px-10 pt-8 pb-10">
             {/* Rank 2 — left, lower */}
             {rank2 ? (
-              <Link href={`/user/${rank2.user.username}`} className={`gx-lb-podium-slot gx-lb-slot-2`}>
+              <Link href={`/user/${rank2.user.username}`} className="flex flex-col items-center gap-1.5 no-underline group mt-5.5">
                 <div style={{ position: "relative", display: "inline-block" }}>
-                  <PodiumAvatar src={rank2.user.avatar} username={rank2.user.username} size={64} ringClass="gx-lb-ring-2" />
-                  <span className="gx-lb-rank-badge gx-lb-badge-2">2</span>
+                  <PodiumAvatar src={rank2.user.avatar} username={rank2.user.username} size={64} ringClass="border-[3px] border-[#6B7280]" />
+                  <span className="absolute -bottom-px -right-px w-5.5 h-5.5 rounded-full flex items-center justify-center text-[11px] font-extrabold text-white border-2 border-gx-navy leading-none bg-[#6B7280]">2</span>
                 </div>
-                <p className="gx-lb-podium-name">{rank2.user.username}</p>
-                <p className="gx-lb-podium-score">{rank2.score}</p>
+                <p className="text-[13px] font-bold text-gx-text-1 whitespace-nowrap group-hover:text-gx-amber">{rank2.user.username}</p>
+                <p className="font-bebas text-[26px] text-gx-text-1 leading-none">{rank2.score}</p>
               </Link>
             ) : <div />}
 
             {/* Rank 1 — center, highest */}
             {rank1 && (
-              <Link href={`/user/${rank1.user.username}`} className={`gx-lb-podium-slot gx-lb-slot-1`}>
+              <Link href={`/user/${rank1.user.username}`} className="flex flex-col items-center gap-1.5 no-underline group">
                 <div style={{ position: "relative", display: "inline-block" }}>
-                  <PodiumAvatar src={rank1.user.avatar} username={rank1.user.username} size={80} ringClass="gx-lb-ring-1" />
-                  <span className="gx-lb-rank-badge gx-lb-badge-1">1</span>
+                  <PodiumAvatar src={rank1.user.avatar} username={rank1.user.username} size={80} ringClass="border-[3px] border-gx-amber" />
+                  <span className="absolute -bottom-px -right-px w-5.5 h-5.5 rounded-full flex items-center justify-center text-[11px] font-extrabold border-2 border-gx-navy leading-none bg-gx-amber text-gx-ink">1</span>
                 </div>
-                <p className="gx-lb-podium-name">{rank1.user.username}</p>
-                <p className="gx-lb-podium-score">{rank1.score}</p>
+                <p className="text-[13px] font-bold text-gx-text-1 whitespace-nowrap group-hover:text-gx-amber">{rank1.user.username}</p>
+                <p className="font-bebas text-[26px] text-gx-text-1 leading-none">{rank1.score}</p>
               </Link>
             )}
 
             {/* Rank 3 — right, lowest */}
             {rank3 ? (
-              <Link href={`/user/${rank3.user.username}`} className={`gx-lb-podium-slot gx-lb-slot-3`}>
+              <Link href={`/user/${rank3.user.username}`} className="flex flex-col items-center gap-1.5 no-underline group mt-11">
                 <div style={{ position: "relative", display: "inline-block" }}>
-                  <PodiumAvatar src={rank3.user.avatar} username={rank3.user.username} size={64} ringClass="gx-lb-ring-3" />
-                  <span className="gx-lb-rank-badge gx-lb-badge-3">3</span>
+                  <PodiumAvatar src={rank3.user.avatar} username={rank3.user.username} size={64} ringClass="border-[3px] border-[#F43F5E]" />
+                  <span className="absolute -bottom-px -right-px w-5.5 h-5.5 rounded-full flex items-center justify-center text-[11px] font-extrabold text-white border-2 border-gx-navy leading-none bg-[#F43F5E]">3</span>
                 </div>
-                <p className="gx-lb-podium-name">{rank3.user.username}</p>
-                <p className="gx-lb-podium-score">{rank3.score}</p>
+                <p className="text-[13px] font-bold text-gx-text-1 whitespace-nowrap group-hover:text-gx-amber">{rank3.user.username}</p>
+                <p className="font-bebas text-[26px] text-gx-text-1 leading-none">{rank3.score}</p>
               </Link>
             ) : <div />}
           </div>
 
           {/* ── Table: rank 4+ ── */}
           {rest.length > 0 && (
-            <div className="gx-lb-table">
+            <div className="bg-gx-surface border border-gx-border rounded-[14px] overflow-hidden">
               {/* Column headers */}
-              <div className="gx-lb-table-header">
+              <div className="grid grid-cols-[40px_1fr_120px_100px] px-4.5 py-2.25 border-b border-gx-border text-[10px] font-bold tracking-widest uppercase text-gx-text-3">
                 <span style={{ textAlign: "center" }}>#</span>
                 <span>Player</span>
                 <span>{currentCat.label}</span>
@@ -176,23 +187,31 @@ export default function LeaderboardPage() {
                   <Link
                     key={e.user.id}
                     href={`/user/${e.user.username}`}
-                    className={`gx-lb-row ${isSelf ? "gx-lb-row-self" : ""}`}
+                    className={clsx(
+                      "grid grid-cols-[40px_1fr_120px_100px] items-center px-4.5 py-2.75 no-underline transition-colors border-b border-gx-border last:border-b-0 group",
+                      isSelf
+                        ? "bg-gx-teal/[0.07] hover:bg-gx-teal/12"
+                        : "hover:bg-white/2.5",
+                    )}
                   >
-                    <span className="gx-lb-row-num">{e.rank}</span>
+                    <span className="font-bebas text-[16px] text-gx-text-3 text-center">{e.rank}</span>
 
-                    <div className="gx-lb-row-player">
+                    <div className="flex items-center gap-2.5 min-w-0">
                       <RowAvatar src={e.user.avatar} username={e.user.username} />
                       <div style={{ minWidth: 0 }}>
                         <p style={{ margin: 0, display: "flex", alignItems: "center" }}>
-                          <span className="gx-lb-row-name">{e.user.username}</span>
-                          {isSelf && <span className="gx-lb-you-badge">You</span>}
+                          <span className={clsx(
+                            "text-[13px] font-bold transition-colors truncate group-hover:text-gx-text-1",
+                            isSelf ? "text-gx-teal" : "text-gx-text-2",
+                          )}>{e.user.username}</span>
+                          {isSelf && <span className="inline-flex px-1.75 py-0.5 rounded-[20px] text-[10px] font-bold bg-gx-teal/15 text-gx-teal ml-1.5">You</span>}
                         </p>
-                        <p className="gx-lb-row-handle">@{e.user.username}</p>
+                        <p className="text-[11px] text-gx-text-3 whitespace-nowrap">@{e.user.username}</p>
                       </div>
                     </div>
 
-                    <span className="gx-lb-row-score">{e.score}</span>
-                    <span className="gx-lb-row-count">
+                    <span className="font-bebas text-[17px] text-gx-text-2">{e.score}</span>
+                    <span className="text-[13px] text-gx-text-3">
                       {e.score} {currentCat.unit}{e.score !== 1 ? "s" : ""}
                     </span>
                   </Link>

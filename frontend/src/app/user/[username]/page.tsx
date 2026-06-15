@@ -6,7 +6,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Slot } from "@radix-ui/react-slot";
 import { Gamepad2, Settings, Globe, Lock, EyeOff, GitCompare, MessageCircle } from "lucide-react";
 import Link from "next/link";
+import clsx from "clsx";
 import { api } from "@/lib/api";
+import { gx } from "@/lib/gx-styles";
 import { getUserService, getUserGamesService, getUserReviewsService, getUserActivitiesService, followUserService, unfollowUserService } from "@/services/user.service";
 import { useAuth } from "@/lib/auth-context";
 import { dispatchToast } from "@/lib/toast";
@@ -18,6 +20,26 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import YearlyChallengeCard from "./_components/YearlyChallengeCard";
 import AchievementsSection from "./_components/AchievementsSection";
 import { ReviewCard } from "@/components/ReviewCard";
+
+/* Local Tailwind recipes (converted from _page-user.css) */
+const c = {
+  header: "bg-gx-surface border border-gx-border rounded-[18px] overflow-hidden",
+  banner:
+    "relative h-[110px] overflow-hidden " +
+    "bg-[linear-gradient(135deg,#0D1A2E_0%,#0E2338_35%,#0A1820_65%,#080E16_100%)] " +
+    "before:content-[''] before:absolute before:inset-0 " +
+    "before:bg-[repeating-linear-gradient(-55deg,transparent,transparent_22px,rgba(232,147,42,0.025)_22px,rgba(232,147,42,0.025)_23px)] " +
+    "after:content-[''] after:absolute after:bottom-0 after:inset-x-0 after:h-[60px] " +
+    "after:bg-[linear-gradient(to_bottom,transparent,var(--color-gx-surface))]",
+  headerBody: "relative px-[22px] pb-[22px]",
+  stat: "flex flex-col gap-0.5",
+  statVal: "font-bebas text-[22px] leading-none text-gx-text-1",
+  statLbl: "text-[9px] font-bold tracking-[0.11em] uppercase text-gx-text-3",
+  followBtn:
+    "inline-flex items-center justify-center px-5 py-2 rounded-lg text-[13px] font-bold cursor-pointer transition-all duration-150",
+  followActive: "bg-gx-amber text-gx-ink border-none hover:bg-[#f5a33a]",
+  followInactive: "bg-transparent text-gx-text-2 border border-gx-border-md hover:border-gx-amber/30 hover:text-gx-text-1",
+} as const;
 
 export default function UserProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = use(params);
@@ -68,10 +90,10 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
   });
 
   if (isLoading) return (
-    <div className="gx-user-page">
-      <div className="gx-user-header">
-        <div className="gx-user-banner" />
-        <div className="gx-user-header-body" style={{ height: 120 }} />
+    <div className="flex flex-col gap-5">
+      <div className={c.header}>
+        <div className={c.banner} />
+        <div className={c.headerBody} style={{ height: 120 }} />
       </div>
     </div>
   );
@@ -85,15 +107,15 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
   const recentGames = games.slice(0, 6);
 
   return (
-    <div className="gx-user-page">
+    <div className="flex flex-col gap-5">
 
       {/* ── PROFILE HEADER ── */}
-      <div className="gx-user-header">
-        <div className="gx-user-banner" />
-        <div className="gx-user-header-body">
+      <div className={c.header}>
+        <div className={c.banner} />
+        <div className={c.headerBody}>
 
           {/* Avatar */}
-          <div className="gx-user-avatar-wrap">
+          <div className="relative z-[2] w-[68px] h-[68px] rounded-[14px] border-[3px] border-gx-surface overflow-hidden -mt-7 mb-2.5">
             <Avatar src={profile.avatar} username={profile.username} size="lg" />
           </div>
 
@@ -101,19 +123,19 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
           <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <h1 className="gx-user-name">{profile.username}</h1>
+                <h1 className="font-bebas text-[26px] tracking-[0.04em] leading-none text-gx-text-1">{profile.username}</h1>
                 {profile.isPrivate && <Lock size={13} color="var(--gx-text-3)" />}
               </div>
-              {profile.bio && <p className="gx-user-bio">{profile.bio}</p>}
+              {profile.bio && <p className="text-[13px] text-gx-text-2 mt-1 leading-[1.5]">{profile.bio}</p>}
               {(profile.steamId || profile.discordTag) && (
-                <div className="gx-user-socials">
+                <div className="flex flex-wrap gap-3.5 mt-[7px]">
                   {profile.steamId && (
-                    <span className="gx-user-social">
+                    <span className="flex items-center gap-1 text-[11px] text-gx-text-3">
                       <Globe size={10} /> Steam: {profile.steamId}
                     </span>
                   )}
                   {profile.discordTag && (
-                    <span className="gx-user-social">Discord: {profile.discordTag}</span>
+                    <span className="flex items-center gap-1 text-[11px] text-gx-text-3">Discord: {profile.discordTag}</span>
                   )}
                 </div>
               )}
@@ -122,7 +144,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
             {/* Action buttons */}
             <div style={{ display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }}>
               {isMe ? (
-                <Link href="/settings" className="gx-btn-ghost" style={{ fontSize: 12, padding: "7px 14px" }}>
+                <Link href="/settings" className={gx.btnGhost} style={{ fontSize: 12, padding: "7px 14px" }}>
                   <Settings size={13} /> Edit Profile
                 </Link>
               ) : (
@@ -131,19 +153,19 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
                     <button
                       onClick={() => followMutation.mutate(!!profile.isFollowing)}
                       disabled={followMutation.isPending}
-                      className={`gx-follow-btn ${profile.isFollowing ? "gx-follow-inactive" : "gx-follow-active"}`}
+                      className={clsx(c.followBtn, profile.isFollowing ? c.followInactive : c.followActive)}
                     >
                       {profile.isFollowing ? "Following" : "Follow"}
                     </button>
                     <Link
                       href={`/user/${username}/compare`}
-                      className="gx-btn-ghost"
+                      className={gx.btnGhost}
                       style={{ fontSize: 12, padding: "7px 12px" }}
                     >
                       <GitCompare size={12} /> Compare
                     </Link>
                     <button
-                      className="gx-btn-ghost"
+                      className={gx.btnGhost}
                       style={{ fontSize: 12, padding: "7px 12px" }}
                       onClick={async () => {
                         try {
@@ -163,18 +185,24 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
           </div>
 
           {/* Stats row */}
-          <div className="gx-user-stats">
-            <div className="gx-user-stat">
-              <span className="gx-user-stat-val">{profile._count.gameEntries}</span>
-              <span className="gx-user-stat-lbl">Games</span>
+          <div className="flex flex-wrap gap-6 mt-3.5 pt-3.5 border-t border-gx-border">
+            <div className={clsx(c.stat, "cursor-default")}>
+              <span className={c.statVal}>{profile._count.gameEntries}</span>
+              <span className={c.statLbl}>Games</span>
             </div>
-            <Link href={`/user/${username}/followers`} className="gx-user-stat gx-user-stat-link">
-              <span className="gx-user-stat-val">{profile._count.followers}</span>
-              <span className="gx-user-stat-lbl">Followers</span>
+            <Link
+              href={`/user/${username}/followers`}
+              className={clsx(c.stat, "cursor-pointer transition-opacity duration-150 hover:opacity-75")}
+            >
+              <span className={c.statVal}>{profile._count.followers}</span>
+              <span className={c.statLbl}>Followers</span>
             </Link>
-            <Link href={`/user/${username}/following`} className="gx-user-stat gx-user-stat-link">
-              <span className="gx-user-stat-val">{profile._count.following}</span>
-              <span className="gx-user-stat-lbl">Following</span>
+            <Link
+              href={`/user/${username}/following`}
+              className={clsx(c.stat, "cursor-pointer transition-opacity duration-150 hover:opacity-75")}
+            >
+              <span className={c.statVal}>{profile._count.following}</span>
+              <span className={c.statLbl}>Following</span>
             </Link>
           </div>
         </div>
@@ -188,7 +216,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
 
       {/* ── PRIVATE GATE ── */}
       {profile.isPrivate && !canSeeContent && (
-        <div className="gx-private-gate">
+        <div className="bg-gx-surface border border-gx-border rounded-[14px] px-6 py-12 text-center">
           <EyeOff size={38} color="var(--gx-text-3)" style={{ margin: "0 auto 12px" }} />
           <p style={{ fontSize: 14, fontWeight: 600, color: "var(--gx-text-1)", marginBottom: 4 }}>
             This profile is private
@@ -205,31 +233,37 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
           {recentGames.length > 0 && (
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                <p className="gx-section-label">Recent Games</p>
+                <p className={gx.sectionLabel}>Recent Games</p>
                 {games.length > 6 && (
-                  <Link href={`/user/${username}/games`} className="gx-link">
+                  <Link href={`/user/${username}/games`} className={gx.link}>
                     All {games.length} games →
                   </Link>
                 )}
               </div>
-              <div className="gx-cover-grid">
+              <div className="grid grid-cols-6 max-[640px]:grid-cols-3 gap-2">
                 {recentGames.map((entry) => (
                   <div
                     key={entry.id}
-                    className="gx-cover-item"
+                    className="relative rounded-lg overflow-hidden bg-gx-surface-2 border border-gx-border cursor-pointer transition-[border-color] duration-150 hover:border-gx-amber/30"
                     role="link"
                     tabIndex={0}
                     onClick={() => router.push(`/game/${entry.game.rawgId}`)}
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") router.push(`/game/${entry.game.rawgId}`); }}
                   >
                     {entry.game.coverImage ? (
-                      <img src={entry.game.coverImage} alt={entry.game.name} loading="lazy" decoding="async" />
+                      <img
+                        src={entry.game.coverImage}
+                        alt={entry.game.name}
+                        loading="lazy"
+                        decoding="async"
+                        className="block w-full aspect-[3/4] object-cover"
+                      />
                     ) : (
-                      <div className="gx-cover-item-empty">
+                      <div className="w-full aspect-[3/4] flex items-center justify-center">
                         <Gamepad2 size={18} color="var(--gx-text-3)" />
                       </div>
                     )}
-                    <div className="gx-cover-badge">
+                    <div className="absolute bottom-0 inset-x-0 px-1.5 pt-1 pb-1.5">
                       <StatusBadge status={entry.status as GameStatus} />
                     </div>
                   </div>
@@ -242,44 +276,46 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
           {lists.length > 0 && (
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                <p className="gx-section-label">Lists</p>
-                {isMe && <Link href="/lists" className="gx-link">Manage →</Link>}
+                <p className={gx.sectionLabel}>Lists</p>
+                {isMe && <Link href="/lists" className={gx.link}>Manage →</Link>}
               </div>
-              <div className="gx-list-grid">
+              <div className="grid grid-cols-2 gap-2.5">
                 {lists.slice(0, 4).map((list) => {
                   const covers = list.entries.slice(0, 4).map((e) => e.game.coverImage).filter(Boolean);
                   return (
                     <div
                       key={list.id}
-                      className="gx-list-card"
+                      className="group bg-gx-surface border border-gx-border rounded-xl overflow-hidden cursor-pointer transition-[border-color] duration-150 hover:border-gx-amber/30"
                       role="link"
                       tabIndex={0}
                       onClick={() => router.push(`/lists/${list.id}`)}
                       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") router.push(`/lists/${list.id}`); }}
                     >
-                      <div className="gx-list-covers">
+                      <div className="grid grid-cols-4 h-[54px] overflow-hidden">
                         {Array.from({ length: 4 }).map((_, i) =>
                           covers[i] ? (
-                            <div key={i} className="gx-list-cover-cell">
-                              <img src={covers[i]!} alt="" />
+                            <div key={i} className="overflow-hidden">
+                              <img src={covers[i]!} alt="" className="w-full h-full object-cover" />
                             </div>
                           ) : (
-                            <div key={i} className="gx-list-cover-empty">
+                            <div key={i} className="bg-gx-surface-2 flex items-center justify-center h-full">
                               <Gamepad2 size={11} color="var(--gx-text-3)" />
                             </div>
                           )
                         )}
                       </div>
-                      <div className="gx-list-meta">
+                      <div className="px-3 pt-2 pb-2.5">
                         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                          <p className="gx-list-name">{list.name}</p>
+                          <p className="text-[12px] font-semibold text-gx-text-1 truncate transition-colors duration-150 group-hover:text-gx-amber">
+                            {list.name}
+                          </p>
                           {list.isPublic ? (
                             <Globe size={10} color="var(--gx-text-3)" />
                           ) : (
                             <Lock size={10} color="var(--gx-text-3)" />
                           )}
                         </div>
-                        <p className="gx-list-count">{list._count.entries} game{list._count.entries !== 1 ? "s" : ""}</p>
+                        <p className="text-[10px] text-gx-text-3 mt-0.5">{list._count.entries} game{list._count.entries !== 1 ? "s" : ""}</p>
                       </div>
                     </div>
                   );
@@ -292,8 +328,8 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
           {reviews.length > 0 && (
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                <p className="gx-section-label">Reviews</p>
-                <Link href={`/user/${username}/reviews`} className="gx-link">All reviews →</Link>
+                <p className={gx.sectionLabel}>Reviews</p>
+                <Link href={`/user/${username}/reviews`} className={gx.link}>All reviews →</Link>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {reviews.slice(0, 3).map((r) => (
@@ -312,11 +348,11 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
           {activities.length > 0 && (
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                <p className="gx-section-label">Recent Activity</p>
+                <p className={gx.sectionLabel}>Recent Activity</p>
                 <Slot
                   role="link"
                   tabIndex={0}
-                  className="gx-link"
+                  className={gx.link}
                   style={{ cursor: "pointer" }}
                   onClick={() => router.push(`/user/${username}/stats`)}
                   onKeyDown={(e: React.KeyboardEvent) => {

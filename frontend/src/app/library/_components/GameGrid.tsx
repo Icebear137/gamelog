@@ -17,7 +17,7 @@ export function GameGrid({ entries, loading }: Props) {
     );
   }
   return (
-    <div className="gx-lib-grid">
+    <div className="grid gap-2.5 grid-cols-5 max-[768px]:grid-cols-3 max-[480px]:grid-cols-2">
       {entries.map((entry) => (
         <GameCard key={entry.id} entry={entry} />
       ))}

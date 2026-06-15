@@ -56,9 +56,9 @@ export default function FeedSection() {
   return (
     <div className="flex flex-col gap-3">
       {/* Header */}
-      <div className="hm-section-head">
-        <h2 className="hm-section-label">
-          <Rss size={16} className="text-violet-400" />
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-bebas text-[20px] tracking-[0.07em] text-gx-text-1 flex items-center gap-2.25 m-0">
+          <Rss size={16} className="text-gx-amber" />
           Following Feed
         </h2>
         <AddGameModal />
@@ -66,7 +66,10 @@ export default function FeedSection() {
 
       {/* New posts banner */}
       {feedHasNew && (
-        <button className="hm-new-banner" onClick={handleLoadNew}>
+        <button
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-[10px] bg-gx-amber/8 border border-gx-amber/20 text-gx-amber font-outfit text-[13px] font-medium cursor-pointer transition-colors animate-orb-pulse hover:bg-gx-amber/16"
+          onClick={handleLoadNew}
+        >
           <ArrowUp size={14} />
           {newFeedCount > 1 ? `${newFeedCount} new posts` : "New post"} — click to refresh
         </button>
@@ -74,7 +77,7 @@ export default function FeedSection() {
 
       {/* Loading */}
       {isLoading && (
-        <div className="hm-loader">
+        <div className="flex items-center justify-center gap-2 py-10 font-outfit text-[13px] text-gl-muted">
           <Loader2 size={16} className="animate-spin" />
           Loading feed…
         </div>
@@ -82,7 +85,7 @@ export default function FeedSection() {
 
       {/* Empty */}
       {!isLoading && feed.length === 0 && (
-        <div className="hm-empty">
+        <div className="flex flex-col items-center justify-center py-14 px-4 gap-3 font-outfit text-sm text-gl-muted text-center">
           <Gamepad2 size={36} color="rgba(255,255,255,0.12)" />
           <p>Nothing here yet.</p>
           <p style={{ fontSize: 12 }}>Follow some players or add games to your library!</p>
@@ -99,7 +102,7 @@ export default function FeedSection() {
       <div ref={sentinelRef} className="h-1" />
 
       {isFetchingNextPage && (
-        <div className="hm-fetch-more">
+        <div className="flex items-center justify-center gap-1.75 py-5 font-outfit text-[12px] text-gl-muted">
           <Loader2 size={14} className="animate-spin" />
           Loading more…
         </div>

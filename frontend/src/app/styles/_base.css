@@ -1,0 +1,83 @@
+/* ── Base resets & Radix overrides ─────────────────────────────── */
+
+* {
+  box-sizing: border-box;
+}
+
+/* ── Override Radix Themes variables for our dark design ───────────── */
+.radix-themes {
+  /* Background: transparent so our body gradient shows through */
+  --color-background: transparent;
+
+  /* Typography: use Geist (inherits from body) */
+  --default-font-family: inherit;
+  --heading-font-family: inherit;
+  --code-font-family: ui-monospace, monospace;
+
+  /* Align Radix gray scale with our slate/zinc palette */
+  --gray-1: #080612;
+  --gray-2: #0e0b1a;
+  --gray-3: #16122a;
+  --gray-4: #1c1830;
+  --gray-5: #221e38;
+  --gray-6: #2a2540;
+  --gray-7: #353049;
+  --gray-8: #4a4466;
+  --gray-9: #6b6480;
+  --gray-10: #8a84a0;
+  --gray-11: #b8b2cc;
+  --gray-12: #f2f0f8;
+
+  /* Ensure default text color is our near-white */
+  --gray-12: #f9fafb;
+}
+
+body {
+  background: #080B11;
+  color: #f9fafb;
+  font-family: inherit;
+  min-height: 100vh;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(232, 147, 42, 0.45);
+}
+
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+
+/* ── GX "Steel & Amber" CSS custom properties ─────────────────── */
+:root {
+  /* Aliases to @theme tokens — existing CSS keeps working via var(--gx-*) */
+  --gx-bg:         var(--color-gx-navy);
+  --gx-surface:    var(--color-gx-surface);
+  --gx-surface-2:  var(--color-gx-surface-2);
+  --gx-surface-3:  var(--color-gx-surface-3);
+  --gx-amber:      var(--color-gx-amber);
+  --gx-teal:       var(--color-gx-teal);
+  --gx-green:      var(--color-gx-green);
+  --gx-red:        var(--color-gx-red);
+  --gx-text-1:     var(--color-gx-text-1);
+  --gx-text-2:     var(--color-gx-text-2);
+  --gx-text-3:     var(--color-gx-text-3);
+  /* Transparency variants (can't go in @theme, used as-is) */
+  --gx-border:     rgba(255,255,255,0.06);
+  --gx-border-md:  rgba(255,255,255,0.11);
+  --gx-amber-dim:  rgba(232,147,42,0.13);
+  --gx-amber-glow: rgba(232,147,42,0.30);
+  --gx-teal-dim:   rgba(20,184,166,0.13);
+  --gx-green-dim:  rgba(34,197,94,0.13);
+  --gx-red-dim:    rgba(239,68,68,0.13);
+}

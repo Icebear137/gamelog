@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { TrendingUp, Gamepad2, Users, Sparkles, Tag } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import { gx } from "@/lib/gx-styles";
 import { getTrendingGamesService, getRecommendationsService, getPopularTagsService } from "@/services/game.service";
 import { discoverUsersService } from "@/services/user.service";
 import TrendingGameCard, { type TrendingGame } from "./_components/TrendingGameCard";
@@ -50,15 +51,15 @@ export default function DiscoverPage() {
   const visibleRecs = recommendations.filter((g) => !dismissed.has(g.rawgId)).slice(0, MAX_VISIBLE);
 
   return (
-    <div className="gx-dc-page">
+    <div className="flex flex-col gap-9">
 
       {/* ── TRENDING ── */}
       <section>
-        <div className="gx-dc-section-head">
-          <p className="gx-eyebrow" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <div className="mb-[18px]">
+          <p className={gx.eyebrow} style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <TrendingUp size={11} /> This Week
           </p>
-          <h2 className="gx-dc-section-title">Trending Games</h2>
+          <h2 className="mt-1 font-bebas text-[22px] tracking-[0.04em] text-gx-text-1">Trending Games</h2>
         </div>
 
         {isLoading && (
@@ -74,7 +75,7 @@ export default function DiscoverPage() {
           </div>
         )}
 
-        <div className="gx-trending-grid">
+        <div className="grid grid-cols-5 gap-3 max-[768px]:grid-cols-3 max-[480px]:grid-cols-2">
           {trending.map((game, i) => (
             <TrendingGameCard key={game.id} game={game} rank={i + 1} showButton={!!user} />
           ))}
@@ -84,14 +85,14 @@ export default function DiscoverPage() {
       {/* ── RECOMMENDED ── */}
       {user && visibleRecs.length > 0 && (
         <section>
-          <div className="gx-dc-section-head">
-            <p className="gx-eyebrow" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div className="mb-[18px]">
+            <p className={gx.eyebrow} style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <Sparkles size={11} /> Picked For You
             </p>
-            <h2 className="gx-dc-section-title">Recommended</h2>
-            <p className="gx-dc-section-sub">Based on the genres you play most</p>
+            <h2 className="mt-1 font-bebas text-[22px] tracking-[0.04em] text-gx-text-1">Recommended</h2>
+            <p className="mt-[3px] text-[12px] text-gx-text-3">Based on the genres you play most</p>
           </div>
-          <div className="gx-rec-grid">
+          <div className="grid grid-cols-2 gap-2.5 max-[540px]:grid-cols-1">
             {visibleRecs.map((game) => (
               <RecommendedGameCard key={game.rawgId} game={game} onDismiss={handleDismiss} />
             ))}
@@ -102,17 +103,17 @@ export default function DiscoverPage() {
       {/* ── TAGS ── */}
       {popularTags.length > 0 && (
         <section>
-          <div className="gx-dc-section-head">
-            <p className="gx-eyebrow" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div className="mb-[18px]">
+            <p className={gx.eyebrow} style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <Tag size={11} /> Browse
             </p>
-            <h2 className="gx-dc-section-title">Popular Tags</h2>
+            <h2 className="mt-1 font-bebas text-[22px] tracking-[0.04em] text-gx-text-1">Popular Tags</h2>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {popularTags.map(({ tag, votes }) => (
-              <Link key={tag} href={`/games/tag/${tag}`} className="gx-tag-pill">
+              <Link key={tag} href={`/games/tag/${tag}`} className={gx.tagPill}>
                 {tag}
-                <span className="gx-tag-pill-count">{votes}</span>
+                <span className={gx.tagPillCount}>{votes}</span>
               </Link>
             ))}
           </div>
@@ -122,14 +123,14 @@ export default function DiscoverPage() {
       {/* ── PEOPLE ── */}
       {user && suggested.length > 0 && (
         <section>
-          <div className="gx-dc-section-head">
-            <p className="gx-eyebrow" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div className="mb-[18px]">
+            <p className={gx.eyebrow} style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <Users size={11} /> Connect
             </p>
-            <h2 className="gx-dc-section-title">People You Might Know</h2>
-            <p className="gx-dc-section-sub">Based on games in common with you</p>
+            <h2 className="mt-1 font-bebas text-[22px] tracking-[0.04em] text-gx-text-1">People You Might Know</h2>
+            <p className="mt-[3px] text-[12px] text-gx-text-3">Based on games in common with you</p>
           </div>
-          <div className="gx-people-grid">
+          <div className="grid grid-cols-2 gap-2.5 max-[540px]:grid-cols-1">
             {suggested.map((su) => (
               <SuggestedUserCard key={su.id} user={su} />
             ))}

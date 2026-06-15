@@ -106,3 +106,9 @@ export const NOTIFICATIONS_READ_ALL  = "/api/notifications/read-all";
 
 // ── AI ─────────────────────────────────────────────────────────────────────
 export const AI_CHAT = "/api/ai/chat";
+
+// ── Posts ──────────────────────────────────────────────────────────────────
+export const POSTS               = "/api/posts";
+export const POST                = (id: string) => `/api/posts/${id}`;
+export const POST_LIKE           = (id: string) => `/api/posts/${id}/like`;
+export const POST_COMMENTS       = (id: string) => `/api/posts/${id}/comments`;

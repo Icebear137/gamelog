@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useState } from "react";
+import clsx from "clsx";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Star, ThumbsUp, Monitor, Flag } from "lucide-react";
 import { ReportModal } from "./ReportModal";
@@ -46,30 +47,30 @@ export const ReviewCard = memo(function ReviewCard({ review: r, showGame = false
   });
 
   return (
-    <div className="gx-rv-card">
+    <div className="bg-gx-surface border border-gx-border rounded-[14px] px-5 py-4.5 transition-colors flex flex-col gap-2.5 hover:border-gx-border-md">
       {/* Game link — global feed only */}
       {showGame && r.game && (
-        <Link href={`/game/${r.game.rawgId}`} className="gx-rv-game-link">
+        <Link href={`/game/${r.game.rawgId}`} className="flex items-center gap-2.5 no-underline pb-3 border-b border-gx-border group">
           {r.game.coverImage && (
-            <img src={r.game.coverImage} alt={r.game.name} className="gx-rv-game-cover" />
+            <img src={r.game.coverImage} alt={r.game.name} className="w-7.5 h-10 rounded-[5px] object-cover shrink-0" />
           )}
-          <span className="gx-rv-game-name">{r.game.name}</span>
+          <span className="text-[12px] font-bold text-gx-text-2 tracking-[0.01em] transition-colors group-hover:text-gx-amber">{r.game.name}</span>
         </Link>
       )}
 
       {/* Reviewer info */}
-      <div className="gx-rv-user-row">
-        <Link href={`/user/${r.user.username}`} className="gx-rv-user-link">
+      <div className="flex items-center justify-between gap-3">
+        <Link href={`/user/${r.user.username}`} className="flex items-center gap-2 no-underline group">
           <Avatar src={r.user.avatar} username={r.user.username} size="sm" />
           <div>
-            <p className="gx-rv-username">{r.user.username}</p>
-            <p className="gx-rv-date">{formatDistanceToNow(r.updatedAt)}</p>
+            <p className="text-[13px] font-bold text-gx-text-1 transition-colors group-hover:text-gx-amber m-0">{r.user.username}</p>
+            <p className="text-[11px] text-gx-text-3 mt-px m-0">{formatDistanceToNow(r.updatedAt)}</p>
           </div>
         </Link>
-        <div className="gx-rv-meta">
+        <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
           <StatusBadge status={r.status as GameStatus} />
           {r.platform && (
-            <span className="gx-rv-platform">
+            <span className="inline-flex items-center gap-0.75 text-[10px] text-gx-text-3 bg-white/5 border border-gx-border px-1.75 py-0.5 rounded-[20px]">
               <Monitor size={10} /> {r.platform}
             </span>
           )}
@@ -78,7 +79,7 @@ export const ReviewCard = memo(function ReviewCard({ review: r, showGame = false
 
       {/* Rating */}
       {r.rating != null && (
-        <div className="gx-rv-stars">
+        <div className="flex items-center gap-0.5">
           {Array.from({ length: 10 }).map((_, i) => (
             <Star
               key={i}
@@ -87,34 +88,39 @@ export const ReviewCard = memo(function ReviewCard({ review: r, showGame = false
               fill={i < r.rating! ? "currentColor" : "none"}
             />
           ))}
-          <span className="gx-rv-star-count">{r.rating}/10</span>
+          <span className="text-[12px] font-bold text-gl-amber ml-1.5">{r.rating}/10</span>
         </div>
       )}
 
       {/* Review text */}
-      <MarkdownReview text={r.review} className="gx-rv-body" />
+      <MarkdownReview text={r.review} className="text-[13px] text-gx-text-2 leading-[1.65]" />
 
       {reporting && <ReportModal type="REVIEW" targetId={r.id} onClose={() => setReporting(false)} />}
 
       {/* Footer: helpful + report */}
-      <div className="gx-rv-footer">
+      <div className="flex items-center pt-2.5 border-t border-gx-border">
         {user && !isOwn ? (
           <button
             onClick={() => mutation.mutate()}
             disabled={mutation.isPending}
-            className={`gx-rv-helpful ${helpful ? "gx-rv-helpful-active" : ""}`}
+            className={clsx(
+              "inline-flex items-center gap-1.25 px-3 py-1.25 rounded-lg text-[12px] bg-transparent border cursor-pointer transition-all hover:text-gx-text-2 hover:bg-white/4 hover:border-gx-border",
+              helpful
+                ? "bg-gx-amber/13 border-gx-amber/30 text-gx-amber"
+                : "border-transparent text-gx-text-3"
+            )}
           >
             <ThumbsUp size={12} fill={helpful ? "currentColor" : "none"} />
-            Helpful {count > 0 && <span style={{ fontWeight: 700 }}>{count}</span>}
+            Helpful {count > 0 && <span className="font-bold">{count}</span>}
           </button>
         ) : count > 0 ? (
-          <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--gx-text-3)" }}>
+          <span className="flex items-center gap-1.25 text-[11px] text-gx-text-3">
             <ThumbsUp size={11} /> {count} found this helpful
           </span>
         ) : <span />}
 
         {user && !isOwn && (
-          <button onClick={() => setReporting(true)} className="gx-rv-report">
+          <button onClick={() => setReporting(true)} className="inline-flex items-center gap-1 ml-auto text-[11px] text-gx-text-3 bg-transparent border-none cursor-pointer transition-colors px-2 py-1 hover:text-gx-amber">
             <Flag size={11} /> Report
           </button>
         )}
