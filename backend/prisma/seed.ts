@@ -111,6 +111,9 @@ async function main() {
   await prisma.gameListEntry.deleteMany();
   await prisma.gameList.deleteMany();
   await prisma.yearlyChallenge.deleteMany();
+  await prisma.postComment.deleteMany();
+  await prisma.postLike.deleteMany();
+  await prisma.post.deleteMany();
   await prisma.gameEntry.deleteMany();
   await prisma.game.deleteMany();
   await prisma.user.deleteMany();
@@ -1176,8 +1179,230 @@ async function main() {
 
   console.log("✅ Playthroughs created\n");
 
+  // ── Social Posts ───────────────────────────────────────────────────
+  console.log("📝 Creating social posts...");
+
+  async function createPost(
+    authorId: string,
+    textContent: string,
+    likeUserIds: string[],
+    comments: { userId: string; body: string }[]
+  ) {
+    const p = await prisma.post.create({
+      data: { authorId, textContent, images: "[]", visibility: "public" },
+    });
+    for (const uid of likeUserIds) {
+      await prisma.postLike.create({ data: { postId: p.id, userId: uid } }).catch(() => {});
+    }
+    for (const cm of comments) {
+      await prisma.postComment.create({ data: { postId: p.id, userId: cm.userId, body: cm.body } }).catch(() => {});
+    }
+    return p;
+  }
+
+  await Promise.all([
+    // ── vinh ──
+    createPost(vinh.id,
+      "Just hit 120 hours in Elden Ring. Still going. This game absolutely refuses to let me go 🗡️ What's everyone's favorite area?",
+      [souls.id, nhan.id, kazuki.id, loot.id, strats.id],
+      [
+        { userId: souls.id, body: "Mountaintops of the Giants hits different at 3am. 10/10." },
+        { userId: nhan.id, body: "Liurnia is my personal favorite. The lake atmosphere is incredible." },
+        { userId: kazuki.id, body: "Farum Azula. That place looks absolutely insane." },
+      ]
+    ),
+    createPost(vinh.id,
+      "Hot take: Sekiro has the best boss design in all of gaming. Isshin phase 3 is perfection of the form. Change my mind.",
+      [souls.id, kazuki.id, speedster.id],
+      [
+        { userId: souls.id, body: "Can't change it because it's correct. Every fight is a rhythm game." },
+        { userId: kazuki.id, body: "Isshin is peak. Nothing in gaming hits like that lightning reversal moment." },
+      ]
+    ),
+    createPost(vinh.id,
+      "Cyberpunk 2077 update after 45 hours: I take back everything I said at launch. Night City in 2.0 is an absolute masterpiece. CDPR redeemed themselves completely. V's story slaps.",
+      [loot.id, strats.id, rpgMaster.id, nhan.id],
+      [
+        { userId: loot.id, body: "Night City is the best open world in gaming. I spent 2 hours just riding around doing nothing." },
+        { userId: rpgMaster.id, body: "Phantom Liberty DLC is incredible too. Songbird might be the best thing CDPR ever wrote." },
+      ]
+    ),
+
+    // ── sakura ──
+    createPost(sakura.id,
+      "Persona 5 Royal 100% complete ✅ Every confidant maxed. All trophies earned. 150 hours of pure perfection. This is genuinely the best game ever made and I will not be taking questions.",
+      [vinh.id, nhan.id, kazuki.id, rpgMaster.id, strats.id, loot.id],
+      [
+        { userId: rpgMaster.id, body: "Fellow P5R completionist 🫡 Did you get the true ending first try or did you need a guide?" },
+        { userId: kazuki.id, body: "Beneath the Mask is still my alarm clock sound. No regrets whatsoever." },
+        { userId: nhan.id, body: "200 hours into Stardew Valley here. We are kindred spirits of gaming dedication." },
+      ]
+    ),
+    createPost(sakura.id,
+      "Stardew Valley hours: 200+. Just discovered I've been doing farm layout completely wrong this whole time. Apparently there's an 'optimal' layout. I don't care. My chaotic farm brings me joy and that's the only metric that matters.",
+      [nhan.id, loot.id, indieQueen.id, rpgMaster.id],
+      [
+        { userId: loot.id, body: "520 hours here and my farm is still total chaos. Chaos farm > meta farm always." },
+        { userId: indieQueen.id, body: "ConcernedApe made the game about joy, not efficiency. You're playing it correctly." },
+      ]
+    ),
+
+    // ── loot ──
+    createPost(loot.id,
+      "Spent 3 hours in RDR2 today without completing a single quest. Found a hermit in the mountains who just... lives there. Has his whole setup. Rockstar put more effort into one irrelevant NPC than most studios put into entire games.",
+      [vinh.id, strats.id, kazuki.id, rpgMaster.id, souls.id],
+      [
+        { userId: strats.id, body: "That hermit is Arthur's spiritual opposite. Rockstar absolutely knew what they were doing." },
+        { userId: kazuki.id, body: "RDR2 world density is untouchable. I found a family of serial killers once just wandering." },
+        { userId: vinh.id, body: "This is why I need to go back to RDR2. Haven't touched it since 2020." },
+      ]
+    ),
+    createPost(loot.id,
+      "Ghost of Tsushima photo mode just cost me an entire evening. Posted 43 screenshots today. Zero regrets. This game is a painting that you can walk around inside of.",
+      [kazuki.id, sakura.id, vinh.id, rpgMaster.id],
+      [
+        { userId: kazuki.id, body: "Ghost photo mode is one of the best ever made. The wind mechanic is perfect for dramatic shots." },
+        { userId: sakura.id, body: "Post the screenshots!!! 🌸 I need them." },
+      ]
+    ),
+
+    // ── soulsaddict ──
+    createPost(souls.id,
+      "PLATINUM TROPHY — Elden Ring ✅\n\n200 hours. Malenia took exactly 47 attempts.\n\nShe is not that hard.\n\n(She is absolutely that hard. Do not let anyone tell you otherwise. She heals on every hit.)",
+      [vinh.id, nhan.id, kazuki.id, strats.id, rpgMaster.id, speedster.id, loot.id],
+      [
+        { userId: vinh.id, body: "200 hours for the platinum is NOTHING. Absolute legend. Congrats 🏆" },
+        { userId: kazuki.id, body: "47 attempts is genuinely impressive restraint. I rage quit after attempt 20." },
+        { userId: speedster.id, body: "Have you considered a no-hit run next? Asking for a friend." },
+      ]
+    ),
+    createPost(souls.id,
+      "Day 147 of attempting Malenia no-hit run. Current status: I am completely normal. I am not obsessed. I definitely still have a healthy relationship with this game.\n\n(I do not.)",
+      [vinh.id, kazuki.id, speedster.id, nhan.id],
+      [
+        { userId: vinh.id, body: "147 attempts and you're still here. You are either the most determined or least sane person I know. Respect either way." },
+        { userId: speedster.id, body: "Waterfowl Dance is just a math problem. Once you solve the math it clicks. You'll get it." },
+        { userId: nhan.id, body: "I admire and fear you in equal measure. Please take care of yourself." },
+      ]
+    ),
+
+    // ── nhan ──
+    createPost(nhan.id,
+      "Disco Elysium is the most daring game ever made. It trusts you to be intelligent. It trusts you to sit with difficult ideas. It has no combat because the combat IS the dialogue. Nothing else does this. Harry Du Bois is literature.",
+      [vinh.id, souls.id, strats.id, rpgMaster.id, indieQueen.id, sakura.id],
+      [
+        { userId: strats.id, body: "Kim Kitsuragi is the greatest NPC ever written. This is not a debate." },
+        { userId: rpgMaster.id, body: "Art Cop run is the only valid first playthrough. Everything else is a warmup." },
+        { userId: indieQueen.id, body: "I need to actually play this. It keeps coming up everywhere and I keep skipping it." },
+      ]
+    ),
+    createPost(nhan.id,
+      "Reminder that Hades exists, costs $15–25, has more content than most $70 games, has one of the best stories in gaming, and the gameplay loop is genuinely perfect. If you haven't played it you are missing out on something special.",
+      [indieQueen.id, speedster.id, sakura.id, vinh.id, loot.id],
+      [
+        { userId: indieQueen.id, body: "Zagreus/Meg is the best romance in gaming. I said what I said and I stand by it." },
+        { userId: speedster.id, body: "Heat 32 cleared here. The depth of build optimization is genuinely insane." },
+      ]
+    ),
+
+    // ── strats ──
+    createPost(strats.id,
+      "BG3 playthrough 4 started — Evil Durge Paladin of Conquest. Already betrayed Karlach, allied with the Goblins, and made Shadowheart do something horrible. Larian's writing handles this without blinking. Every choice has weight.",
+      [sakura.id, rpgMaster.id, nhan.id, kazuki.id, vinh.id],
+      [
+        { userId: rpgMaster.id, body: "Evil Durge is the TRUE BG3 experience. The Dark Urge monologue in Act 1 is some of the best writing in gaming." },
+        { userId: sakura.id, body: "On my second run and I made completely opposite choices. Feels like an entirely different game." },
+      ]
+    ),
+    createPost(strats.id,
+      "Hot take: Arthur Morgan is the greatest protagonist in gaming history and RDR2 Chapter 6 is the finest piece of interactive storytelling ever created. I will elaborate on this indefinitely if you let me.",
+      [kazuki.id, loot.id, rpgMaster.id, sakura.id, vinh.id, souls.id],
+      [
+        { userId: kazuki.id, body: "The mountain scene while Crash of Worlds plays... I'm emotional just thinking about it." },
+        { userId: rpgMaster.id, body: "This is not a hot take. This is factual information backed by all evidence." },
+        { userId: loot.id, body: "The epilogue made me cry and I don't cry at games. RDR2 broke my rules." },
+      ]
+    ),
+
+    // ── kazuki ──
+    createPost(kazuki.id,
+      "Ghost of Tsushima. Torii gate on a cliffside. Wind through the pampas grass. Golden light on the ocean. I put down the controller and just stood there for five minutes. This is why we play games.",
+      [loot.id, sakura.id, vinh.id, rpgMaster.id, strats.id],
+      [
+        { userId: loot.id, body: "This game is a living painting. I have more Ghost screenshots than actual photos on my phone." },
+        { userId: sakura.id, body: "Now I need to play this immediately. Adding to my list 😭" },
+      ]
+    ),
+    createPost(kazuki.id,
+      "The Leviathan Axe in God of War is the most satisfying weapon in the history of gaming. Throwing it. Watching enemies freeze. Calling it back. The THUNK when it returns to your hand. This is perfect game design and I will not discuss alternatives.",
+      [sakura.id, strats.id, rpgMaster.id, loot.id, vinh.id],
+      [
+        { userId: strats.id, body: "Santa Monica studied what makes weapons feel good and then did it perfectly. Ragnarok's spear is somehow even better." },
+        { userId: vinh.id, body: "Every weapon in that game has weight and feedback. The shield timing system is masterful too." },
+      ]
+    ),
+
+    // ── indieQueen ──
+    createPost(indieQueen.id,
+      "Please play Hollow Knight. It's $15. It has 60+ hours of content. Three people built something larger and deeper than most AAA studios. The lore is darker than Dark Souls. The combat is tighter than most action games. You have no excuse.",
+      [nhan.id, speedster.id, souls.id, sakura.id, vinh.id],
+      [
+        { userId: nhan.id, body: "Team Cherry are modern legends. Still updating it for FREE years later." },
+        { userId: souls.id, body: "The Radiance fight is better than most FromSoft bosses. Typed this with my whole chest." },
+        { userId: speedster.id, body: "The speedrun community is incredible too. Pure Vessel hitbox is frame-perfect art." },
+      ]
+    ),
+    createPost(indieQueen.id,
+      "Hades 10/10 forever. I've never played a game where every single element — music, writing, art, mechanics, story, replayability — is simultaneously perfect. Supergiant can do absolutely no wrong. They are the greatest studio alive.",
+      [nhan.id, speedster.id, sakura.id, loot.id, vinh.id, strats.id],
+      [
+        { userId: nhan.id, body: "Bastion → Transistor → Pyre → Hades. They have never, ever missed. What is in their water?" },
+        { userId: speedster.id, body: "Heat 32 speedrun is one of the hardest things I've done in gaming. In the best way." },
+      ]
+    ),
+
+    // ── rpgMaster ──
+    createPost(rpgMaster.id,
+      "BG3 playthrough 4 done. Started 5 immediately. I keep finding dialogue I've never seen before. Quests I've never triggered. Characters saying things I didn't know they could say. Larian built a mountain and we're all still at base camp.",
+      [strats.id, sakura.id, nhan.id, kazuki.id, loot.id],
+      [
+        { userId: strats.id, body: "I'm on playthrough 4 too and we are living parallel lives. Twin Durge energy." },
+        { userId: sakura.id, body: "I'm only on run 2 and I'm already lost in choices I didn't know existed." },
+      ]
+    ),
+    createPost(rpgMaster.id,
+      "The Witcher 3 Blood and Wine DLC is better than most full-price games. Toussaint is the most beautiful area in any RPG. Geralt's ending still makes me emotional. CDPR made something that will outlive all of us.",
+      [strats.id, loot.id, sakura.id, kazuki.id, souls.id],
+      [
+        { userId: strats.id, body: "Blood and Wine is a love letter from CDPR to their players. They knew exactly what they were doing." },
+        { userId: loot.id, body: "Toussaint as an open world is so underrated. Dense, gorgeous, and perfect." },
+      ]
+    ),
+
+    // ── speedster ──
+    createPost(speedster.id,
+      "Portal 2 any% PB: 17:43 🎉\n\nFinally got the cornershooting tech consistent after 6 weeks of grinding. Still chasing sub-17 but this feels incredible. If you've never watched Portal 2 speedruns you are genuinely missing out on art.",
+      [nhan.id, indieQueen.id, souls.id, vinh.id],
+      [
+        { userId: nhan.id, body: "17:43 on a game I need 5 hours to beat. What do you do differently with your brain 😂" },
+        { userId: indieQueen.id, body: "Sub-17 incoming. I can feel it from here. You've absolutely got this." },
+      ]
+    ),
+    createPost(speedster.id,
+      "Hollow Knight NMG any% PB: 1:12:34 ✅\n\nPure Vessel decided today was not the day to cooperate. Pure Vessel will always be wrong about this. The nail pogo routing through White Palace is finally consistent.\n\nNext target: sub 1:10.",
+      [nhan.id, indieQueen.id, souls.id, vinh.id, kazuki.id],
+      [
+        { userId: nhan.id, body: "1:12 on a game I spent 85 hours on. I'm simultaneously impressed and personally offended." },
+        { userId: souls.id, body: "Pure Vessel no-hit in a speedrun context is legitimately insane. Absolute monster run." },
+        { userId: indieQueen.id, body: "1:10 is already yours. White Palace routing alone saves 2+ minutes easy." },
+      ]
+    ),
+  ]);
+
+  console.log("✅ Social posts created\n");
+
   // ── Summary ────────────────────────────────────────────────────────
-  const [userCount, gameCount, entryCount, activityCount, followCount, likeCount, commentCount, reviewLikeCount, tagCount, clubCount, playthroughCount, challengeCount, listCount] =
+  const [userCount, gameCount, entryCount, activityCount, followCount, likeCount, commentCount, reviewLikeCount, tagCount, clubCount, playthroughCount, challengeCount, listCount, postCount] =
     await Promise.all([
       prisma.user.count(),
       prisma.game.count(),
@@ -1192,6 +1417,7 @@ async function main() {
       prisma.gamePlaythrough.count(),
       prisma.yearlyChallenge.count(),
       prisma.gameList.count(),
+      prisma.post.count(),
     ]);
 
   console.log("═══════════════════════════════════════════════════");
@@ -1210,6 +1436,7 @@ async function main() {
   console.log(`🔄 Playthroughs:      ${playthroughCount}`);
   console.log(`🏆 Yearly challenges: ${challengeCount}`);
   console.log(`📋 Game lists:        ${listCount}`);
+  console.log(`📝 Social posts:      ${postCount}`);
   console.log("═══════════════════════════════════════════════════");
   console.log("🔑 All accounts — password: password123");
   console.log("───────────────────────────────────────────────────");

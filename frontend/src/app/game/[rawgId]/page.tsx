@@ -2,14 +2,17 @@
 
 import { use, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Star, Users, Tag, BookOpen, Clock, Globe, Monitor, Building2, ChevronDown, ChevronUp, UserCheck } from "lucide-react";
+import {
+  Star, Users, Tag, BookOpen, Clock, Globe, Monitor, Building2,
+  ChevronDown, ChevronUp, UserCheck, ArrowRight,
+} from "lucide-react";
 import Link from "next/link";
-import { Text, Heading, Flex } from "@radix-ui/themes";
+import clsx from "clsx";
 import { api } from "@/lib/api";
+import { gx } from "@/lib/gx-styles";
 import { useAuth } from "@/lib/auth-context";
 import { getGameService, getGameFriendsService, getGameActivitiesService } from "@/services/game.service";
 import { GameEntry, GameStatus, Activity } from "@/lib/types";
-import * as Separator from "@radix-ui/react-separator";
 import Avatar from "@/components/Avatar";
 import AddGameModal from "@/components/AddGameModal";
 import AddToListModal from "@/components/AddToListModal";
@@ -44,10 +47,25 @@ interface GameDetail {
   };
 }
 
-function metacriticColor(score: number) {
-  if (score >= 75) return "text-green-400 border-green-400/40 bg-green-400/10";
-  if (score >= 50) return "text-yellow-400 border-yellow-400/40 bg-yellow-400/10";
-  return "text-red-400 border-red-400/40 bg-red-400/10";
+/* Local Tailwind recipes (converted from _page-game.css) */
+const c = {
+  hero: "relative rounded-[18px] overflow-hidden min-h-[300px] flex items-end bg-gx-surface",
+  scoreBox: "flex flex-col gap-[3px]",
+  scoreVal: "font-bebas text-[30px] leading-none",
+  scoreLbl: "text-[9px] font-bold tracking-[0.1em] uppercase text-gx-text-3",
+  scoreDivider: "w-px h-[34px] bg-gx-border-md",
+  infoRow: "flex items-start gap-3.5 py-[9px] border-b border-gx-border last:border-b-0",
+  infoKey: "w-[100px] shrink-0 text-[11px] text-gx-text-3 pt-px",
+  infoVal: "text-[12px] text-gx-text-2 leading-[1.5] flex-1",
+  mcBadge: "inline-flex flex-col items-center px-3.5 py-2 rounded-[10px] border-2 min-w-[56px]",
+  mcScore: "font-bebas text-[24px] leading-none",
+  mcLabel: "text-[9px] font-bold tracking-[0.08em] uppercase opacity-70 mt-px",
+} as const;
+
+function metacriticClass(score: number) {
+  if (score >= 75) return "border-[#22c55e] text-[#22c55e] bg-[#22c55e]/8";
+  if (score >= 50) return "border-[#eab308] text-[#eab308] bg-[#eab308]/8";
+  return "border-[#ef4444] text-[#ef4444] bg-[#ef4444]/8";
 }
 
 export default function GamePage({ params }: { params: Promise<{ rawgId: string }> }) {
@@ -64,14 +82,11 @@ export default function GamePage({ params }: { params: Promise<{ rawgId: string 
     queryKey: ["my-entries"],
     queryFn: () => api.get("/api/entries/me").then((r) => r.data),
     enabled: !!user,
-    staleTime: 5 * 60_000, // cache 5 min — this is shared across all game pages
+    staleTime: 5 * 60_000,
   });
 
   interface FriendEntry {
-    id: string;
-    status: string;
-    rating?: number | null;
-    playtime?: number | null;
+    id: string; status: string; rating?: number | null; playtime?: number | null;
     user: { id: string; username: string; avatar?: string };
   }
 
@@ -90,75 +105,173 @@ export default function GamePage({ params }: { params: Promise<{ rawgId: string 
     refetchIntervalInBackground: false,
   });
 
-  if (isLoading) return <Text as="p" size="2" color="gray" className="py-16 text-center">Loading...</Text>;
-  if (!game) return <Text as="p" size="2" color="gray" className="py-16 text-center">Game not found</Text>;
+  if (isLoading) return (
+    <div className="flex flex-col gap-5">
+      <div className={c.hero} style={{ minHeight: 280 }}>
+        <div style={{ position: "absolute", inset: 0, background: "var(--gx-surface)" }} />
+      </div>
+    </div>
+  );
+  if (!game) return (
+    <p style={{ padding: "64px 0", textAlign: "center", color: "var(--gx-text-2)", fontSize: 14 }}>
+      Game not found
+    </p>
+  );
 
   const myEntry = myEntries.find((e) => e.game.rawgId === parseInt(rawgId));
   const totalInLibrary = Object.values(game.community.statusCounts).reduce((a, b) => a + b, 0);
-
-  const descTrimmed = game.description && game.description.length > 400 && !showFullDesc
-    ? game.description.slice(0, 400).trimEnd() + "…"
+  const descTrimmed = game.description && game.description.length > 480 && !showFullDesc
+    ? game.description.slice(0, 480).trimEnd() + "…"
     : game.description;
-
-  const hasInfoCard = game.metacritic || game.esrbRating || game.avgPlaytime || game.website ||
-    (game.platforms?.length ?? 0) > 0 || (game.developers?.length ?? 0) > 0 || (game.publishers?.length ?? 0) > 0;
+  const hasInfoCard = game.metacritic || game.esrbRating || game.avgPlaytime || game.website
+    || (game.platforms?.length ?? 0) > 0
+    || (game.developers?.length ?? 0) > 0
+    || (game.publishers?.length ?? 0) > 0;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      {/* ── Header card ── */}
-      <div className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-2xl overflow-hidden">
-        {/* Gallery replaces the static banner */}
-        <GameMediaGallery rawgId={rawgId} coverFallback={game.coverImage} />
-        <div className="p-6">
-          <Flex align="start" justify="between" gap="4">
-            <div>
-              <Heading size="6">{game.name}</Heading>
-              {game.releaseYear && <Text as="p" size="2" color="gray" className="mt-1">{game.releaseYear}</Text>}
-              <div className="flex flex-wrap gap-2 mt-3">
-                {game.genres.map((g) => (
-                  <span key={g} className="flex items-center gap-1 text-xs text-gray-400 bg-white/8 px-2 py-1 rounded-full">
-                    <Tag size={11} />
-                    {g}
+    <div className="flex flex-col gap-5">
+
+      {/* ── HERO ── */}
+      <div className={c.hero}>
+        {game.coverImage && (
+          <div
+            className="absolute inset-0 bg-cover bg-center blur-[20px] brightness-[0.3] scale-110"
+            style={{ backgroundImage: `url(${game.coverImage})` }}
+          />
+        )}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(8,11,17,0.98)_0%,rgba(8,11,17,0.88)_50%,rgba(8,11,17,0.35)_100%)]" />
+        {game.coverImage && (
+          <div className="absolute right-0 top-0 bottom-0 w-[45%] pointer-events-none overflow-hidden">
+            <img
+              src={game.coverImage}
+              alt={game.name}
+              className="w-full h-full object-cover object-[center_top] opacity-45 [mask-image:linear-gradient(to_left,rgba(0,0,0,0.6)_0%,transparent_80%)]"
+            />
+          </div>
+        )}
+        <div className="relative z-[2] w-full px-8 py-7 flex items-end justify-between gap-5">
+          <div className="flex-1 min-w-0">
+            {(game.releaseYear || game.genres.length > 0) && (
+              <p className={gx.eyebrow} style={{ marginBottom: 8 }}>
+                {[game.releaseYear, ...game.genres.slice(0, 2)].filter(Boolean).join(" · ")}
+              </p>
+            )}
+            <h1 className="font-bebas text-[clamp(28px,5vw,50px)] tracking-[0.02em] leading-none text-gx-text-1 mb-1.5">
+              {game.name}
+            </h1>
+
+            {/* Scores */}
+            <div className="flex items-center gap-[18px]">
+              {game.rawgRating != null && (
+                <div className={c.scoreBox}>
+                  <span className={clsx(c.scoreVal, "text-[#F59E0B]")}>
+                    {game.rawgRating.toFixed(1)}
                   </span>
-                ))}
+                  <span className={c.scoreLbl}>RAWG</span>
+                </div>
+              )}
+              {game.rawgRating != null && (
+                <div className={c.scoreDivider} />
+              )}
+              <div className={c.scoreBox}>
+                <span className={clsx(c.scoreVal, "text-gx-amber")}>
+                  {game.community.avgRating ?? "—"}
+                </span>
+                <span className={c.scoreLbl}>
+                  Community{game.community.ratingCount > 0 ? ` · ${game.community.ratingCount}` : ""}
+                </span>
+              </div>
+              <div className={c.scoreDivider} />
+              <div className={c.scoreBox}>
+                <span className={clsx(c.scoreVal, "text-gx-teal")}>{totalInLibrary}</span>
+                <span className={c.scoreLbl}>In Libraries</span>
               </div>
             </div>
-            <div className="shrink-0 flex flex-col gap-2">
-              {myEntry ? (
-                <AddGameModal
-                  preselectedGame={game}
-                  initialValues={{
-                    status: myEntry.status as GameStatus,
-                    rating: myEntry.rating,
-                    review: myEntry.review,
-                    playtime: myEntry.playtime,
-                    platform: myEntry.platform,
-                  }}
-                  trigger={
-                    <button className="flex items-center gap-2 bg-white/8 hover:bg-gray-700 border border-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                      <BookOpen size={15} />
-                      Update Entry
-                    </button>
-                  }
-                />
-              ) : (
-                <AddGameModal preselectedGame={game} />
-              )}
-              {user && <AddToListModal rawgId={game.rawgId} gameName={game.name} />}
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-col gap-[9px] shrink-0">
+            {myEntry ? (
+              <AddGameModal
+                preselectedGame={game}
+                initialValues={{
+                  status: myEntry.status as GameStatus,
+                  rating: myEntry.rating,
+                  review: myEntry.review,
+                  playtime: myEntry.playtime,
+                  platform: myEntry.platform,
+                }}
+                trigger={
+                  <button className={gx.btnGhost}>
+                    <BookOpen size={14} /> Update Entry
+                  </button>
+                }
+              />
+            ) : (
+              <AddGameModal
+                preselectedGame={game}
+                trigger={
+                  <button className={gx.btnPrimary}>
+                    <BookOpen size={14} /> Add to Library
+                  </button>
+                }
+              />
+            )}
+            {user && <AddToListModal rawgId={game.rawgId} gameName={game.name} />}
+          </div>
+        </div>
+      </div>
+
+      {/* ── TWO COLUMN LAYOUT ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-5">
+
+        {/* MAIN COLUMN */}
+        <div className="flex flex-col gap-5">
+
+          {/* Media gallery */}
+          <GameMediaGallery rawgId={rawgId} coverFallback={game.coverImage} />
+
+          {/* My entry bar */}
+          {myEntry && (
+            <div className="bg-gx-surface border border-gx-border border-l-[3px] border-l-gx-amber rounded-xl px-[18px] py-3.5">
+              <p className="text-[9px] font-bold tracking-[0.13em] uppercase text-gx-amber mb-2">My Entry</p>
+              <div className="flex flex-wrap items-center gap-3">
+                <StatusBadge status={myEntry.status as GameStatus} />
+                {myEntry.rating != null && (
+                  <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "#F59E0B" }}>
+                    <Star size={12} fill="currentColor" />
+                    <span style={{ fontWeight: 700 }}>{myEntry.rating}/10</span>
+                  </span>
+                )}
+                {myEntry.playtime != null && (
+                  <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--gx-text-2)" }}>
+                    <Clock size={11} />{myEntry.playtime}h played
+                  </span>
+                )}
+                {myEntry.review && (
+                  <div style={{ width: "100%", fontSize: 12, color: "var(--gx-text-2)", lineHeight: 1.5 }}>
+                    <MarkdownReview text={myEntry.review} />
+                  </div>
+                )}
+              </div>
             </div>
-          </Flex>
+          )}
 
           {/* Description */}
           {game.description && (
-            <div className="mt-4">
-              <Separator.Root className="h-px bg-white/8 mb-3" />
-              <Text as="p" size="2" color="gray" className="leading-relaxed whitespace-pre-line">
+            <div className={gx.sectionCard}>
+              <p className={gx.sectionCardTitle}>About</p>
+              <p style={{ fontSize: 13, color: "var(--gx-text-2)", lineHeight: 1.7, whiteSpace: "pre-line" }}>
                 {descTrimmed}
-              </Text>
-              {game.description.length > 400 && (
+              </p>
+              {game.description.length > 480 && (
                 <button
                   onClick={() => setShowFullDesc((v) => !v)}
-                  className="mt-1.5 flex items-center gap-1 text-xs text-violet-400 hover:text-violet-300 transition-colors"
+                  style={{
+                    marginTop: 10, display: "flex", alignItems: "center", gap: 4,
+                    fontSize: 11, color: "var(--gx-amber)", background: "none",
+                    border: "none", cursor: "pointer", padding: 0,
+                  }}
                 >
                   {showFullDesc ? <><ChevronUp size={13} /> Show less</> : <><ChevronDown size={13} /> Show more</>}
                 </button>
@@ -166,220 +279,178 @@ export default function GamePage({ params }: { params: Promise<{ rawgId: string 
             </div>
           )}
 
-          {/* My entry */}
-          {myEntry && (
-            <div className="mt-4">
-              <Separator.Root className="h-px bg-white/8 mb-4" />
-              <div className="flex flex-wrap items-center gap-3">
-                <StatusBadge status={myEntry.status as GameStatus} />
-                {myEntry.rating && (
-                  <span className="flex items-center gap-1 text-yellow-400 text-sm">
-                    <Star size={13} fill="currentColor" />
-                    <span className="font-bold">{myEntry.rating}/10</span>
+          {/* Tags */}
+          <GameTagsSection rawgId={rawgId} />
+
+          {/* Playthroughs */}
+          {myEntry && <PlaythroughsSection entryId={myEntry.id} />}
+
+          {/* Friends playing */}
+          {user && friendEntries.length > 0 && (
+            <div className={gx.sectionCard}>
+              <p className={gx.sectionCardTitle} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <UserCheck size={11} /> Friends Playing · {friendEntries.length}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {friendEntries.map((fe) => (
+                  <Link
+                    key={fe.id}
+                    href={`/user/${fe.user.username}`}
+                    className="group flex items-center gap-[9px] bg-gx-surface border border-gx-border rounded-[10px] px-3 py-[9px] no-underline transition-[border-color] duration-150 hover:border-gx-amber/30"
+                  >
+                    <Avatar src={fe.user.avatar} username={fe.user.username} size="sm" />
+                    <div style={{ minWidth: 0 }}>
+                      <p className="text-[12px] font-semibold text-gx-text-1 transition-colors duration-150 group-hover:text-gx-amber">
+                        {fe.user.username}
+                      </p>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+                        <StatusBadge status={fe.status as GameStatus} />
+                        {fe.rating != null && (
+                          <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: "#F59E0B" }}>
+                            <Star size={10} fill="currentColor" />{fe.rating}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Reviews link */}
+          <div className="flex items-center justify-between">
+            <p className={gx.sectionLabel}>Reviews</p>
+            <Link href={`/game/${rawgId}/reviews`} className={gx.link} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              See all <ArrowRight size={12} />
+            </Link>
+          </div>
+
+          {/* Community activity */}
+          {communityActivities.length > 0 && (
+            <ErrorBoundary>
+              <div className="flex flex-col gap-3">
+                {communityActivities.map((a) => (
+                  <ActivityCard key={a.id} activity={a} />
+                ))}
+              </div>
+            </ErrorBoundary>
+          )}
+        </div>
+
+        {/* SIDEBAR */}
+        <div className="flex flex-col gap-4">
+
+          {/* Game info */}
+          {hasInfoCard && (
+            <div className={gx.sectionCard}>
+              <p className={gx.sectionCardTitle}>Game Info</p>
+
+              {/* Metacritic + ESRB + playtime row */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
+                {game.metacritic && (
+                  <div className={clsx(c.mcBadge, metacriticClass(game.metacritic))}>
+                    <span className={c.mcScore}>{game.metacritic}</span>
+                    <span className={c.mcLabel}>Metacritic</span>
+                  </div>
+                )}
+                {game.esrbRating && (
+                  <div className={c.mcBadge} style={{ borderColor: "var(--gx-border-md)", color: "var(--gx-text-2)" }}>
+                    <span className={c.mcScore} style={{ fontSize: 16 }}>{game.esrbRating}</span>
+                    <span className={c.mcLabel}>ESRB</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Info rows */}
+              {game.avgPlaytime != null && (
+                <div className={c.infoRow}>
+                  <span className={c.infoKey} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <Clock size={11} /> Avg. Play
                   </span>
-                )}
-                {myEntry.playtime && (
-                  <Text as="span" size="1" color="gray">{myEntry.playtime}h played</Text>
-                )}
-                {myEntry.review && (
-                  <MarkdownReview text={myEntry.review} className="w-full text-gray-400 text-sm line-clamp-2" />
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── Stats grid ── */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-xl p-4 text-center">
-          <div className="flex items-center justify-center gap-1 text-yellow-400 mb-1">
-            <Star size={16} fill="currentColor" />
-            <span className="text-xl font-bold">{game.rawgRating?.toFixed(1) ?? "—"}</span>
-          </div>
-          <Text as="p" size="1" color="gray">RAWG Rating</Text>
-        </div>
-        <div className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-xl p-4 text-center">
-          <div className="flex items-center justify-center gap-1 text-violet-400 mb-1">
-            <Star size={16} fill="currentColor" />
-            <span className="text-xl font-bold">{game.community.avgRating ?? "—"}</span>
-          </div>
-          <Text as="p" size="1" color="gray">Community ({game.community.ratingCount})</Text>
-        </div>
-        <div className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-xl p-4 text-center">
-          <div className="flex items-center justify-center gap-1 text-green-400 mb-1">
-            <Users size={16} />
-            <span className="text-xl font-bold">{totalInLibrary}</span>
-          </div>
-          <Text as="p" size="1" color="gray">In Libraries</Text>
-        </div>
-      </div>
-
-      {/* ── Game Info card ── */}
-      {hasInfoCard && (
-        <div className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-xl p-4 space-y-3">
-          <Heading size="2" as="h3" className="text-gray-300">Game Info</Heading>
-
-          {/* Top row: Metacritic + ESRB + Avg playtime */}
-          <div className="flex flex-wrap gap-3">
-            {game.metacritic && (
-              <div className={`flex flex-col items-center justify-center border rounded-lg px-4 py-2 min-w-18 ${metacriticColor(game.metacritic)}`}>
-                <span className="text-xl font-bold leading-tight">{game.metacritic}</span>
-                <span className="text-xs opacity-70 mt-0.5">Metacritic</span>
-              </div>
-            )}
-            {game.esrbRating && (
-              <div className="flex flex-col items-center justify-center border border-gray-600 rounded-lg px-4 py-2 min-w-18 text-gray-300">
-                <span className="text-sm font-bold leading-tight">{game.esrbRating}</span>
-                <span className="text-xs text-gray-500 mt-0.5">ESRB</span>
-              </div>
-            )}
-            {game.avgPlaytime ? (
-              <div className="flex items-center gap-2 text-sm text-gray-300 border border-white/10 rounded-lg px-4 py-2">
-                <Clock size={14} className="text-gray-500" />
-                <span>~{game.avgPlaytime}h avg. playtime</span>
-              </div>
-            ) : null}
-            {game.website && (
-              <a
-                href={game.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-sm text-violet-400 hover:text-violet-300 border border-violet-400/30 hover:border-violet-400/60 rounded-lg px-4 py-2 transition-colors"
-              >
-                <Globe size={14} />
-                Official Site
-              </a>
-            )}
-          </div>
-
-          {/* Platforms */}
-          {(game.platforms?.length ?? 0) > 0 && (
-            <div>
-              <Separator.Root className="h-px bg-white/8 mb-3" />
-              <Flex align="start" gap="3">
-                <div className="flex items-center gap-1.5 text-xs text-gray-500 shrink-0 pt-0.5 w-24">
-                  <Monitor size={13} />
-                  Platforms
+                  <span className={c.infoVal}>~{game.avgPlaytime}h</span>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {game.platforms!.map((p) => (
-                    <span key={p} className="text-xs text-gray-300 bg-white/8 px-2 py-0.5 rounded-full">{p}</span>
-                  ))}
-                </div>
-              </Flex>
-            </div>
-          )}
-
-          {/* Developers */}
-          {(game.developers?.length ?? 0) > 0 && (
-            <Flex align="start" gap="3">
-              <div className="flex items-center gap-1.5 text-xs text-gray-500 shrink-0 pt-0.5 w-24">
-                <Building2 size={13} />
-                {game.developers!.length === 1 ? "Developer" : "Developers"}
-              </div>
-              <Text as="p" size="2" className="text-gray-300">{game.developers!.join(", ")}</Text>
-            </Flex>
-          )}
-
-          {/* Publishers */}
-          {(game.publishers?.length ?? 0) > 0 && (
-            <Flex align="start" gap="3">
-              <div className="flex items-center gap-1.5 text-xs text-gray-500 shrink-0 pt-0.5 w-24">
-                <Building2 size={13} />
-                {game.publishers!.length === 1 ? "Publisher" : "Publishers"}
-              </div>
-              <Text as="p" size="2" className="text-gray-300">{game.publishers!.join(", ")}</Text>
-            </Flex>
-          )}
-        </div>
-      )}
-
-      {/* ── Tags ── */}
-      <GameTagsSection rawgId={rawgId} />
-
-      {/* ── Playthroughs (own runs) ── */}
-      {myEntry && <PlaythroughsSection entryId={myEntry.id} />}
-
-      {/* ── Community Status ── */}
-      {totalInLibrary > 0 && (
-        <div className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-xl p-4">
-          <Heading size="2" as="h3" className="text-gray-300 mb-3">Community Status</Heading>
-          <Flex direction="column" gap="2">
-            {Object.entries(game.community.statusCounts).map(([status, count]) => (
-              <div key={status} className="flex items-center gap-3">
-                <Text as="span" size="1" color="gray" className="w-28">{status.replaceAll("_", " ")}</Text>
-                <div className="flex-1 bg-white/8 rounded-full h-2">
-                  <div
-                    className="bg-violet-600 rounded-full h-2 transition-all"
-                    style={{ width: `${(count / totalInLibrary) * 100}%` }}
-                  />
-                </div>
-                <Text as="span" size="1" color="gray" className="w-6 text-right">{count}</Text>
-              </div>
-            ))}
-          </Flex>
-        </div>
-      )}
-
-      {/* ── Friends playing this ── */}
-      {user && friendEntries.length > 0 && (
-        <div>
-          <Flex align="center" gap="2" className="mb-3">
-            <UserCheck size={16} className="text-violet-400" />
-            <Heading size="4" as="h2">
-              Friends{" "}
-              <span className="text-gray-500 font-normal text-sm">({friendEntries.length})</span>
-            </Heading>
-          </Flex>
-          <div className="flex flex-wrap gap-2">
-            {friendEntries.map((fe) => (
-              <Link
-                key={fe.id}
-                href={`/user/${fe.user.username}`}
-                className="flex items-center gap-2.5 bg-white/5 hover:bg-white/10 border border-white/8 hover:border-violet-500/40 rounded-xl px-3 py-2 transition-colors group"
-              >
-                <Avatar src={fe.user.avatar} username={fe.user.username} size="sm" />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-white group-hover:text-violet-300 transition-colors truncate">
-                    {fe.user.username}
-                  </p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <StatusBadge status={fe.status as GameStatus} />
-                    {fe.rating != null && (
-                      <span className="flex items-center gap-0.5 text-xs text-yellow-400">
-                        <Star size={10} fill="currentColor" />
-                        {fe.rating}
-                      </span>
-                    )}
+              )}
+              {(game.platforms?.length ?? 0) > 0 && (
+                <div className={c.infoRow}>
+                  <span className={c.infoKey} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <Monitor size={11} /> Platforms
+                  </span>
+                  <div className={c.infoVal} style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                    {game.platforms!.map((p) => (
+                      <span key={p} className={gx.genrePill}>{p}</span>
+                    ))}
                   </div>
                 </div>
-              </Link>
-            ))}
-          </div>
+              )}
+              {(game.developers?.length ?? 0) > 0 && (
+                <div className={c.infoRow}>
+                  <span className={c.infoKey} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <Building2 size={11} /> {game.developers!.length === 1 ? "Dev" : "Devs"}
+                  </span>
+                  <span className={c.infoVal}>{game.developers!.join(", ")}</span>
+                </div>
+              )}
+              {(game.publishers?.length ?? 0) > 0 && (
+                <div className={c.infoRow}>
+                  <span className={c.infoKey} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <Building2 size={11} /> Publisher
+                  </span>
+                  <span className={c.infoVal}>{game.publishers!.join(", ")}</span>
+                </div>
+              )}
+              {game.website && (
+                <div style={{ marginTop: 12 }}>
+                  <a
+                    href={game.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={gx.btnGhost}
+                    style={{ fontSize: 12, padding: "7px 14px" }}
+                  >
+                    <Globe size={12} /> Official Site
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Community status */}
+          {totalInLibrary > 0 && (
+            <div className={gx.sectionCard}>
+              <p className={gx.sectionCardTitle}>Community Status</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {Object.entries(game.community.statusCounts).map(([status, count]) => (
+                  <div key={status} className="flex items-center gap-2.5">
+                    <span className="text-[11px] text-gx-text-2 w-[110px] shrink-0">{status.replaceAll("_", " ")}</span>
+                    <div className="flex-1 h-[3px] bg-white/[0.06] rounded-[2px]">
+                      <div
+                        className="h-[3px] rounded-[2px] bg-gx-amber transition-[width] duration-500"
+                        style={{ width: `${(count / totalInLibrary) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-[11px] text-gx-text-3 w-[26px] text-right shrink-0">{count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Genre tags */}
+          {game.genres.length > 0 && (
+            <div className={gx.sectionCard}>
+              <p className={gx.sectionCardTitle} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <Tag size={10} /> Genres
+              </p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {game.genres.map((g) => (
+                  <span key={g} className={gx.genrePill}>{g}</span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-      )}
-
-      <Flex align="center" justify="between">
-        <Heading size="4" as="h2">Reviews</Heading>
-        <Link
-          href={`/game/${rawgId}/reviews`}
-          className="text-sm text-violet-400 hover:text-violet-300 transition-colors"
-        >
-          See all reviews →
-        </Link>
-      </Flex>
-
-      {communityActivities.length > 0 && (
-        <Flex direction="column" gap="3">
-          <Heading size="4" as="h2">Recent Activity</Heading>
-          <ErrorBoundary>
-            {communityActivities.map((a) => (
-              <ActivityCard key={a.id} activity={a} />
-            ))}
-          </ErrorBoundary>
-        </Flex>
-      )}
+      </div>
     </div>
   );
 }

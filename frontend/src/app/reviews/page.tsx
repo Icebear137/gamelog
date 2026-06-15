@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { MessageSquare, Clock, ThumbsUp } from "lucide-react";
-import { Heading, Text, Flex, Box } from "@radix-ui/themes";
 import { GameReview } from "@/lib/types";
+import { gx } from "@/lib/gx-styles";
 import { getGlobalReviewsService } from "@/services/game.service";
 import { ReviewCard } from "@/components/ReviewCard";
 
@@ -21,54 +21,56 @@ export default function ReviewsPage() {
   });
 
   return (
-    <div className="max-w-2xl mx-auto space-y-5">
-      {/* Header */}
-      <Flex align="center" justify="between" className="flex-wrap gap-3">
-        <Box>
-          <Heading size="6" className="flex items-center gap-2">
-            <MessageSquare size={22} className="text-violet-400" />
-            Community Reviews
-          </Heading>
-          <Text as="p" size="2" color="gray" className="mt-1">
+    <div className="flex flex-col gap-5 max-w-170 mx-auto">
+      {/* Header + sort */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 14 }}>
+        <div>
+          <p className={gx.eyebrow} style={{ marginBottom: 4 }}>Community</p>
+          <h1 className={`${gx.sectionLabel} flex items-center gap-2`} style={{ fontSize: 26 }}>
+            <MessageSquare size={20} style={{ color: "var(--gx-amber)" }} />
+            Reviews
+          </h1>
+          <p style={{ fontSize: 13, color: "var(--gx-text-2)", marginTop: 4 }}>
             Recent reviews from the GameLog community.
-          </Text>
-        </Box>
+          </p>
+        </div>
 
-        {/* Sort */}
-        <div className="flex gap-1">
+        <div className="flex gap-1 bg-gx-surface border border-gx-border rounded-xl p-1 w-fit" style={{ flexShrink: 0 }}>
           {([
-            { key: "recent",  label: "Recent",       icon: <Clock size={13} /> },
-            { key: "helpful", label: "Most Helpful",  icon: <ThumbsUp size={13} /> },
-          ] as { key: Sort; label: string; icon: React.ReactNode }[]).map((o) => (
+            { key: "recent"  as Sort, label: "Recent",       icon: <Clock size={12} /> },
+            { key: "helpful" as Sort, label: "Most Helpful",  icon: <ThumbsUp size={12} /> },
+          ]).map((o) => (
             <button
               key={o.key}
               onClick={() => setSort(o.key)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
-                sort === o.key ? "bg-violet-600 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white"
-              }`}
+              data-active={sort === o.key}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.75 rounded-lg text-[12px] font-semibold bg-transparent border-none text-gx-text-2 cursor-pointer transition-[background,color] whitespace-nowrap data-[active=true]:bg-gx-amber data-[active=true]:text-gx-ink not-data-[active=true]:hover:text-gx-text-1 not-data-[active=true]:hover:bg-white/4"
             >
               {o.icon} {o.label}
             </button>
           ))}
         </div>
-      </Flex>
+      </div>
 
+      {/* Loading */}
       {isLoading && (
-        <div className="space-y-4">
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-white/5 border border-white/8 rounded-2xl p-5 animate-pulse h-36" />
+            <div key={i} className="bg-gx-surface border border-gx-border rounded-[14px] px-5 py-4.5 transition-colors flex flex-col gap-2.5 hover:border-gx-border-md" style={{ height: 140, opacity: 0.35 }} />
           ))}
         </div>
       )}
 
+      {/* Empty */}
       {!isLoading && reviews.length === 0 && (
-        <div className="text-center py-20 bg-white/5 border border-white/8 rounded-2xl">
-          <MessageSquare size={40} className="mx-auto mb-3 opacity-30 text-gray-500" />
-          <Text as="p" size="2" color="gray">No reviews yet. Be the first!</Text>
+        <div style={{ textAlign: "center", padding: "56px 24px", background: "var(--gx-surface)", border: "1px solid var(--gx-border)", borderRadius: 14 }}>
+          <MessageSquare size={36} style={{ margin: "0 auto 10px", opacity: 0.18, color: "var(--gx-text-3)", display: "block" }} />
+          <p style={{ fontSize: 13, color: "var(--gx-text-3)" }}>No reviews yet. Be the first!</p>
         </div>
       )}
 
-      <div className="space-y-4">
+      {/* Review list */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {reviews.map((r) => (
           <ReviewCard key={r.id} review={r} showGame queryKey={queryKey} />
         ))}

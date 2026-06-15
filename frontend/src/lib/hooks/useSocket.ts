@@ -10,8 +10,8 @@ import { connectSocket, disconnectSocket } from "@/lib/socket-client";
  * Duy trì kết nối WebSocket (Socket.io) cho user đang đăng nhập.
  * Xử lý tất cả real-time events:
  *   - "notification"  → invalidate notif-count + notifications
- *   - "feed_update"   → hiển thị banner "New posts" trên FeedSection
- *   - "new_message"   → invalidate conversations + messages-unread (Phase 2)
+ *   - "new_post"      → hiển thị banner "New posts" trên SocialFeed
+ *   - "new_message"   → invalidate conversations + messages-unread
  *
  * Singleton pattern: socket được tạo 1 lần, tất cả component dùng chung.
  * Mount hook này 1 lần duy nhất trong layout/client wrapper.
@@ -35,7 +35,7 @@ export function useSocket() {
       qc.invalidateQueries({ queryKey: ["notifications"] });
     }
 
-    function onFeedUpdate() {
+    function onNewPost() {
       setFeedNew(useRealtimeStore.getState().newFeedCount + 1);
     }
 
@@ -46,14 +46,12 @@ export function useSocket() {
     }
 
     socket.on("notification", onNotification);
-    socket.on("feed_update", onFeedUpdate);
+    socket.on("new_post", onNewPost);
     socket.on("new_message", onNewMessage);
 
     return () => {
-      // Chỉ off event listeners — không disconnect socket
-      // (socket singleton tồn tại suốt session, chỉ disconnect khi logout)
       socket.off("notification", onNotification);
-      socket.off("feed_update", onFeedUpdate);
+      socket.off("new_post", onNewPost);
       socket.off("new_message", onNewMessage);
     };
   }, [user, token, qc, setFeedNew]);

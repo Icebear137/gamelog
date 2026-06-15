@@ -1,46 +1,46 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Clock, Trophy, BarChart3, Download } from "lucide-react";
+import { Clock, Trophy, BarChart3, Download, Gamepad2 } from "lucide-react";
+import clsx from "clsx";
+import { gx } from "@/lib/gx-styles";
 import { EnvConstant } from "@/constant";
 import { getMyEntriesService } from "@/services/entry.service";
 import { useAuth } from "@/lib/auth-context";
 import { GameEntry, GamePlatform } from "@/lib/types";
-import { useState } from "react";
 import * as Tabs from "@radix-ui/react-tabs";
 import { RadixSelect } from "@/components/ui";
 import AddGameModal from "@/components/AddGameModal";
 import { GameGrid } from "./_components/GameGrid";
-import { Text, Heading, Flex, Grid } from "@radix-ui/themes";
 
 const TABS = [
-  { value: "all", label: "All" },
-  { value: "PLAYING", label: "Playing" },
-  { value: "COMPLETED", label: "Completed" },
-  { value: "WANT_TO_PLAY", label: "Want to Play" },
-  { value: "DROPPED", label: "Dropped" },
+  { value: "all",           label: "All"          },
+  { value: "PLAYING",       label: "Playing"      },
+  { value: "COMPLETED",     label: "Completed"    },
+  { value: "WANT_TO_PLAY",  label: "Want to Play" },
+  { value: "DROPPED",       label: "Dropped"      },
 ];
 
 const SORT_OPTIONS = [
-  { value: "updated", label: "Recently Updated" },
-  { value: "added", label: "Date Added" },
-  { value: "name-asc", label: "Name A → Z" },
-  { value: "name-desc", label: "Name Z → A" },
-  { value: "rating-desc", label: "Rating (High → Low)" },
+  { value: "updated",       label: "Recently Updated"    },
+  { value: "added",         label: "Date Added"          },
+  { value: "name-asc",      label: "Name A → Z"          },
+  { value: "name-desc",     label: "Name Z → A"          },
+  { value: "rating-desc",   label: "Rating (High → Low)" },
   { value: "playtime-desc", label: "Playtime (High → Low)" },
 ];
 
 function sortEntries(entries: GameEntry[], sort: string): GameEntry[] {
   return [...entries].sort((a, b) => {
     switch (sort) {
-      case "name-asc": return a.game.name.localeCompare(b.game.name);
-      case "name-desc": return b.game.name.localeCompare(a.game.name);
-      case "rating-desc": return (b.rating ?? 0) - (a.rating ?? 0);
+      case "name-asc":      return a.game.name.localeCompare(b.game.name);
+      case "name-desc":     return b.game.name.localeCompare(a.game.name);
+      case "rating-desc":   return (b.rating ?? 0) - (a.rating ?? 0);
       case "playtime-desc": return (b.playtime ?? 0) - (a.playtime ?? 0);
-      case "added": return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      default: return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      case "added":         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      default:              return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     }
   });
 }
@@ -83,57 +83,66 @@ export default function LibraryPage() {
 
   if (loading || !user) return null;
 
-  const completed = entries.filter((e) => e.status === "COMPLETED").length;
+  const completed     = entries.filter((e) => e.status === "COMPLETED").length;
   const totalPlaytime = entries.reduce((sum, e) => sum + (e.playtime ?? 0), 0);
-  const ratedEntries = entries.filter((e) => e.rating != null);
+  const ratedEntries  = entries.filter((e) => e.rating != null);
   const avgRating = ratedEntries.length > 0
     ? (ratedEntries.reduce((sum, e) => sum + e.rating!, 0) / ratedEntries.length).toFixed(1)
     : null;
 
+  const STATS = [
+    { icon: <Gamepad2 size={14} color="var(--gx-text-2)" />, value: entries.length,       label: "Total Games",  color: "var(--gx-text-1)" },
+    { icon: <Trophy   size={14} color="var(--gx-green)"   />, value: completed,            label: "Completed",    color: "var(--gx-green)"  },
+    { icon: <Clock    size={14} color="var(--gx-teal)"    />, value: totalPlaytime,         label: "Hours Played", color: "var(--gx-teal)"   },
+    { icon: <BarChart3 size={14} color="#F59E0B"          />, value: avgRating ?? "—",     label: "Avg Rating",   color: "#F59E0B"           },
+  ];
+
   return (
-    <div>
-      <Flex align="center" justify="between" className="mb-5">
-        <Heading size="6">My Library</Heading>
-        <Flex gap="2" align="center">
+    <div className="flex flex-col gap-5">
+
+      {/* ── HEADER ── */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <h1 className={gx.sectionLabel} style={{ fontSize: 24 }}>My Library</h1>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <ExportButton />
           <AddGameModal />
-        </Flex>
-      </Flex>
+        </div>
+      </div>
 
+      {/* ── STATS ── */}
       {entries.length > 0 && (
-        <Grid columns={{ initial: "2", sm: "4" }} gap="3" className="mb-6">
-          {[
-            { value: entries.length, label: "Total Games", color: "text-white" },
-            { value: completed, label: "Completed", color: "text-green-400", icon: <Trophy size={14} /> },
-            { value: totalPlaytime, label: "Hours Played", color: "text-blue-400", icon: <Clock size={14} /> },
-            { value: avgRating ?? "—", label: "Avg Rating", color: "text-yellow-400", icon: <BarChart3 size={14} /> },
-          ].map(({ value, label, color, icon }) => (
-            <div key={label} className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-xl p-3 text-center">
-              <Flex align="center" justify="center" gap="1" className={`${color} mb-0.5`}>
-                {icon}
-                <Text as="p" size="6" weight="bold">{value}</Text>
-              </Flex>
-              <Text as="p" size="1" color="gray">{label}</Text>
+        <div className="grid grid-cols-4 gap-2.5 max-[480px]:grid-cols-2">
+          {STATS.map(({ icon, value, label, color }) => (
+            <div key={label} className="bg-gx-surface border border-gx-border rounded-xl px-4 py-3.5 text-center">
+              <div className="mb-1">{icon}</div>
+              <p className="font-bebas text-[28px] leading-none text-gx-text-1" style={{ color }}>{value}</p>
+              <p className="text-[9px] font-bold tracking-widest uppercase text-gx-text-3 mt-1">{label}</p>
             </div>
           ))}
-        </Grid>
+        </div>
       )}
 
+      {/* ── TABS + FILTERS ── */}
       <Tabs.Root defaultValue="all">
-        <Flex align="center" justify="between" className="flex-wrap gap-3 mb-4">
-          <Tabs.List className="flex gap-1 bg-white/5 backdrop-blur-sm border border-white/8 rounded-xl p-1 w-fit">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 16 }}>
+          <Tabs.List className="flex gap-1 bg-gx-surface border border-gx-border rounded-xl p-1 w-fit">
             {TABS.map((t) => (
               <Tabs.Trigger
                 key={t.value}
                 value={t.value}
-                className="px-3 py-1.5 text-sm rounded-lg text-gray-400 data-[state=active]:bg-violet-600 data-[state=active]:text-white transition-colors whitespace-nowrap"
+                className={clsx(
+                  "px-3.5 py-[7px] rounded-[9px] text-xs font-semibold text-gx-text-2",
+                  "cursor-pointer bg-transparent border-none whitespace-nowrap transition-colors",
+                  "data-[state=active]:bg-gx-amber data-[state=active]:text-gx-ink",
+                  "data-[state=inactive]:hover:text-gx-text-1",
+                )}
               >
                 {t.label}
               </Tabs.Trigger>
             ))}
           </Tabs.List>
 
-          <Flex gap="2" className="flex-wrap">
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {allPlatforms.length > 0 && (
               <RadixSelect
                 value={platformFilter}
@@ -151,11 +160,13 @@ export default function LibraryPage() {
               />
             )}
             <RadixSelect value={sort} onValueChange={setSort} options={SORT_OPTIONS} placeholder="Sort by" />
-          </Flex>
-        </Flex>
+          </div>
+        </div>
 
         {TABS.map((t) => {
-          const tabEntries = t.value === "all" ? filteredEntries : filteredEntries.filter((e) => e.status === t.value);
+          const tabEntries = t.value === "all"
+            ? filteredEntries
+            : filteredEntries.filter((e) => e.status === t.value);
           return (
             <Tabs.Content key={t.value} value={t.value}>
               <GameGrid entries={sortEntries(tabEntries, sort)} loading={isLoading} />
@@ -167,22 +178,19 @@ export default function LibraryPage() {
   );
 }
 
-// ── Export button ─────────────────────────────────────────────────────────────
-
+/* ── Export button ── */
 function ExportButton() {
   const [open, setOpen] = useState(false);
 
   function download(format: "csv" | "json") {
     const token = localStorage.getItem("token");
     const url   = `${EnvConstant.API_URL}/api/entries/export?format=${format}`;
-    const a     = document.createElement("a");
-    a.href      = url;
-    // Pass token via fetch to get the file, then create blob URL
     fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.blob())
       .then((blob) => {
-        a.href     = URL.createObjectURL(blob);
-        a.download = `gamelog-library.${format}`;
+        const a     = document.createElement("a");
+        a.href      = URL.createObjectURL(blob);
+        a.download  = `gamelog-library.${format}`;
         a.click();
         URL.revokeObjectURL(a.href);
       });
@@ -190,31 +198,38 @@ function ExportButton() {
   }
 
   return (
-    <div className="relative">
+    <div style={{ position: "relative" }}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-gray-400 bg-white/5 border border-white/10 hover:border-white/20 hover:text-white transition-colors"
-        title="Export library"
+        className={gx.btnGhost}
+        style={{ fontSize: 12, padding: "7px 12px" }}
       >
-        <Download size={14} />
-        Export
+        <Download size={13} /> Export
       </button>
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 z-20 bg-zinc-950 border border-white/10 rounded-xl overflow-hidden shadow-xl min-w-36">
-            <button
-              onClick={() => download("csv")}
-              className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/8 transition-colors"
-            >
-              Download CSV
-            </button>
-            <button
-              onClick={() => download("json")}
-              className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/8 transition-colors"
-            >
-              Download JSON
-            </button>
+          <div style={{ position: "fixed", inset: 0, zIndex: 10 }} onClick={() => setOpen(false)} />
+          <div style={{
+            position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 20,
+            background: "var(--gx-surface-2)", border: "1px solid var(--gx-border-md)",
+            borderRadius: 10, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+            minWidth: 140,
+          }}>
+            {(["csv", "json"] as const).map((fmt) => (
+              <button
+                key={fmt}
+                onClick={() => download(fmt)}
+                style={{
+                  width: "100%", textAlign: "left", padding: "10px 16px",
+                  fontSize: 13, color: "var(--gx-text-1)", background: "none", border: "none",
+                  cursor: "pointer", transition: "background 0.12s",
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "var(--gx-surface-3)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
+              >
+                Download {fmt.toUpperCase()}
+              </button>
+            ))}
           </div>
         </>
       )}

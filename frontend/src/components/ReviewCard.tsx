@@ -1,11 +1,11 @@
 "use client";
 
 import { memo, useState } from "react";
+import clsx from "clsx";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Star, ThumbsUp, Monitor, Flag } from "lucide-react";
 import { ReportModal } from "./ReportModal";
 import Link from "next/link";
-import { Text, Flex } from "@radix-ui/themes";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { GameReview, GameStatus } from "@/lib/types";
@@ -28,9 +28,6 @@ export const ReviewCard = memo(function ReviewCard({ review: r, showGame = false
   const isOwn = user?.id === r.user.id;
   const [reporting, setReporting] = useState(false);
 
-  // Derive directly from the cache-updated prop — no local mirror needed.
-  // The mutation's onSuccess patches the cache, which triggers a re-render
-  // with the updated values here automatically.
   const helpful = r.helpfulByMe;
   const count   = r.helpfulCount;
 
@@ -38,7 +35,7 @@ export const ReviewCard = memo(function ReviewCard({ review: r, showGame = false
     mutationFn: () => api.post(`/api/entries/${r.id}/helpful`),
     onSuccess: (res) => {
       qc.setQueryData(queryKey, (old: unknown) => {
-        if (!Array.isArray(old)) return old; // guard against mismatched cache shape
+        if (!Array.isArray(old)) return old;
         return (old as GameReview[]).map((rev) =>
           rev.id === r.id
             ? { ...rev, helpfulByMe: res.data.helpful, helpfulCount: res.data.count }
@@ -50,91 +47,81 @@ export const ReviewCard = memo(function ReviewCard({ review: r, showGame = false
   });
 
   return (
-    <div className="bg-white/5 backdrop-blur-sm border border-white/8 rounded-2xl p-5 space-y-3">
-      {/* Game header (global feed only) */}
+    <div className="bg-gx-surface border border-gx-border rounded-[14px] px-5 py-4.5 transition-colors flex flex-col gap-2.5 hover:border-gx-border-md">
+      {/* Game link — global feed only */}
       {showGame && r.game && (
-        <Link
-          href={`/game/${r.game.rawgId}`}
-          className="flex items-center gap-2.5 group mb-1"
-        >
+        <Link href={`/game/${r.game.rawgId}`} className="flex items-center gap-2.5 no-underline pb-3 border-b border-gx-border group">
           {r.game.coverImage && (
-            <img
-              src={r.game.coverImage}
-              alt={r.game.name}
-              className="w-8 h-10 object-cover rounded-md shrink-0"
-            />
+            <img src={r.game.coverImage} alt={r.game.name} className="w-7.5 h-10 rounded-[5px] object-cover shrink-0" />
           )}
-          <Text as="span" size="2" className="font-semibold text-violet-400 group-hover:text-violet-300 transition-colors">
-            {r.game.name}
-          </Text>
+          <span className="text-[12px] font-bold text-gx-text-2 tracking-[0.01em] transition-colors group-hover:text-gx-amber">{r.game.name}</span>
         </Link>
       )}
 
       {/* Reviewer info */}
-      <Flex align="center" justify="between" gap="3">
-        <Link href={`/user/${r.user.username}`} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+      <div className="flex items-center justify-between gap-3">
+        <Link href={`/user/${r.user.username}`} className="flex items-center gap-2 no-underline group">
           <Avatar src={r.user.avatar} username={r.user.username} size="sm" />
           <div>
-            <Text as="p" size="2" className="font-semibold">{r.user.username}</Text>
-            <Text as="p" size="1" color="gray">{formatDistanceToNow(r.updatedAt)}</Text>
+            <p className="text-[13px] font-bold text-gx-text-1 transition-colors group-hover:text-gx-amber m-0">{r.user.username}</p>
+            <p className="text-[11px] text-gx-text-3 mt-px m-0">{formatDistanceToNow(r.updatedAt)}</p>
           </div>
         </Link>
-        <Flex align="center" gap="2" className="shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
           <StatusBadge status={r.status as GameStatus} />
           {r.platform && (
-            <span className="flex items-center gap-1 text-xs text-gray-500 bg-white/8 px-2 py-0.5 rounded-full">
-              <Monitor size={10} />
-              {r.platform}
+            <span className="inline-flex items-center gap-0.75 text-[10px] text-gx-text-3 bg-white/5 border border-gx-border px-1.75 py-0.5 rounded-[20px]">
+              <Monitor size={10} /> {r.platform}
             </span>
           )}
-        </Flex>
-      </Flex>
+        </div>
+      </div>
 
       {/* Rating */}
       {r.rating != null && (
-        <Flex align="center" gap="1">
+        <div className="flex items-center gap-0.5">
           {Array.from({ length: 10 }).map((_, i) => (
-            <Star key={i} size={14} className={i < r.rating! ? "text-yellow-400" : "text-gray-700"} fill={i < r.rating! ? "currentColor" : "none"} />
+            <Star
+              key={i}
+              size={13}
+              style={{ color: i < r.rating! ? "#F59E0B" : "var(--gx-text-3)" }}
+              fill={i < r.rating! ? "currentColor" : "none"}
+            />
           ))}
-          <span className="text-yellow-400 text-sm font-bold ml-1">{r.rating}/10</span>
-        </Flex>
+          <span className="text-[12px] font-bold text-gl-amber ml-1.5">{r.rating}/10</span>
+        </div>
       )}
 
       {/* Review text */}
-      <MarkdownReview text={r.review} className="text-gray-300 text-sm leading-relaxed" />
+      <MarkdownReview text={r.review} className="text-[13px] text-gx-text-2 leading-[1.65]" />
 
       {reporting && <ReportModal type="REVIEW" targetId={r.id} onClose={() => setReporting(false)} />}
 
-      {/* Helpful + Report */}
-      <div className="flex items-center justify-between pt-1 border-t border-white/6">
+      {/* Footer: helpful + report */}
+      <div className="flex items-center pt-2.5 border-t border-gx-border">
         {user && !isOwn ? (
           <button
             onClick={() => mutation.mutate()}
             disabled={mutation.isPending}
-            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 ${
+            className={clsx(
+              "inline-flex items-center gap-1.25 px-3 py-1.25 rounded-lg text-[12px] bg-transparent border cursor-pointer transition-all hover:text-gx-text-2 hover:bg-white/4 hover:border-gx-border",
               helpful
-                ? "bg-violet-500/20 text-violet-300 border border-violet-500/30"
-                : "text-gray-500 hover:text-gray-300 hover:bg-white/8 border border-transparent"
-            }`}
+                ? "bg-gx-amber/13 border-gx-amber/30 text-gx-amber"
+                : "border-transparent text-gx-text-3"
+            )}
           >
-            <ThumbsUp size={13} fill={helpful ? "currentColor" : "none"} />
-            Helpful {count > 0 && <span className="font-medium">{count}</span>}
+            <ThumbsUp size={12} fill={helpful ? "currentColor" : "none"} />
+            Helpful {count > 0 && <span className="font-bold">{count}</span>}
           </button>
         ) : count > 0 ? (
-          <span className="flex items-center gap-1.5 text-xs text-gray-600">
-            <ThumbsUp size={11} />
-            {count} found this helpful
+          <span className="flex items-center gap-1.25 text-[11px] text-gx-text-3">
+            <ThumbsUp size={11} /> {count} found this helpful
           </span>
-        ) : null}
+        ) : <span />}
 
-        {/* Report button — only for other users' reviews */}
         {user && !isOwn && (
-          <button
-            onClick={() => setReporting(true)}
-            className="flex items-center gap-1 text-xs text-gray-600 hover:text-orange-400 transition-colors ml-auto"
-            title="Report this review"
-          >
-            <Flag size={12} /> Report
+          <button onClick={() => setReporting(true)} className="inline-flex items-center gap-1 ml-auto text-[11px] text-gx-text-3 bg-transparent border-none cursor-pointer transition-colors px-2 py-1 hover:text-gx-amber">
+            <Flag size={11} /> Report
           </button>
         )}
       </div>

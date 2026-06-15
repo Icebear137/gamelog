@@ -1,10 +1,10 @@
-﻿"use client";
+"use client";
 
 import { memo, useState } from "react";
+import clsx from "clsx";
 import { useRouter } from "next/navigation";
-import { Slot } from "@radix-ui/react-slot";
-import { Text, Flex, Box } from "@radix-ui/themes";
-import { Sparkles, Gamepad2, Star } from "lucide-react";
+import { Gamepad2, Sparkles, Star } from "lucide-react";
+import { gx } from "@/lib/gx-styles";
 import WantToPlayButton from "@/components/WantToPlayButton";
 
 export interface RecommendedGame {
@@ -33,76 +33,64 @@ export default memo(function RecommendedGameCard({ game, onDismiss }: Props) {
   }
 
   return (
-    <div className={`group flex items-center gap-3 bg-white/5 backdrop-blur-sm border border-white/8 rounded-xl p-3 hover:border-violet-700 transition-all duration-300 ${dismissing ? "opacity-0 scale-95 pointer-events-none" : "opacity-100 scale-100"}`}>
-      <Slot
+    <div
+      className={clsx(
+        "group flex cursor-pointer items-center gap-3 rounded-xl border border-gx-border bg-gx-surface p-2.5 [transition:border-color_0.15s,opacity_0.3s,scale_0.3s] hover:border-gx-amber/30",
+        dismissing && "pointer-events-none scale-95 opacity-0"
+      )}
+    >
+      {/* Cover */}
+      <div
+        className="h-[68px] w-[52px] shrink-0 overflow-hidden rounded-[7px] bg-gx-surface-2"
         role="link"
         tabIndex={0}
-        className="cursor-pointer outline-none shrink-0"
+        style={{ cursor: "pointer" }}
         onClick={() => router.push(`/game/${game.rawgId}`)}
-        onKeyDown={(e: React.KeyboardEvent) => {
-          if (e.key === "Enter" || e.key === " ") router.push(`/game/${game.rawgId}`);
-        }}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") router.push(`/game/${game.rawgId}`); }}
       >
-        <div>
-          {game.coverImage ? (
-            <img
-              src={game.coverImage}
-              alt={game.name}
-              loading="lazy"
-              decoding="async"
-              className="w-14 h-[4.5rem] object-cover rounded-lg"
-            />
-          ) : (
-            <div className="w-14 h-[4.5rem] bg-white/8 rounded-lg flex items-center justify-center">
-              <Gamepad2 size={20} className="text-gray-600" />
-            </div>
-          )}
-        </div>
-      </Slot>
+        {game.coverImage ? (
+          <img src={game.coverImage} alt={game.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
+        ) : (
+          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Gamepad2 size={18} color="var(--gx-text-3)" />
+          </div>
+        )}
+      </div>
 
-      <Box flexGrow="1" minWidth="0">
-        <Slot
+      {/* Info */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p
+          className="truncate text-[13px] font-bold text-gx-text-1 [transition:color_0.15s] group-hover:text-gx-amber"
           role="link"
           tabIndex={0}
-          className="cursor-pointer outline-none"
+          style={{ cursor: "pointer" }}
           onClick={() => router.push(`/game/${game.rawgId}`)}
-          onKeyDown={(e: React.KeyboardEvent) => {
-            if (e.key === "Enter" || e.key === " ") router.push(`/game/${game.rawgId}`);
-          }}
         >
-          <Text as="p" size="2" weight="bold" className="group-hover:text-violet-300 transition-colors truncate">
-            {game.name}
-          </Text>
-        </Slot>
-
+          {game.name}
+        </p>
         {game.reason && (
-          <Text as="p" size="1" color="gray" className="flex items-center gap-1 mt-0.5 truncate">
-            <Sparkles size={10} className="text-violet-500 shrink-0" />
+          <p className="mt-[3px] flex items-center gap-1 text-[11px] text-gx-text-3">
+            <Sparkles size={10} color="var(--gx-amber)" style={{ flexShrink: 0 }} />
             {game.reason}
-          </Text>
+          </p>
         )}
-
-        <Flex align="center" gap="3" className="mt-1">
+        <div className="mt-[5px] flex flex-wrap items-center gap-2">
           {game.rawgRating != null && (
-            <div className="flex items-center gap-1 text-yellow-400 text-xs">
-              <Star size={11} fill="currentColor" />
-              <span className="font-bold">{game.rawgRating.toFixed(1)}</span>
-            </div>
+            <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#F59E0B" }}>
+              <Star size={10} fill="currentColor" />
+              <span style={{ fontWeight: 700 }}>{game.rawgRating.toFixed(1)}</span>
+            </span>
           )}
-          <div className="flex flex-wrap gap-1">
-            {game.genres.slice(0, 2).map((g) => (
-              <span key={g} className="text-xs text-gray-500 bg-white/8 px-1.5 py-0.5 rounded-full">
-                {g}
-              </span>
-            ))}
-          </div>
-        </Flex>
-      </Box>
+          {game.genres.slice(0, 2).map((g) => (
+            <span key={g} className={gx.genrePill} style={{ fontSize: 10, padding: "2px 8px" }}>{g}</span>
+          ))}
+        </div>
+      </div>
 
-      <div className="shrink-0">
+      {/* Add button */}
+      <div style={{ flexShrink: 0 }}>
         <WantToPlayButton rawgId={game.rawgId} gameName={game.name} onSuccess={handleAddSuccess} />
       </div>
     </div>
   );
 });
-

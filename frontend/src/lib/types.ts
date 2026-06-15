@@ -219,6 +219,46 @@ export interface GroupMember {
   lastReadAt?: string | null;
 }
 
+// ── Social Posts ────────────────────────────────────────────────────────────
+
+export interface Post {
+  type?: "post";
+  id: string;
+  textContent?: string | null;
+  images: string[];
+  visibility: "public" | "followers";
+  createdAt: string;
+  updatedAt: string;
+  likedByMe: boolean;
+  author: { id: string; username: string; avatar?: string | null };
+  _count: { likes: number; comments: number };
+}
+
+export interface ClubFeedPost {
+  type: "club_post";
+  id: string;
+  body: string;
+  clubId: string;
+  club: { id: string; name: string; avatar?: string | null };
+  createdAt: string;
+  updatedAt: string;
+  likedByMe: boolean;
+  user: { id: string; username: string; avatar?: string | null };
+  _count: { likes: number; comments: number };
+}
+
+export type FeedItem = Post | ClubFeedPost;
+
+export interface PostComment {
+  id: string;
+  postId: string;
+  body: string;
+  createdAt: string;
+  parentId?: string | null;
+  user: { id: string; username: string; avatar?: string | null };
+  replies?: PostComment[];
+}
+
 export interface Conversation {
   id: string;
   isGroup: boolean;

@@ -1,25 +1,26 @@
 import { Gamepad2 } from "lucide-react";
 import { GameEntry } from "@/lib/types";
 import { GameCard } from "./GameCard";
-import { Text, Flex, Grid } from "@radix-ui/themes";
 
 interface Props { entries: GameEntry[]; loading: boolean }
 
 export function GameGrid({ entries, loading }: Props) {
-  if (loading) return <Text as="p" size="2" color="gray">Loading...</Text>;
+  if (loading) return (
+    <p style={{ fontSize: 13, color: "var(--gx-text-2)", padding: "16px 0" }}>Loading…</p>
+  );
   if (entries.length === 0) {
     return (
-      <Flex direction="column" align="center" className="py-16 text-gray-500">
-        <Gamepad2 size={40} className="mx-auto mb-3 opacity-30" />
-        <Text as="p" color="gray">No games here yet.</Text>
-      </Flex>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "56px 16px", gap: 10 }}>
+        <Gamepad2 size={36} color="var(--gx-text-3)" />
+        <p style={{ fontSize: 13, color: "var(--gx-text-2)" }}>No games here yet.</p>
+      </div>
     );
   }
   return (
-    <Grid columns={{ initial: "2", sm: "3", md: "4", lg: "5" }} gap="4">
+    <div className="grid gap-2.5 grid-cols-5 max-[768px]:grid-cols-3 max-[480px]:grid-cols-2">
       {entries.map((entry) => (
         <GameCard key={entry.id} entry={entry} />
       ))}
-    </Grid>
+    </div>
   );
 }

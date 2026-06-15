@@ -139,6 +139,46 @@ router.post("/", requireAuth, async (req: AuthRequest, res: Response) => {
   res.status(201).json({ ...club, isMember: true });
 });
 
+// ── Club feed (posts from all joined clubs) ──────────────────────────────────
+
+router.get("/feed", requireAuth, async (req: AuthRequest, res: Response) => {
+  const sort = (req.query.sort as string) === "popular" ? "popular" : "recent";
+
+  const memberships = await prisma.gameClubMember.findMany({
+    where: { userId: req.userId!, isBanned: false },
+    select: { clubId: true },
+  });
+
+  const clubIds = memberships.map((m) => m.clubId);
+  if (clubIds.length === 0) { res.json([]); return; }
+
+  const posts = await prisma.gameClubPost.findMany({
+    where: { clubId: { in: clubIds } },
+    orderBy: sort === "popular" ? { likes: { _count: "desc" } } : { createdAt: "desc" },
+    take: 30,
+    select: {
+      id: true, body: true, clubId: true, createdAt: true, updatedAt: true,
+      club: { select: { id: true, name: true, avatar: true } },
+      user: { select: { id: true, username: true, avatar: true } },
+      _count: { select: { likes: true, comments: true } },
+      likes: { where: { userId: req.userId! }, select: { id: true } },
+    },
+  });
+
+  res.json(posts.map((p) => ({
+    type: "club_post" as const,
+    id: p.id,
+    body: p.body,
+    clubId: p.clubId,
+    club: p.club,
+    createdAt: p.createdAt,
+    updatedAt: p.updatedAt,
+    likedByMe: p.likes.length > 0,
+    user: p.user,
+    _count: { likes: p._count.likes, comments: p._count.comments },
+  })));
+});
+
 // ── Single club ──────────────────────────────────────────────────────────────
 
 router.get("/:id", optionalAuth, async (req: AuthRequest, res: Response) => {

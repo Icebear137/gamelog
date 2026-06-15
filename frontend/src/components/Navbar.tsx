@@ -1,14 +1,37 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Gamepad2, Search, LogOut, User, Settings, Bell, List, MessageCircle, Shield } from "lucide-react";
+import {
+  Gamepad2, LogOut, User, Settings,
+  Bell, List, MessageCircle, Shield,
+} from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useQuery } from "@tanstack/react-query";
-import { Flex } from "@radix-ui/themes";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import Avatar from "./Avatar";
+import NavSearchDropdown from "./NavSearchDropdown";
+
+const ICON_BTN =
+  "relative flex items-center justify-center w-9 h-9 rounded-[9px] text-gl-subtext no-underline transition-[color,background] duration-[180ms] hover:text-gl-text hover:bg-white/[0.06]";
+
+const BADGE =
+  "absolute top-0.5 right-0.5 min-w-4 h-4 bg-gl-violet text-white font-outfit text-[9px] font-bold rounded-[99px] flex items-center justify-center px-[3px] border-[1.5px] border-gl-bg";
+
+const ITEM =
+  "flex items-center gap-[9px] px-3 py-[9px] rounded-lg font-outfit text-[13px] font-normal no-underline cursor-pointer outline-none bg-transparent w-full transition-[background,color] duration-150";
+
+const ITEM_DEFAULT =
+  `${ITEM} text-gl-subtext hover:bg-white/[0.06] hover:text-gl-text data-highlighted:bg-white/[0.06] data-highlighted:text-gl-text`;
+
+const ITEM_ADMIN =
+  `${ITEM} text-gl-violet-light data-highlighted:bg-white/[0.06] data-highlighted:text-gl-text hover:bg-gl-violet/12! hover:text-gl-violet-light!`;
+
+const ITEM_DANGER =
+  `${ITEM} text-[#f87171] data-highlighted:bg-white/[0.06] data-highlighted:text-gl-text hover:bg-[rgba(248,113,113,0.1)]! hover:text-[#f87171]!`;
+
+const SEP = "h-px bg-gl-border my-[5px]";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -20,7 +43,6 @@ export default function Navbar() {
     enabled: !!user,
     staleTime: 60_000,
   });
-
   const { data: msgData } = useQuery<{ count: number }>({
     queryKey: ["messages-unread"],
     queryFn: () => api.get("/api/messages/unread-count").then((r) => r.data),
@@ -28,8 +50,8 @@ export default function Navbar() {
     staleTime: 60_000,
   });
 
-  const unreadCount = notifData?.count ?? 0;
-  const unreadMessages = msgData?.count ?? 0;
+  const unreadNotifs = notifData?.count ?? 0;
+  const unreadMsgs   = msgData?.count   ?? 0;
 
   function handleLogout() {
     logout();
@@ -37,126 +59,117 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="sticky top-0 z-50 bg-black/40 backdrop-blur-xl border-b border-white/8">
-      <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-4">
-        <Link href="/" className="flex items-center gap-2 text-violet-400 font-bold text-lg mr-4">
-          <Gamepad2 size={22} />
-          <span>GameLog</span>
+    <nav className="sticky top-0 z-50 bg-gl-bg/82 backdrop-blur-[20px] border-b border-gl-border">
+      <div className="w-full px-5 h-16 flex items-center gap-4">
+
+        {/* ── Logo ── */}
+        <Link href="/" className="flex items-center gap-2.5 no-underline shrink-0">
+          <div className="w-8 h-8 rounded-[9px] bg-[linear-gradient(135deg,#7C3AED_0%,#5B21B6_100%)] flex items-center justify-center shrink-0">
+            <Gamepad2 size={16} color="#fff" />
+          </div>
+          <span className="font-outfit font-bold text-lg text-gl-text tracking-[-0.025em]">GameLog</span>
         </Link>
 
-        <Link href="/discover" className="text-gray-400 hover:text-white transition-colors text-sm">
-          Discover
-        </Link>
-        <Link href="/lists/discover" className="text-gray-400 hover:text-white transition-colors text-sm">
-          Lists
-        </Link>
-        <Link href="/reviews" className="text-gray-400 hover:text-white transition-colors text-sm">
-          Reviews
-        </Link>
-        <Link href="/clubs" className="text-gray-400 hover:text-white transition-colors text-sm">
-          Clubs
-        </Link>
-        <Link href="/leaderboard" className="text-gray-400 hover:text-white transition-colors text-sm">
-          Leaderboard
-        </Link>
-        <Link href="/search" className="text-gray-400 hover:text-white transition-colors text-sm">
-          <Search size={18} />
-        </Link>
+        {/* ── Search dropdown ── */}
+        <NavSearchDropdown />
 
-        <Flex align="center" gap="2" className="ml-auto">
+        {/* ── Right side actions ── */}
+        <div className="flex items-center gap-1 shrink-0">
           {user ? (
             <>
-              <Link href="/messages" className="relative text-gray-400 hover:text-white transition-colors p-1.5">
-                <MessageCircle size={20} />
-                {unreadMessages > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 bg-violet-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5">
-                    {unreadMessages > 9 ? "9+" : unreadMessages}
-                  </span>
+              {/* Messages */}
+              <Link href="/messages" className={ICON_BTN} aria-label="Messages">
+                <MessageCircle size={18} />
+                {unreadMsgs > 0 && (
+                  <span className={BADGE}>{unreadMsgs > 9 ? "9+" : unreadMsgs}</span>
                 )}
               </Link>
 
-              <Link href="/notifications" className="relative text-gray-400 hover:text-white transition-colors p-1.5">
-                <Bell size={20} />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 bg-violet-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
+              {/* Notifications */}
+              <Link href="/notifications" className={ICON_BTN} aria-label="Notifications">
+                <Bell size={18} />
+                {unreadNotifs > 0 && (
+                  <span className={BADGE}>{unreadNotifs > 9 ? "9+" : unreadNotifs}</span>
                 )}
               </Link>
 
+              {/* User dropdown */}
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger asChild>
-                  <button className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/8 transition-colors outline-none">
+                  <button
+                    className="flex items-center gap-2 py-[5px] pr-2.5 pl-1.5 rounded-[10px] bg-transparent cursor-pointer transition-[background] duration-[180ms] ml-1 hover:bg-white/[0.06]"
+                    aria-label="User menu"
+                  >
                     <Avatar src={user.avatar} username={user.username} size="sm" />
-                    <span className="text-sm text-gray-200 font-medium max-w-28 truncate">{user.username}</span>
+                    <span className="font-outfit text-[13px] font-medium text-gl-text max-w-[100px] overflow-hidden text-ellipsis whitespace-nowrap">{user.username}</span>
                   </button>
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Portal>
                   <DropdownMenu.Content
-                    className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-1 shadow-xl min-w-44 z-50"
+                    className="bg-gl-surface/96 backdrop-blur-[24px] border border-white/10 rounded-[14px] p-1.5 min-w-[180px] shadow-[0_24px_60px_rgba(0,0,0,0.6)] z-[100] outline-none"
                     align="end"
-                    sideOffset={8}
+                    sideOffset={10}
                   >
                     <DropdownMenu.Item asChild>
-                      <Link href={`/user/${user.username}`} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-200 hover:bg-white/8 rounded-lg outline-none cursor-pointer">
-                        <User size={15} />
-                        Profile
+                      <Link href={`/user/${user.username}`} className={ITEM_DEFAULT}>
+                        <User size={14} /> Profile
                       </Link>
                     </DropdownMenu.Item>
                     <DropdownMenu.Item asChild>
-                      <Link href="/library" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-200 hover:bg-white/8 rounded-lg outline-none cursor-pointer">
-                        <Gamepad2 size={15} />
-                        My Library
+                      <Link href="/library" className={ITEM_DEFAULT}>
+                        <Gamepad2 size={14} /> My Library
                       </Link>
                     </DropdownMenu.Item>
                     <DropdownMenu.Item asChild>
-                      <Link href="/lists" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-200 hover:bg-white/8 rounded-lg outline-none cursor-pointer">
-                        <List size={15} />
-                        My Lists
+                      <Link href="/lists" className={ITEM_DEFAULT}>
+                        <List size={14} /> My Lists
                       </Link>
                     </DropdownMenu.Item>
                     <DropdownMenu.Item asChild>
-                      <Link href="/settings" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-200 hover:bg-white/8 rounded-lg outline-none cursor-pointer">
-                        <Settings size={15} />
-                        Settings
+                      <Link href="/settings" className={ITEM_DEFAULT}>
+                        <Settings size={14} /> Settings
                       </Link>
                     </DropdownMenu.Item>
                     {(user as any).isAdmin && (
                       <>
-                        <DropdownMenu.Separator className="my-1 border-t border-white/15" />
+                        <div className={SEP} />
                         <DropdownMenu.Item asChild>
-                          <Link href="/admin" className="flex items-center gap-2 px-3 py-2 text-sm text-violet-400 hover:bg-violet-500/10 rounded-lg outline-none cursor-pointer font-medium">
-                            <Shield size={15} />
-                            Admin Panel
+                          <Link href="/admin" className={ITEM_ADMIN}>
+                            <Shield size={14} /> Admin Panel
                           </Link>
                         </DropdownMenu.Item>
                       </>
                     )}
-                    <DropdownMenu.Separator className="my-1 border-t border-white/15" />
+                    <div className={SEP} />
                     <DropdownMenu.Item
                       onSelect={handleLogout}
-                      className="flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-white/8 rounded-lg outline-none cursor-pointer"
+                      className={ITEM_DANGER}
                     >
-                      <LogOut size={15} />
-                      Logout
+                      <LogOut size={14} /> Logout
                     </DropdownMenu.Item>
                   </DropdownMenu.Content>
                 </DropdownMenu.Portal>
               </DropdownMenu.Root>
             </>
           ) : (
-            <Flex align="center" gap="2">
-              <Link href="/login" className="text-sm text-gray-400 hover:text-white px-3 py-1.5 transition-colors">
-                Login
-              </Link>
-              <Link href="/register" className="text-sm bg-violet-600 hover:bg-violet-500 text-white px-3 py-1.5 rounded-lg transition-colors">
-                Sign Up
-              </Link>
-            </Flex>
+            <>
+              <button
+                className="font-outfit text-sm font-normal text-gl-subtext bg-transparent cursor-pointer px-4 py-2 rounded-lg transition-[color,background] duration-[180ms] hover:text-gl-text hover:bg-white/[0.05]"
+                onClick={() => router.push("/login")}
+              >
+                Sign in
+              </button>
+              <button
+                className="font-outfit text-[13px] font-semibold text-white bg-[linear-gradient(135deg,#7C3AED_0%,#5B21B6_100%)] cursor-pointer px-[18px] py-2 rounded-lg transition-[opacity,transform] duration-[180ms] hover:opacity-[0.88] hover:-translate-y-px"
+                onClick={() => router.push("/register")}
+              >
+                Join free
+              </button>
+            </>
           )}
-        </Flex>
+        </div>
+
       </div>
     </nav>
   );
 }
-

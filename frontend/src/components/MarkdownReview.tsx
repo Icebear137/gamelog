@@ -1,5 +1,6 @@
 "use client";
 
+import { memo, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import SpoilerText from "./SpoilerText";
@@ -16,8 +17,11 @@ interface Props {
  *
  * Strategy: split on spoiler tags first, render non-spoiler segments as markdown.
  */
-export default function MarkdownReview({ text, className }: Props) {
-  const parts = text.split(/(\[spoiler\][\s\S]*?\[\/spoiler\])/gi);
+export default memo(function MarkdownReview({ text, className }: Props) {
+  const parts = useMemo(
+    () => text.split(/(\[spoiler\][\s\S]*?\[\/spoiler\])/gi),
+    [text],
+  );
 
   return (
     <div className={className}>
@@ -73,4 +77,4 @@ export default function MarkdownReview({ text, className }: Props) {
       })}
     </div>
   );
-}
+});
