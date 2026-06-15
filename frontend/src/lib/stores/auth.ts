@@ -8,6 +8,7 @@ export interface AuthUser {
   email: string;
   bio?: string;
   avatar?: string;
+  banner?: string;
   steamId?: string;
   discordTag?: string;
   isPrivate?: boolean;

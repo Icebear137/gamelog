@@ -19,6 +19,7 @@ export interface User {
   username: string;
   bio?: string;
   avatar?: string;
+  banner?: string;
   steamId?: string;
   discordTag?: string;
   isPrivate?: boolean;

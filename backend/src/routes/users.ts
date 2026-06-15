@@ -22,6 +22,7 @@ const VALID_STATUSES = ["PLAYING", "COMPLETED", "DROPPED", "WANT_TO_PLAY"] as co
 const UpdateProfileSchema = z.object({
   bio: z.string().max(300).optional(),
   avatar: z.string().url().optional(),
+  banner: z.string().url().optional(),
   steamId: z.string().optional(),
   discordTag: z.string().optional(),
   isPrivate: z.boolean().optional(),
@@ -142,7 +143,7 @@ router.get("/:username", optionalAuth, async (req: AuthRequest, res: Response) =
   const user = await prisma.user.findUnique({
     where: { username: String(req.params.username) },
     select: {
-      id: true, username: true, bio: true, avatar: true,
+      id: true, username: true, bio: true, avatar: true, banner: true,
       steamId: true, discordTag: true, isPrivate: true, createdAt: true,
       _count: { select: { gameEntries: true, followers: true, following: true } },
     },
@@ -163,7 +164,7 @@ router.patch("/me", requireAuth, async (req: AuthRequest, res: Response) => {
   const user = await prisma.user.update({
     where: { id: req.userId },
     data: parsed.data,
-    select: { id: true, username: true, bio: true, avatar: true, steamId: true, discordTag: true, isPrivate: true, isAdmin: true, emailNotifications: true, notifFollow: true, notifLike: true, notifComment: true, notifMention: true },
+    select: { id: true, username: true, bio: true, avatar: true, banner: true, steamId: true, discordTag: true, isPrivate: true, isAdmin: true, emailNotifications: true, notifFollow: true, notifLike: true, notifComment: true, notifMention: true },
   });
   res.json(user);
 });
@@ -189,13 +190,59 @@ router.post("/me/avatar", requireAuth, (req: AuthRequest, res: Response) => {
       const user = await prisma.user.update({
         where: { id: req.userId },
         data: { avatar: avatarUrl },
-        select: { id: true, username: true, bio: true, avatar: true, steamId: true, discordTag: true, isPrivate: true, isAdmin: true, emailNotifications: true, notifFollow: true, notifLike: true, notifComment: true, notifMention: true },
+        select: { id: true, username: true, bio: true, avatar: true, banner: true, steamId: true, discordTag: true, isPrivate: true, isAdmin: true, emailNotifications: true, notifFollow: true, notifLike: true, notifComment: true, notifMention: true },
       });
       res.json(user);
     } catch (e: any) {
       res.status(500).json({ error: e?.message ?? "Upload failed" });
     }
   });
+});
+
+router.post("/me/banner", requireAuth, (req: AuthRequest, res: Response) => {
+  uploadAvatar.single("banner")(req as any, res as any, async (err) => {
+    if (err) { res.status(400).json({ error: err.message ?? "Upload failed" }); return; }
+    const file = (req as any).file as Express.Multer.File | undefined;
+    if (!file) { res.status(400).json({ error: "No file provided" }); return; }
+    try {
+      const existing = await prisma.user.findUnique({ where: { id: req.userId }, select: { banner: true } });
+      const oldId = existing?.banner ? extractPublicId(existing.banner) : null;
+      if (oldId) deleteFromCloudinary(oldId);
+
+      const { url: bannerUrl } = await uploadToCloudinary(file.buffer, {
+        folder: "gamelog/banners",
+        public_id: `banner_${req.userId}`,
+        transformation: [
+          { width: 1400, height: 350, crop: "fill", gravity: "center" },
+          { fetch_format: "auto", quality: "auto" },
+        ],
+      });
+      const user = await prisma.user.update({
+        where: { id: req.userId },
+        data: { banner: bannerUrl },
+        select: { id: true, username: true, bio: true, avatar: true, banner: true, steamId: true, discordTag: true, isPrivate: true, isAdmin: true, emailNotifications: true, notifFollow: true, notifLike: true, notifComment: true, notifMention: true },
+      });
+      res.json(user);
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message ?? "Upload failed" });
+    }
+  });
+});
+
+router.delete("/me/banner", requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const existing = await prisma.user.findUnique({ where: { id: req.userId }, select: { banner: true } });
+    const oldId = existing?.banner ? extractPublicId(existing.banner) : null;
+    if (oldId) await deleteFromCloudinary(oldId);
+    const user = await prisma.user.update({
+      where: { id: req.userId },
+      data: { banner: null },
+      select: { id: true, username: true, bio: true, avatar: true, banner: true, steamId: true, discordTag: true, isPrivate: true, isAdmin: true, emailNotifications: true, notifFollow: true, notifLike: true, notifComment: true, notifMention: true },
+    });
+    res.json(user);
+  } catch (e: any) {
+    res.status(500).json({ error: e?.message ?? "Delete failed" });
+  }
 });
 
 router.get("/me/email-preferences", requireAuth, async (req: AuthRequest, res: Response) => {

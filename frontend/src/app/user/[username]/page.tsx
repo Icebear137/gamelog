@@ -4,9 +4,10 @@ import { use } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Slot } from "@radix-ui/react-slot";
-import { Gamepad2, Settings, Globe, Lock, EyeOff, GitCompare, MessageCircle } from "lucide-react";
+import { Gamepad2, Settings, Globe, Lock, EyeOff, GitCompare, MessageCircle, Camera } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
+import { useRef } from "react";
 import { api } from "@/lib/api";
 import { gx } from "@/lib/gx-styles";
 import { getUserService, getUserGamesService, getUserReviewsService, getUserActivitiesService, followUserService, unfollowUserService } from "@/services/user.service";
@@ -23,9 +24,9 @@ import { ReviewCard } from "@/components/ReviewCard";
 
 /* Local Tailwind recipes (converted from _page-user.css) */
 const c = {
-  header: "bg-gx-surface border border-gx-border rounded-[18px] overflow-hidden",
+  header: "bg-gx-surface border border-gx-border rounded-[18px]",
   banner:
-    "relative h-[110px] overflow-hidden " +
+    "relative h-[180px] overflow-hidden rounded-t-[17px] " +
     "bg-[linear-gradient(135deg,#0D1A2E_0%,#0E2338_35%,#0A1820_65%,#080E16_100%)] " +
     "before:content-[''] before:absolute before:inset-0 " +
     "before:bg-[repeating-linear-gradient(-55deg,transparent,transparent_22px,rgba(232,147,42,0.025)_22px,rgba(232,147,42,0.025)_23px)] " +
@@ -89,6 +90,33 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
     },
   });
 
+  const bannerInputRef = useRef<HTMLInputElement | null>(null);
+
+  const bannerMutation = useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData();
+      form.append("banner", file);
+      return api.post("/api/users/me/banner", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["profile", username] });
+      dispatchToast("Banner updated", "success");
+    },
+    onError: (err: any) => {
+      dispatchToast(err?.response?.data?.error ?? "Failed to upload banner", "error");
+    },
+  });
+
+  const deleteBannerMutation = useMutation({
+    mutationFn: () => api.delete("/api/users/me/banner"),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["profile", username] });
+      dispatchToast("Banner removed", "success");
+    },
+  });
+
   if (isLoading) return (
     <div className="flex flex-col gap-5">
       <div className={c.header}>
@@ -111,11 +139,57 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
 
       {/* ── PROFILE HEADER ── */}
       <div className={c.header}>
-        <div className={c.banner} />
+
+        {/* Banner */}
+        <div className={`${c.banner} group/banner`}>
+          {profile.banner && (
+            <img
+              src={profile.banner}
+              alt="Profile banner"
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          )}
+          {/* Edit controls — only visible to profile owner */}
+          {isMe && (
+            <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 opacity-0 group-hover/banner:opacity-100 transition-opacity z-10">
+              <button
+                onClick={() => bannerInputRef.current?.click()}
+                disabled={bannerMutation.isPending}
+                title="Upload banner"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.25 rounded-md text-[11px] font-medium bg-black/55 text-white backdrop-blur-sm border border-white/15 hover:bg-black/70 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <Camera size={11} />
+                {bannerMutation.isPending ? "Uploading…" : profile.banner ? "Change" : "Add banner"}
+              </button>
+              {profile.banner && (
+                <button
+                  onClick={() => deleteBannerMutation.mutate()}
+                  disabled={deleteBannerMutation.isPending}
+                  title="Remove banner"
+                  className="px-2 py-1.25 rounded-md text-[11px] bg-black/55 text-red-400 backdrop-blur-sm border border-white/15 hover:bg-black/70 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  Remove
+                </button>
+              )}
+              <input
+                ref={bannerInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) bannerMutation.mutate(file);
+                  e.target.value = "";
+                }}
+              />
+            </div>
+          )}
+        </div>
+
         <div className={c.headerBody}>
 
           {/* Avatar */}
-          <div className="relative z-[2] w-[68px] h-[68px] rounded-[14px] border-[3px] border-gx-surface overflow-hidden -mt-7 mb-2.5">
+          <div className="relative z-[2] w-17.5 h-17.5 rounded-[14px] overflow-hidden -mt-7 mb-2.5">
             <Avatar src={profile.avatar} username={profile.username} size="lg" />
           </div>
 
