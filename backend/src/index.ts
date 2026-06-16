@@ -30,10 +30,12 @@ const app = express();
 app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
 app.use(express.json());
 
-app.use(
-  "/api/auth",
-  rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false })
-);
+if (process.env.NODE_ENV === "production") {
+  app.use(
+    "/api/auth",
+    rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false })
+  );
+}
 
 app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);

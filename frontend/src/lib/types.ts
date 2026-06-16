@@ -250,6 +250,31 @@ export interface ClubFeedPost {
 
 export type FeedItem = Post | ClubFeedPost;
 
+export interface ClubJoinQuestion {
+  id: string;
+  question: string;
+  required: boolean;
+  order: number;
+}
+
+export type JoinRequestStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+export interface ClubJoinRequest {
+  id: string;
+  status: JoinRequestStatus;
+  createdAt: string;
+  rejectionNote?: string | null;
+  user: { id: string; username: string; avatar?: string };
+  answers: { answer: string; question: { id: string; question: string; required: boolean } }[];
+}
+
+export interface MyClubRequest {
+  id: string;
+  status: JoinRequestStatus;
+  createdAt: string;
+  rejectionNote?: string | null;
+}
+
 export interface PostComment {
   id: string;
   postId: string;

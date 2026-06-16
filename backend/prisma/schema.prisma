@@ -48,6 +48,7 @@ model User {
   clubsCreated           GameClub[]          @relation("ClubCreator")
   clubMemberships        GameClubMember[]
   clubPosts              GameClubPost[]
+  clubJoinRequests       GameClubJoinRequest[]
   clubComments           GameClubComment[]
   clubPostLikes          GameClubPostLike[]
   clubPostReactions      GameClubPostReaction[]
@@ -160,16 +161,63 @@ model GameClub {
   avatar        String?
   gameId        String?
   genre         String?  // genre tag e.g. "RPG", "Action"
+  isPrivate     Boolean  @default(false)
   createdBy     String
   pinnedPostId  String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  creator     User             @relation("ClubCreator", fields: [createdBy], references: [id], onDelete: Cascade)
-  game        Game?            @relation(fields: [gameId], references: [id], onDelete: SetNull)
-  members     GameClubMember[]
-  posts       GameClubPost[]
-  pinnedPost  GameClubPost?    @relation("PinnedPost", fields: [pinnedPostId], references: [id], onDelete: SetNull)
+  creator      User                  @relation("ClubCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  game         Game?                 @relation(fields: [gameId], references: [id], onDelete: SetNull)
+  members      GameClubMember[]
+  posts        GameClubPost[]
+  pinnedPost   GameClubPost?         @relation("PinnedPost", fields: [pinnedPostId], references: [id], onDelete: SetNull)
+  joinRequests GameClubJoinRequest[]
+  joinQuestions GameClubJoinQuestion[]
+}
+
+enum JoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model GameClubJoinQuestion {
+  id        String   @id @default(cuid())
+  clubId    String
+  question  String
+  required  Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  club    GameClub                    @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  answers GameClubJoinRequestAnswer[]
+}
+
+model GameClubJoinRequest {
+  id             String            @id @default(cuid())
+  clubId         String
+  userId         String
+  status         JoinRequestStatus @default(PENDING)
+  rejectionNote  String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  club    GameClub                    @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user    User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers GameClubJoinRequestAnswer[]
+
+  @@unique([clubId, userId])
+}
+
+model GameClubJoinRequestAnswer {
+  id         String @id @default(cuid())
+  requestId  String
+  questionId String
+  answer     String
+
+  request  GameClubJoinRequest  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  question GameClubJoinQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 }
 
 model GameClubMember {

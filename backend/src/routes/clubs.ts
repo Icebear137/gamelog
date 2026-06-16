@@ -44,7 +44,7 @@ const router = Router();
 
 const CLUB_SELECT = {
   id: true, name: true, description: true, avatar: true,
-  genre: true, pinnedPostId: true, createdAt: true, updatedAt: true,
+  genre: true, isPrivate: true, pinnedPostId: true, createdAt: true, updatedAt: true,
   game: { select: { rawgId: true, name: true, coverImage: true } },
   creator: { select: { id: true, username: true, avatar: true } },
   _count: { select: { members: true, posts: true } },
@@ -73,9 +73,10 @@ const POST_SELECT = {
 const ClubSchema = z.object({
   name:        z.string().min(2).max(80),
   description: z.string().max(500).optional(),
-  gameId:      z.string().nullable().optional(), // internal DB id or null to unlink
-  rawgId:      z.number().int().optional(),      // alternative: pass rawgId, backend resolves
+  gameId:      z.string().nullable().optional(),
+  rawgId:      z.number().int().optional(),
   genre:       z.string().max(40).optional(),
+  isPrivate:   z.boolean().optional(),
 });
 
 const PostSchema = z.object({ body: z.string().min(1).max(10000) });
@@ -94,6 +95,16 @@ router.get("/", optionalAuth, async (req: AuthRequest, res: Response) => {
   const q     = (req.query.q as string)?.trim() || undefined;
   const genre = (req.query.genre as string)?.trim() || undefined;
 
+  // Get user's joined club IDs for membership check + private-club visibility
+  const memberSet = new Set<string>();
+  if (req.userId) {
+    const memberships = await prisma.gameClubMember.findMany({
+      where: { userId: req.userId, isBanned: false },
+      select: { clubId: true },
+    });
+    memberships.forEach((m) => memberSet.add(m.clubId));
+  }
+
   const clubs = await prisma.gameClub.findMany({
     where: {
       ...(q     ? { name: { contains: q } } : {}),
@@ -103,15 +114,6 @@ router.get("/", optionalAuth, async (req: AuthRequest, res: Response) => {
     take: 30,
     select: CLUB_SELECT,
   });
-
-  const memberSet = new Set<string>();
-  if (req.userId && clubs.length > 0) {
-    const memberships = await prisma.gameClubMember.findMany({
-      where: { userId: req.userId, clubId: { in: clubs.map((c) => c.id) }, isBanned: false },
-      select: { clubId: true },
-    });
-    memberships.forEach((m) => memberSet.add(m.clubId));
-  }
 
   res.json(clubs.map((c) => ({ ...c, isMember: memberSet.has(c.id) })));
 });
@@ -193,22 +195,36 @@ router.get("/:id", optionalAuth, async (req: AuthRequest, res: Response) => {
   const isBanned = !!myMember?.isBanned;
   const myRole   = myMember?.role ?? null;
 
+  // Private club: non-members only see basic info (no posts/members)
+  if ((club as any).isPrivate && !isMember) {
+    const myRequest = req.userId
+      ? await prisma.gameClubJoinRequest.findUnique({
+          where: { clubId_userId: { clubId: club.id, userId: req.userId } },
+          select: { id: true, status: true, createdAt: true },
+        })
+      : null;
+    return res.json({ ...club, isMember: false, isBanned, myRole: null, members: [], pinnedPost: null, myRequest });
+  }
+
   const members = await prisma.gameClubMember.findMany({
     where: { clubId: club.id },
     orderBy: [{ role: "asc" }, { joinedAt: "asc" }],
     select: MEMBER_SELECT,
   });
 
-  // Fetch pinned post if set
   let pinnedPost = null;
   if (club.pinnedPostId) {
     pinnedPost = await prisma.gameClubPost.findUnique({ where: { id: club.pinnedPostId }, select: POST_SELECT });
   }
 
-  // Frontend queries get_presence per member — no need to embed isOnline here
-  const membersWithStatus = members;
+  const myRequest = req.userId
+    ? await prisma.gameClubJoinRequest.findUnique({
+        where: { clubId_userId: { clubId: club.id, userId: req.userId } },
+        select: { id: true, status: true, createdAt: true },
+      })
+    : null;
 
-  res.json({ ...club, isMember, isBanned, myRole, members: membersWithStatus, pinnedPost });
+  res.json({ ...club, isMember, isBanned, myRole, members, pinnedPost, myRequest });
 });
 
 router.patch("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
@@ -283,9 +299,13 @@ router.post("/:id/join", requireAuth, async (req: AuthRequest, res: Response) =>
   const club   = await prisma.gameClub.findUnique({ where: { id: clubId } });
   if (!club) { res.status(404).json({ error: "Club not found" }); return; }
 
-  // Block banned users
   const existing = await prisma.gameClubMember.findUnique({ where: { clubId_userId: { clubId, userId: req.userId! } } });
   if (existing?.isBanned) { res.status(403).json({ error: "You are banned from this club" }); return; }
+
+  if (club.isPrivate) {
+    res.status(403).json({ error: "This club requires admin approval to join", requiresRequest: true });
+    return;
+  }
 
   await prisma.gameClubMember.upsert({
     where: { clubId_userId: { clubId, userId: req.userId! } },
@@ -302,6 +322,8 @@ router.delete("/:id/join", requireAuth, async (req: AuthRequest, res: Response) 
   if (club.createdBy === req.userId) { res.status(400).json({ error: "Creator cannot leave their own club" }); return; }
 
   await prisma.gameClubMember.deleteMany({ where: { clubId, userId: req.userId! } });
+  // Clear join request so user can re-apply if club is private
+  await prisma.gameClubJoinRequest.deleteMany({ where: { clubId, userId: req.userId! } });
   res.json({ joined: false });
 });
 
@@ -343,6 +365,7 @@ router.delete("/:id/members/:userId", requireAuth, async (req: AuthRequest, res:
   }
 
   await prisma.gameClubMember.deleteMany({ where: { clubId, userId: targetId } });
+  await prisma.gameClubJoinRequest.deleteMany({ where: { clubId, userId: targetId } });
   res.json({ kicked: true });
 });
 
@@ -397,6 +420,16 @@ async function blockIfBanned(clubId: string, userId: string, res: Response): Pro
 
 router.get("/:id/posts", optionalAuth, async (req: AuthRequest, res: Response) => {
   const clubId = String(req.params.id);
+
+  // Block non-members from reading private club posts
+  const club = await prisma.gameClub.findUnique({ where: { id: clubId }, select: { isPrivate: true } });
+  if (club?.isPrivate) {
+    const isMember = req.userId
+      ? !!(await prisma.gameClubMember.findUnique({ where: { clubId_userId: { clubId, userId: req.userId } }, select: { id: true } }))
+      : false;
+    if (!isMember) { res.status(403).json({ error: "This club is private" }); return; }
+  }
+
   const sort   = (req.query.sort as string) || "newest";
 
   let orderBy: Record<string, unknown> = { createdAt: "desc" };
@@ -600,6 +633,207 @@ router.delete("/:id/posts/:postId/comments/:commentId", requireAuth, async (req:
   if (!comment || comment.userId !== req.userId) { res.status(403).json({ error: "Forbidden" }); return; }
   await prisma.gameClubComment.delete({ where: { id: comment.id } });
   res.json({ deleted: true });
+});
+
+// ── Join Questions (admin only) ───────────────────────────────────────────────
+
+router.get("/:id/questions", optionalAuth, async (req: AuthRequest, res: Response) => {
+  const questions = await prisma.gameClubJoinQuestion.findMany({
+    where: { clubId: String(req.params.id) },
+    orderBy: { order: "asc" },
+    select: { id: true, question: true, required: true, order: true },
+  });
+  res.json(questions);
+});
+
+router.post("/:id/questions", requireAuth, async (req: AuthRequest, res: Response) => {
+  const clubId = String(req.params.id);
+  const admin  = await requireAdmin(clubId, req.userId!);
+  if (!admin) { res.status(403).json({ error: "Admin only" }); return; }
+
+  const { question, required = true } = req.body as { question?: string; required?: boolean };
+  if (!question?.trim()) { res.status(400).json({ error: "Question text required" }); return; }
+
+  const count = await prisma.gameClubJoinQuestion.count({ where: { clubId } });
+  if (count >= 5) { res.status(400).json({ error: "Maximum 5 questions allowed" }); return; }
+
+  const q = await prisma.gameClubJoinQuestion.create({
+    data: { clubId, question: question.trim().slice(0, 300), required: !!required, order: count },
+    select: { id: true, question: true, required: true, order: true },
+  });
+  res.status(201).json(q);
+});
+
+router.patch("/:id/questions/:qId", requireAuth, async (req: AuthRequest, res: Response) => {
+  const clubId = String(req.params.id);
+  const admin  = await requireAdmin(clubId, req.userId!);
+  if (!admin) { res.status(403).json({ error: "Admin only" }); return; }
+
+  const { question, required } = req.body as { question?: string; required?: boolean };
+  const updated = await prisma.gameClubJoinQuestion.update({
+    where: { id: String(req.params.qId) },
+    data: {
+      ...(question !== undefined ? { question: question.trim().slice(0, 300) } : {}),
+      ...(required !== undefined ? { required } : {}),
+    },
+    select: { id: true, question: true, required: true, order: true },
+  });
+  res.json(updated);
+});
+
+router.delete("/:id/questions/:qId", requireAuth, async (req: AuthRequest, res: Response) => {
+  const clubId = String(req.params.id);
+  const admin  = await requireAdmin(clubId, req.userId!);
+  if (!admin) { res.status(403).json({ error: "Admin only" }); return; }
+  await prisma.gameClubJoinQuestion.delete({ where: { id: String(req.params.qId) } });
+  res.json({ deleted: true });
+});
+
+// ── Join Requests ─────────────────────────────────────────────────────────────
+
+// GET /:id/requests — admin sees all pending requests with answers
+router.get("/:id/requests", requireAuth, async (req: AuthRequest, res: Response) => {
+  const clubId = String(req.params.id);
+  const admin  = await requireAdmin(clubId, req.userId!);
+  if (!admin) { res.status(403).json({ error: "Admin only" }); return; }
+
+  const requests = await prisma.gameClubJoinRequest.findMany({
+    where: { clubId, status: "PENDING" },
+    orderBy: { createdAt: "asc" },
+    select: {
+      id: true, status: true, rejectionNote: true, createdAt: true,
+      user: { select: { id: true, username: true, avatar: true } },
+      answers: {
+        select: {
+          answer: true,
+          question: { select: { id: true, question: true, required: true } },
+        },
+        orderBy: { question: { order: "asc" } },
+      },
+    },
+  });
+  res.json(requests);
+});
+
+// POST /:id/requests — submit join request (with optional answers)
+router.post("/:id/requests", requireAuth, async (req: AuthRequest, res: Response) => {
+  const clubId = String(req.params.id);
+  const club   = await prisma.gameClub.findUnique({ where: { id: clubId }, select: { isPrivate: true, createdBy: true } });
+  if (!club) { res.status(404).json({ error: "Club not found" }); return; }
+  if (!club.isPrivate) { res.status(400).json({ error: "This club does not require requests" }); return; }
+
+  const banned = await prisma.gameClubMember.findUnique({ where: { clubId_userId: { clubId, userId: req.userId! } } });
+  if (banned?.isBanned) { res.status(403).json({ error: "You are banned from this club" }); return; }
+  if (banned && !banned.isBanned) { res.status(400).json({ error: "You are already a member" }); return; }
+
+  // Check for existing pending/approved request
+  const existing = await prisma.gameClubJoinRequest.findUnique({ where: { clubId_userId: { clubId, userId: req.userId! } } });
+  if (existing?.status === "PENDING") { res.status(400).json({ error: "You already have a pending request" }); return; }
+  if (existing?.status === "APPROVED") { res.status(400).json({ error: "Your request was already approved" }); return; }
+
+  const questions = await prisma.gameClubJoinQuestion.findMany({ where: { clubId }, orderBy: { order: "asc" } });
+  const answers: { questionId: string; answer: string }[] = req.body.answers ?? [];
+
+  // Validate required questions
+  for (const q of questions.filter((q) => q.required)) {
+    const ans = answers.find((a) => a.questionId === q.id);
+    if (!ans?.answer?.trim()) {
+      res.status(400).json({ error: `Answer required for: "${q.question}"` }); return;
+    }
+  }
+
+  // Upsert (re-apply after rejection)
+  const request = await prisma.gameClubJoinRequest.upsert({
+    where: { clubId_userId: { clubId, userId: req.userId! } },
+    create: {
+      clubId, userId: req.userId!, status: "PENDING",
+      answers: answers.length > 0 ? {
+        create: answers.filter((a) => a.answer?.trim()).map((a) => ({
+          questionId: a.questionId, answer: a.answer.trim().slice(0, 1000),
+        })),
+      } : undefined,
+    },
+    update: {
+      status: "PENDING", rejectionNote: null,
+      answers: {
+        deleteMany: {},
+        create: answers.filter((a) => a.answer?.trim()).map((a) => ({
+          questionId: a.questionId, answer: a.answer.trim().slice(0, 1000),
+        })),
+      },
+    },
+    select: { id: true, status: true, createdAt: true },
+  });
+
+  // Notify club admins of new request
+  const admins = await prisma.gameClubMember.findMany({
+    where: { clubId, role: "admin" },
+    select: { userId: true },
+  });
+  for (const a of admins) {
+    emitToUser(a.userId, "club_join_request", {
+      clubId,
+      requestId: request.id,
+      username: (await prisma.user.findUnique({ where: { id: req.userId! }, select: { username: true } }))?.username,
+    });
+  }
+
+  res.status(201).json(request);
+});
+
+// PATCH /:id/requests/:reqId — approve or reject (admin)
+router.patch("/:id/requests/:reqId", requireAuth, async (req: AuthRequest, res: Response) => {
+  const clubId = String(req.params.id);
+  const admin  = await requireAdmin(clubId, req.userId!);
+  if (!admin) { res.status(403).json({ error: "Admin only" }); return; }
+
+  const { action, rejectionNote } = req.body as { action: "approve" | "reject"; rejectionNote?: string };
+  if (action !== "approve" && action !== "reject") {
+    res.status(400).json({ error: "action must be approve or reject" }); return;
+  }
+
+  const request = await prisma.gameClubJoinRequest.findUnique({
+    where: { id: String(req.params.reqId) },
+    select: { id: true, clubId: true, userId: true, status: true },
+  });
+  if (!request || request.clubId !== clubId) { res.status(404).json({ error: "Request not found" }); return; }
+  if (request.status !== "PENDING") { res.status(400).json({ error: "Request already resolved" }); return; }
+
+  await prisma.gameClubJoinRequest.update({
+    where: { id: request.id },
+    data: {
+      status: action === "approve" ? "APPROVED" : "REJECTED",
+      rejectionNote: action === "reject" ? (rejectionNote?.trim() ?? null) : null,
+    },
+  });
+
+  if (action === "approve") {
+    await prisma.gameClubMember.upsert({
+      where: { clubId_userId: { clubId, userId: request.userId } },
+      create: { clubId, userId: request.userId },
+      update: { isBanned: false },
+    });
+  }
+
+  // Notify applicant of decision
+  emitToUser(request.userId, "club_request_resolved", {
+    clubId, action,
+    rejectionNote: action === "reject" ? (rejectionNote?.trim() ?? null) : null,
+  });
+
+  res.json({ ok: true, action });
+});
+
+// DELETE /:id/requests/:reqId — cancel own pending request
+router.delete("/:id/requests/:reqId", requireAuth, async (req: AuthRequest, res: Response) => {
+  const request = await prisma.gameClubJoinRequest.findUnique({
+    where: { id: String(req.params.reqId) },
+    select: { id: true, userId: true, status: true },
+  });
+  if (!request || request.userId !== req.userId) { res.status(403).json({ error: "Forbidden" }); return; }
+  if (request.status !== "PENDING") { res.status(400).json({ error: "Can only cancel pending requests" }); return; }
+  await prisma.gameClubJoinRequest.delete({ where: { id: request.id } });
+  res.json({ cancelled: true });
 });
 
 export default router;
